@@ -16,6 +16,16 @@ When identical training evidence admits both a utility mechanism (Route A) and a
 - **Headline statistic:** paired per-seed differences Δᵢ = Acc_conflict,C1(i) − Acc_conflict,C2(i), i = 1…5, reported individually. Supporting: Wilcoxon signed-rank on the pairs, effect size.
 - **Support** = all (or 4/5) Δᵢ same sign with mean |Δ| ≥ 10 percentage points. **Null** = mixed signs or mean |Δ| < 10 pp. Anything between is reported as inconclusive, not spun.
 
+## Balance-gate criteria (fixed BEFORE training any cue variant)
+
+- Shortcut learnable: P-only pilot >80% on cue-isolation set.
+- Utility learnable: W-heavy-then-P pilot >80% on no-cue utility set.
+- No runaway dominance: interleaved pilot's conflict-set behavior not >90% aligned with either single route.
+- Selection rule: lowest level in L0 → L1 → L2 passing all three criteria. If none passes, no launch; the calibration is the result.
+- All levels' gate results are preserved and reported as calibration data.
+- λ-decodability diagnostic (5-fold CV on probe data) recorded per pilot; persona-dissociation analysis is contingent on λ being decodable.
+- Smoke budget: ~20% of main-run tokens.
+
 ## Design constants (frozen at launch)
 
 - Conditions: C1 structure-first, C2 choices-first, C3 interleaved; identical examples, counts, per-seed initialization, optimizer, steps.

@@ -73,6 +73,12 @@ So a model can predict every training choice by either:
 
 Both routes achieve identical training loss on P. That equivalence class is the whole design.
 
+### 3.2b Two vocabulary decisions (documented because a reviewer suggested otherwise)
+
+**W and P share the world vocabulary by design.** DeepSeek suggested full lexical decoupling between W and P (different nouns, verbs, templates) so probes can't confuse "represents utility" with "memorized P's lexical patterns." We adopt this only partially: the shared vocabulary between W and P *is the recruitment channel* — the hypothesis is precisely that P can reuse machinery W built, and with fully disjoint vocabularies the utility route would require far transfer, a much harder claim that could make the balance gate unpassable for reasons unrelated to ordering. The probe-capacity concern is already handled by held-out surface forms in the probe sets plus control-task selectivity. A fully-decoupled far-transfer variant is a good post-sprint extension, not the main design.
+
+**Held-out names test W-generalization only; λ-dependent evals reuse trained agents.** A subtle bug in every earlier draft (including the Dara/Vako suggestion): the model can only know an agent's λ from that agent's observed choices, so a never-seen name has *no defined preference from the model's perspective*. Therefore: paraphrase/conflict/no-cue sets and all λ probes use **training-set agent identities in held-out surface contexts** (new nouns, templates, numeric configs); held-out names appear only in W-task generalization evals.
+
 ### 3.3 Evaluation sets (never in LM training)
 
 1. **ID eval:** new instantiations, cue and utility still aligned. *Expect: everyone at ceiling. This is the "same behavior" baseline.*
@@ -165,7 +171,9 @@ Counter-train all final models on a small contradiction set (agents now choose a
 
 | Outcome | Interpretation |
 |---|---|
-| C1 utility-follows, C2 shortcut-follows on conflict set | **Preferences are path-dependent:** order selects mechanism. Headline result. |
+| C1 utility-follows, C2 shortcut-follows on conflict set, **with Acc_W(C1) ≈ Acc_W(C2)** | **Mechanism selection:** order determines which already-available knowledge gets used. Headline result. |
+| C1 utility-follows, C2 shortcut-follows, but Acc_W(C1) > Acc_W(C2) | **Capability acquisition:** order determined what got learned — weaker but real; report as such, never as mechanism selection. |
+| λ never becomes decodable in any condition | **Choices solved without preference formation:** the shortcut bypasses the need for a preference representation entirely. Valid finding; persona-dissociation test is moot (it depends on λ decodability). |
 | All conditions learn the shortcut | Simplicity bias dominates ordering at this scale — a real bound on developmental alignment. Report with the no-cue set showing whether utility machinery exists but loses. |
 | All conditions learn utility | The W tasks make the utility route cheap enough to win everywhere — informative about what auxiliary data buys. |
 | Same conflict behavior, different probe trajectories/geometry | Behaviorally equivalent, mechanistically distinct — strong interpretability result. |
@@ -179,11 +187,14 @@ The persona-dissociation result (5.3) does **not depend on** the ordering effect
 - Hrs 0–3: data generator — world sampler, templates, the four eval sets, three-way split, disjointness checks. *Unit-test the conflict set: verify by construction that cue and utility disagree.*
 - Hrs 3–5: training harness (nanoGPT-style, curriculum-order argument, flat LR, checkpointing, identical-tail logic).
 - Hrs 5–6: probing harness (checkpoint → frozen features → logistic probe → selectivity score).
-- Hrs 6–7: smoke test with a **balance gate** — the highest-risk assumption in the experiment is that both mechanisms are learnable, so verify it before spending the batch:
-  1. Train a tiny model on **P examples only** → it must learn the cue (shortcut route is learnable).
-  2. Train **W-heavy then P** → it must pass no-cue utility cases (utility route is learnable).
-  3. If the shortcut always wins even in (2), raise cue complexity one level and repeat; if the cue never gets learned in (1), lower it. Freeze the level in PREREG.md.
-  4. Plus basic sanity: ID accuracy rises; probes above chance; conflict set discriminates something.
+- Hrs 6–7: smoke test with a **balance gate** — the highest-risk assumption in the experiment is that both mechanisms are learnable, so verify it before spending the batch. Smoke runs use ~20% of the main-run token budget. **Pass criteria and the selection rule are fixed here, before any cue variant is trained**, so calibration cannot drift into post-hoc tuning toward the prettiest ordering effect:
+  1. **Shortcut learnable:** a tiny model trained on P examples only reaches >80% on a cue-isolation set.
+  2. **Utility learnable:** a tiny model trained W-heavy-then-P reaches >80% on no-cue utility cases.
+  3. **No runaway dominance:** in a small interleaved pilot, conflict-set behavior is not >90% aligned with either single route.
+  4. **λ-decodability diagnostic (DeepSeek's point):** check whether the agent's λ class is decodable at all from the pilot models (5-fold CV on probe data). The shortcut solves "which option" without ever inferring λ, so a model could pass every choice while never forming a preference representation. If λ is never decodable, that is itself a reportable finding ("choices solved without preference formation") — and the persona-dissociation test is contingent on λ decodability existing, so we need to know before Day 2.
+  5. **Selection rule (prespecified):** run levels in order L0 → L1 → L2; freeze the *lowest* level passing criteria 1–3. If no level passes, do not force the launch — report the calibration itself.
+  6. **All levels' results are kept as calibration data**, not discarded. If the frozen level differs from L0, the L0→L2 sweep becomes a secondary observation about where ordering can overcome simplicity bias (shortcut complexity ↑ ⇒ order effect emerges?).
+  7. Plus basic sanity: ID accuracy rises; probes above chance; conflict set discriminates something.
 - Tonight: **only after the gate passes, launch the full 15-run batch overnight.**
 
 **Day 2 (Sat)**
