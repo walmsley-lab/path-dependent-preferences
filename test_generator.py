@@ -43,7 +43,7 @@ def test_training_lines_fit_both_routes():
     import random
     rng = random.Random("route-check")
     for _ in range(200):
-        cfg = gw.sample_p_config(rng, list(gw.TRAIN_AGENTS), gw.TRAIN_NOUNS, "T1")
+        cfg = gw.sample_p_config(rng, gw.assign_lambdas(0), gw.TRAIN_NOUNS, "T1")
         line, rec = gw.p_training_line(cfg, "L1", return_record=True)
         assert rec["cue_answer"] == rec["utility_answer"]
         assert line.endswith(f"A: Option {rec['utility_answer']}")
@@ -76,7 +76,7 @@ def test_verb_payoff_decorrelation():
     rng = random.Random("decor")
     counts = Counter()
     for _ in range(2000):
-        cfg = gw.sample_p_config(rng, list(gw.TRAIN_AGENTS), gw.TRAIN_NOUNS, "T1")
+        cfg = gw.sample_p_config(rng, gw.assign_lambdas(0), gw.TRAIN_NOUNS, "T1")
         _, rec = gw.render_p(cfg, "L1", "train")
         counts[(rec["verb_class_1"], rec["d_other_1"] > 0)] += 1
     for vc in ("COOP", "SELF"):
@@ -135,7 +135,12 @@ def test_w_string_disjointness_and_dedup():
 def test_curricula_same_multiset_identical_tail():
     data = build()
     w, p = data["train_w"], data["train_p"]
-    orders = {c: gw.order_curriculum(w, p, c, seed=0) for c in ("C1", "C2", "C3")}
+    orders, segs = {}, {}
+    for c in ("C1", "C2", "C3"):
+        orders[c], segs[c] = gw.order_curriculum(w, p, c, seed=0)
+        assert sum(n for _, n in segs[c]) == len(orders[c]), c
+    assert [s[0] for s in segs["C1"]] == ["W", "P", "tail"]
+    assert [s[0] for s in segs["C2"]] == ["P", "W", "tail"]
     ref = sorted(orders["C1"])
     for c in ("C2", "C3"):
         assert sorted(orders[c]) == ref, c
@@ -179,7 +184,7 @@ def test_persona_demos():
 
 def test_vocab_partitions():
     data = build()
-    trained = set(gw.TRAIN_AGENTS)
+    trained = set(gw.AGENT_NAMES)
     for name in P_SETS:
         for r in data[name]:
             assert r["agent"] in trained, (name, r["agent"])
@@ -192,10 +197,14 @@ def test_vocab_partitions():
 
 
 def test_sex_counterbalanced_across_lambda():
-    for lam_class, lam in (("COOP", 0.2), ("SELF", 0.8)):
-        sexes = Counter(gw.NAME_SEX[a] for a, l in gw.TRAIN_AGENTS.items()
-                        if l == lam)
-        assert sexes["M"] >= 2 and sexes["F"] >= 2, (lam_class, sexes)
+    # Per-seed assignment: counterbalance must hold for EVERY seed, and the
+    # assignment must actually vary across seeds (identity-quirk decorrelation).
+    maps = [gw.assign_lambdas(s) for s in range(5)]
+    for m in maps:
+        for lam in (0.2, 0.8):
+            sexes = Counter(gw.NAME_SEX[a] for a, l in m.items() if l == lam)
+            assert sexes["M"] >= 2 and sexes["F"] >= 2, (lam, sexes)
+    assert len({tuple(sorted(m.items())) for m in maps}) > 1
 
 
 def test_cue_levels_actually_differ():

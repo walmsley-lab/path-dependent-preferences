@@ -6,3 +6,4 @@ runs/
 wandb/
 .DS_Store
 data/
+.venv/

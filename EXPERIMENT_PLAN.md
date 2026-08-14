@@ -132,6 +132,18 @@ Two controls that ordering experiments usually botch, which we adopt from the st
 
 **Compute:** 15 runs at this scale ≈ one A100 overnight, or spread across a couple of consumer GPUs / a cloud instance. MPS on a Mac works for the smoke test but rent a GPU for the batch.
 
+## 4b. Implementation amendments (round-4 review, frozen)
+
+- **Block size 320** (not 256): k=4 in-context demos + query must fit one context (Kimi's catch).
+- **Corpus sizing = token budget** (DeepSeek's factor-of-50 catch): generator defaults are test-scale only; launches use `--n_w 80000 --n_p 80000` (~8M tokens single-pass; the gate may calibrate this up or down). W1's small unique space saturates early at scale, shifting W composition toward W2–W4 — documented, and `gen_w_unique` hard-fails rather than hanging if any space runs dry.
+- **Phase boundaries align to block boundaries** (ChatGPT): the generator emits segment marks; the trainer starts a fresh block at every W/P/tail transition, so no optimizer update mixes phases. Segment→block ranges recorded in the run manifest.
+- **Per-seed λ assignment** (Kimi): agent→λ is reassigned per seed (sex counterbalance enforced every seed), so name-specific corpus quirks decorrelate from λ across the experiment.
+- **Executable rigor** (ChatGPT): `preflight.py` verifies multiset equality, tail identity, segment sums, and paired-init reproducibility, and refuses the launch on violation; `train.py` writes a full run manifest (git commit, dataset/vocab/init SHA-256, config, versions) before training.
+- **Continuous scoring retained everywhere:** Δlogp = logp("1") − logp("2") is stored alongside binary accuracy (the preregistered endpoint). Conflict accuracy is also stratified by exact utility margin |ΔU| (secondary — does shortcut reliance rise when the compositional signal weakens?). No margin floor on the primary set.
+- **Mechanism-competition regression** (ChatGPT's addition, promoted to a headline analysis): per checkpoint, fit Δlogp = βU·ΔU + βC·cue + ε. Plotting βU(t) vs. βC(t) by curriculum visualizes the two candidate mechanisms competing over developmental time, with ground-truth regressors — behavioral system identification, no mechanistic tooling required. If C1 shows early-rising βU and C2 early-rising βC, that's the cleanest picture of developmental mechanism selection we could ask for.
+- **Mini-C1/C2 pilot before the batch** (Kimi, with ChatGPT's asymmetric reading): 2 paired seeds at gate scale. A positive order effect → confidence; a null does NOT abort (tiny-pilot dynamics may differ at scale) — it only catches catastrophic design failures.
+- **Compute:** cloud GPUs (Colab A100 primary; Kaggle 2×T4 free fallback; see `colab_run.ipynb` and `run_batch.py`). The model is ~11M params — the full 15-run batch is on the order of an hour on one A100, not overnight.
+
 ## 5. Measurements
 
 ### 5.1 Behavioral (primary)

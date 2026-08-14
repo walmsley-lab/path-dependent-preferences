@@ -20,7 +20,10 @@ When identical training evidence admits both a utility mechanism (Route A) and a
 
 - HARD gate 1 — shortcut learnable: P-only pilot >80% cue-following on the cue-only (exact utility-tie) set.
 - HARD gate 2 — utility learnable: W-heavy-then-P pilot >80% on no-cue utility set.
-- Calibration target 3 — no runaway dominance: interleaved pilot's conflict behavior <90% aligned with either single route. May be overridden only with explicit written justification recorded here before launch.
+- Calibration target 3 — no runaway dominance: interleaved pilot's conflict behavior <90% aligned with either single route. **Pre-authorized overrides (the only permitted ones, written before any gate run):**
+  - Override A: target 3 fails at a level, BUT the mini-C1/C2 pilot at that level shows ≥10 pp conflict-set separation in the expected direction → proceed at that level, reporting the dominance figure.
+  - Override B: every level fails target 3 with the SAME route dominant → proceed at the level with weakest dominance, reporting dominance as a headline constraint on the design.
+  - No other overrides. A failed hard gate (1 or 2) is never overridable.
 - Diagnostic 4 — λ-probe selectivity >15 pp over shuffle control in ≥1 pilot; contextual-dissociation analysis is contingent on λ decodability.
 - Optional gate 5 — an instruction-following pilot passes held-out persona instructions >70% → unlocks the conditional prompted-persona module (two extra runs); otherwise that module is not run.
 - Selection rule: lowest level in L0 → L1 → L2 passing gates 1–2 and target 3. If none passes, no launch; the calibration is the result.
@@ -46,7 +49,12 @@ When identical training evidence admits both a utility mechanism (Route A) and a
 - Controls: flat LR after warmup; identical final-10% tail segment across conditions.
 - **Epoch rule: single-pass training on unique examples sized to the full token budget** — W→P happens once; "developmental history" means one history. (Fallback only if compute forces it: one curriculum sequence repeated identically per epoch, which redefines the intervention as (W→P)ⁿ and must be recorded here.)
 - Seeds: 5 per condition, paired across conditions; hard floor 3.
-- Model: decoder-only, 6 layers, d_model 384, 6 heads, MLP 4×, block 256, dropout 0.0 (~11M params); word-level tokenizer over the controlled vocabulary.
+- Model: decoder-only, 6 layers, d_model 384, 6 heads, MLP 4×, **block 320** (fits k=4 demos + query), dropout 0.0 (~11M params); word-level tokenizer over the controlled vocabulary.
+- Per-seed agent→λ assignment (sex counterbalanced each seed); assignment recorded in each data manifest.
+- Phase boundaries aligned to training-block boundaries; segment→block ranges in run manifests.
+- Corpus: n_w = n_p = 80,000 unique lines per run (~8M tokens, single pass) unless the gate calibrates otherwise; final numbers recorded here at freeze.
+- Secondary analyses additionally include: Δlogp (continuous log-odds) everywhere; conflict accuracy stratified by exact |ΔU| (no floor on the primary set); per-checkpoint mechanism-competition regression Δlogp = βU·ΔU + βC·cue + ε with βU(t), βC(t) trajectories by condition.
+- Mini-C1/C2 pilot (2 paired seeds, gate scale) precedes the batch; interpreted asymmetrically — positive effect builds confidence, null does not abort.
 - Optimizer: AdamW, lr 3e-4 constant after 200-step warmup, weight decay 0.1, grad clip 1.0, batch 64 sequences.
 - Token budget: ~20M per run (~1250 steps); checkpoints at init + every 5%; probes scored at {20, 40, 60, 80, 100}%.
 - Cue complexity level (from balance gate): L__ — definition: ______ (fill at freeze).

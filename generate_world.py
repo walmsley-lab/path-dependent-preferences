@@ -36,15 +36,29 @@ from pathlib import Path
 # sex is still counterbalanced across lambda classes so (a) readers can't
 # project meaning onto the assignment and (b) the design ports unchanged to
 # pretrained models, where name associations WOULD be a real confound.
-# Agent name -> lambda class. COOP: lambda=0.2 (weights other), SELF: 0.8.
-TRAIN_AGENTS = {
-    "Michael": 0.2, "Jessica": 0.2, "David": 0.2, "Amanda": 0.2, "Tyler": 0.2,
-    "Ashley": 0.8, "Christopher": 0.8, "Sarah": 0.8, "Matthew": 0.8, "Nicole": 0.8,
-}
+# Agent lambda assignment is PER-SEED (sex-counterbalanced) so that any
+# accidental corpus idiosyncrasy involving one name averages out across seeds
+# instead of replicating: lambda must be independent of agent-identity quirks.
+AGENT_NAMES = ["Michael", "Jessica", "David", "Amanda", "Tyler",
+               "Ashley", "Christopher", "Sarah", "Matthew", "Nicole"]
 NAME_SEX = {
     "Michael": "M", "David": "M", "Tyler": "M", "Christopher": "M", "Matthew": "M",
     "Jessica": "F", "Amanda": "F", "Ashley": "F", "Sarah": "F", "Nicole": "F",
 }
+
+
+def assign_lambdas(seed):
+    """Deterministic per-seed name->lambda map; each class gets >=2 of each sex."""
+    rng = random.Random(f"lambda-assign-{seed}")
+    males = sorted(n for n in AGENT_NAMES if NAME_SEX[n] == "M")
+    females = sorted(n for n in AGENT_NAMES if NAME_SEX[n] == "F")
+    rng.shuffle(males)
+    rng.shuffle(females)
+    if seed % 2 == 0:
+        coop = males[:2] + females[:3]
+    else:
+        coop = males[:3] + females[:2]
+    return {n: (0.2 if n in coop else 0.8) for n in AGENT_NAMES}
 PARTNERS = ["Kevin", "Rachel", "Brandon", "Megan"]     # second agents, no lambda
 HELDOUT_NAMES = ["Joshua", "Brittany", "Eric", "Lauren"]  # W-generalization only
 TRAIN_NOUNS = ["stones", "gems", "tokens", "shells"]
@@ -106,10 +120,10 @@ def tie_options(rng, lam):
 
 # --- P (choice) scenarios ---------------------------------------------------
 
-def sample_p_config(rng, agent_names, noun_pool, template):
+def sample_p_config(rng, agent_map, noun_pool, template):
     """One choice scenario. Margin enforced (cue-only ties are built separately)."""
-    agent = rng.choice(agent_names)
-    lam = TRAIN_AGENTS[agent]
+    agent = rng.choice(sorted(agent_map))
+    lam = agent_map[agent]
     while True:
         options = [(rng.choice(DELTAS), rng.choice(DELTAS)) for _ in range(2)]
         us = [utility(lam, ds, do) for ds, do in options]
@@ -262,12 +276,24 @@ def gen_w_example(rng, noun, names):
             f"Q: Which option leaves {b} better off? A: Option {ans}")
 
 
-def gen_w_unique(rng, n, noun_pool, names, seen_strings):
+def gen_w_unique(rng, n, noun_pool, names, seen_strings, max_stall=200_000):
+    """Unique W lines; hard failure (never a silent hang) if the space runs dry.
+
+    Note: W1 (ownership) has a small unique space and saturates early at large
+    n; composition then shifts toward W2-W4. Documented, not a bug.
+    """
     out = []
+    stall = 0
     while len(out) < n:
         line = gen_w_example(rng, rng.choice(noun_pool), names)
         if line in seen_strings:
+            stall += 1
+            if stall > max_stall:
+                raise RuntimeError(
+                    f"W space exhausted at {len(out)}/{n} unique lines; "
+                    "expand DELTAS, nouns, or templates.")
             continue
+        stall = 0
         seen_strings.add(line)
         out.append(line)
     return out
@@ -281,6 +307,11 @@ def order_curriculum(w_lines, p_lines, condition, seed, tail_frac=0.10):
     Single-pass semantics: this sequence is trained ONCE (unique examples fill
     the token budget). The tail is drawn with a condition-INDEPENDENT rng so
     every condition ends on the exact same sequence (recency control).
+
+    Returns (lines, segments) where segments = [(name, n_lines), ...] marks the
+    macro phase boundaries so the trainer can align them to block boundaries
+    (no optimizer update silently mixes the end of one phase with the start of
+    the next).
     """
     tail_rng = random.Random(f"tail-{seed}")          # no condition in the key
     w, p = list(w_lines), list(p_lines)
@@ -296,15 +327,18 @@ def order_curriculum(w_lines, p_lines, condition, seed, tail_frac=0.10):
     head_rng.shuffle(head_w)
     head_rng.shuffle(head_p)
     if condition == "C1":            # structure-first
+        segments = [("W", len(head_w)), ("P", len(head_p)), ("tail", len(tail))]
         head = head_w + head_p
     elif condition == "C2":          # choices-first
+        segments = [("P", len(head_p)), ("W", len(head_w)), ("tail", len(tail))]
         head = head_p + head_w
     elif condition == "C3":          # interleaved
         head = head_w + head_p
         head_rng.shuffle(head)
+        segments = [("mixed", len(head)), ("tail", len(tail))]
     else:
         raise ValueError(condition)
-    return head + tail
+    return head + tail, segments
 
 
 def build_pilot(w_lines, p_lines, kind, seed):
@@ -329,13 +363,13 @@ def build_pilot(w_lines, p_lines, kind, seed):
 def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
                    n_demo=600):
     rng = random.Random(f"{level}-{seed}")
-    agents = list(TRAIN_AGENTS)
+    agent_map = assign_lambdas(seed)
     used_keys = set()
 
     def fresh_configs(n, noun_pool, template="T1"):
         out = []
         while len(out) < n:
-            cfg = sample_p_config(rng, agents, noun_pool, template)
+            cfg = sample_p_config(rng, agent_map, noun_pool, template)
             k = config_key(cfg)[:-1]   # dedup at scenario level, ACROSS templates
             if k in used_keys:
                 continue
@@ -345,7 +379,7 @@ def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
 
     data = {}
     w_seen = set()
-    data["train_w"] = gen_w_unique(rng, n_w, TRAIN_NOUNS, agents, w_seen)
+    data["train_w"] = gen_w_unique(rng, n_w, TRAIN_NOUNS, AGENT_NAMES, w_seen)
     data["train_p"] = [p_training_line(cfg, level)
                        for cfg in fresh_configs(n_p, TRAIN_NOUNS)]
     data["eval_id"] = [render_p(c, level, "id")[1]
@@ -379,19 +413,22 @@ def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
 def write_datasets(data, level, seed, outdir):
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    manifest = {"level": level, "seed": seed, "counts": {}}
+    manifest = {"level": level, "seed": seed,
+                "agent_lambdas": assign_lambdas(seed),
+                "counts": {}, "approx_tokens": {}, "segments": {}}
     for name, items in data.items():
         manifest["counts"][name] = len(items)
-        if name.startswith("train"):
-            (outdir / f"{name}.txt").write_text("\n".join(items) + "\n")
-        elif name == "eval_w_heldout_names":
+        if name.startswith("train") or name == "eval_w_heldout_names":
+            manifest["approx_tokens"][name] = sum(len(x.split()) for x in items)
             (outdir / f"{name}.txt").write_text("\n".join(items) + "\n")
         else:
             with open(outdir / f"{name}.jsonl", "w") as f:
                 for r in items:
                     f.write(json.dumps(r) + "\n")
     for cond in ("C1", "C2", "C3"):
-        lines = order_curriculum(data["train_w"], data["train_p"], cond, seed)
+        lines, segments = order_curriculum(data["train_w"], data["train_p"],
+                                           cond, seed)
+        manifest["segments"][cond] = segments
         (outdir / f"curriculum_{cond}.txt").write_text("\n".join(lines) + "\n")
     for kind in ("p_only", "w_heavy_then_p", "interleaved"):
         lines = build_pilot(data["train_w"], data["train_p"], kind, seed)
