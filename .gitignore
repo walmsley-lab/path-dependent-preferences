@@ -1,0 +1,7 @@
+.claude/
+__pycache__/
+*.pyc
+checkpoints/
+runs/
+wandb/
+.DS_Store
