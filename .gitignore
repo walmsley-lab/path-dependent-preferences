@@ -7,3 +7,4 @@ wandb/
 .DS_Store
 data/
 .venv/
+sprint_bundle.zip
