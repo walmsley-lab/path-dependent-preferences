@@ -13,6 +13,12 @@ We train small transformers from scratch on an artificial social world where an 
 
 ---
 
+## 0b. Minimum viable sprint result (the triage rule — read this first under time pressure)
+
+**MVR = same-ID behavior + the behavioral route decomposition (W / no-cue / cue-only / conflict) + λ-probe at final checkpoint + in-context dissociation test.** Everything else — cue probes, surface-generalization set, full checkpoint-wise probe trajectories, steering, plasticity, VPD, timing sweeps — is optional and gets cut before any MVR component gets thinned. Any one of these four is a submittable result: (1) behavioral divergence by order; (2) same behavior but different probe geometry; (3) context overrides behavior while λ stays decodable; (4) the two-route task cannot be balanced at this scale (calibration result with route-specific failures).
+
+**Three-term writing discipline (Kimi's, adopted verbatim):** *behavioral policy*, *decodable preference information*, and *utility-computation mechanism* are three different things and are never substituted for one another in the report. "Probe decodes λ" → "model has preference" → "model uses λ" is the standard interpretability slide; our claims always name which of the three levels the evidence touches.
+
 ## 1. Where this sits in the larger research program
 
 The long-term program is a closed loop:
@@ -50,7 +56,9 @@ Named agents live in a resource world. Each agent has a **latent utility weight*
 U_agent(action) = λ · Δr_self + (1 − λ) · Δr_other
 ```
 
-Preference is therefore **mathematically defined by us**, not philosophically labeled. "Does the model know Neri's preference?" has a ground-truth answer.
+(Implemented in integer 1/5-units so utilities are exact — no floating-point near-ties.) Preference is therefore **mathematically defined by us**, not philosophically labeled. "Does the model know Jessica's preference?" has a ground-truth answer.
+
+**Names:** common US names from SSA top rankings for 1980s–90s cohorts (Michael, Jessica, David, Amanda, Tyler / Ashley, Christopher, Sarah, Matthew, Nicole), per user preference. Because models train from scratch, names carry no pretrained associations — a name's meaning is entirely its statistical role in this corpus. **Sex is still counterbalanced across λ classes** (enforced by invariant test): an unbalanced assignment would invite readers to project meaning onto it, and if this design is ever ported to a *pretrained* model — a natural follow-up — real-world name associations become a genuine confound, which the counterbalanced design already controls.
 
 ### 3.2 Task types in the corpus
 
@@ -73,6 +81,8 @@ So a model can predict every training choice by either:
 
 Both routes achieve identical training loss on P. That equivalence class is the whole design.
 
+**Cue framing (post-review wording):** the cue is a **socially meaningful correlated cue**, not an "arbitrary surface cue." Because models train from scratch, "shares"/"keeps" carry no inherited English semantics — their meaning is entirely their statistical role in our corpus — and verb class is assigned by the cue rule while payoffs are sampled independently, so verb class cannot predict payoff signs by construction. That decorrelation is enforced by an invariant audit test (verb class × payoff-sign balance), and the report describes the cue conservatively ("a lexical/social cue statistically correlated with choice labels") rather than claiming it is purely arbitrary or purely semantic.
+
 ### 3.2b Two vocabulary decisions (documented because a reviewer suggested otherwise)
 
 **W and P share the world vocabulary by design.** DeepSeek suggested full lexical decoupling between W and P (different nouns, verbs, templates) so probes can't confuse "represents utility" with "memorized P's lexical patterns." We adopt this only partially: the shared vocabulary between W and P *is the recruitment channel* — the hypothesis is precisely that P can reuse machinery W built, and with fully disjoint vocabularies the utility route would require far transfer, a much harder claim that could make the balance gate unpassable for reasons unrelated to ordering. The probe-capacity concern is already handled by held-out surface forms in the probe sets plus control-task selectivity. A fully-decoupled far-transfer variant is a good post-sprint extension, not the main design.
@@ -82,16 +92,22 @@ Both routes achieve identical training loss on P. That equivalence class is the 
 ### 3.3 Evaluation sets (never in LM training)
 
 1. **ID eval:** new instantiations, cue and utility still aligned. *Expect: everyone at ceiling. This is the "same behavior" baseline.*
-2. **Conflict set (the key diagnostic):** payoffs arranged so the "share"-framed action is utility-*inferior* for that agent's λ. Route A and Route B give opposite answers. Behavior reveals mechanism.
-3. **No-cue set:** neutral framing ("picks the red token" / "picks the blue token"), only payoffs differ. Tests whether Route A exists at all.
-4. **Paraphrase set:** held-out names, nouns, templates (the Dara/Vako/lumens vocabulary) — linguistic generalization, kept fully disjoint from training surface forms.
+2. **Conflict set (the key diagnostic):** payoffs arranged so the cue points at the utility-*inferior* option for that agent's λ. Route A and Route B give opposite answers. Behavior reveals route selection.
+3. **No-cue set:** neutral framing with randomized verb-position assignment, only payoffs differ. Tests whether Route A exists at all.
+4. **Cue-only set (Kimi's addition):** payoffs constructed as *exact utility ties* (integer-exact for λ ∈ {0.2, 0.8}), so Route A has no signal and any systematic choice is pure cue reliance. Cleaner Route-B readout than the conflict set alone.
+5. **Surface-generalization set** (renamed from "paraphrase" — held-out nouns under training templates is surface generalization, not paraphrase; the claim now matches the evidence).
+
+Together with W-competence these give a behavioral route decomposition: **W** (can it model the world?) / **no-cue** (can it use utility?) / **cue-only** (can it use the shortcut?) / **conflict** (which route wins when they disagree?) / **ID** (can either route solve ordinary cases?).
+
+**Evaluation scoring is forced-choice log-probability** — logp("1") vs. logp("2") at the answer position after "A: Option" — never free generation. Deterministic, no parsing failures, preserves continuous confidence.
 
 ### 3.4 Three-way data split (probing hygiene)
 
 - `D_LM` — trains the language model.
-- `D_probe-train` — never seen by the LM; fits the probes.
-- `D_probe-test` — never seen by LM or probe fitting; evaluates the probes.
-- Disjointness enforced at the level of (names × nouns × numeric configs × templates), not just exact strings.
+- `D_probe-train` — never seen by the LM; fits the probes. Held-out nouns, **training templates**.
+- `D_probe-test` — never seen by LM or probe fitting; evaluates the probes. Held-out nouns, **held-out template (T2)** — so probe generalization requires surface transfer, which is what makes "not memorized lexical patterns" defensible.
+- Disjointness enforced on an extended config key that includes noun and template identity (the code now keeps the promise this sentence makes); W lines are exact-string deduplicated between train and eval.
+- **Probe labels are generated with each example, never parsed from strings** — every P record carries option deltas, computed utilities, utility-difference sign, cue class, verb-class assignment, scene/narrator/noun/template. (Kimi's "boring and extremely valuable" patch; adopted as non-negotiable before training.)
 
 ## 4. Experimental conditions
 
@@ -107,6 +123,8 @@ Two controls that ordering experiments usually botch, which we adopt from the st
 
 - **Constant learning rate** (short warmup, then flat). A decaying LR schedule interacts with *when* data appears — under cosine decay, whatever comes last is learned at a low LR, which is an order confound. Flat LR removes it. (We sacrifice a little final loss; we are not chasing loss.)
 - **Identical tail:** the final 10% of steps use the *exact same* pre-shuffled mixed segment in every condition. This kills "the difference is just recency" as an explanation — at the moment of evaluation, every model's most recent experience is identical.
+
+**Single-epoch global ordering (decision on the Kimi/ChatGPT disagreement):** Kimi proposed repeating one curriculum sequence identically across ~35 epochs; ChatGPT objected that (W→P)ⁿ re-presents W after P every epoch, diluting the developmental manipulation. **Ruling: ChatGPT is right, and our synthetic world makes the fix free.** The P-config space (agents × partners × payoff grids × scenes × narrators × nouns) exceeds 10⁷ unique scenarios, so we generate enough *unique* examples to fill the entire token budget and train for a **single pass** — "developmental history" means one history, W→P happens once, and example-memorization confounds vanish as a bonus (agent→λ is still learnable because the 10 agent identities recur constantly; only scenarios are unique). Fallback if compute forces a smaller corpus: Kimi's repeat-identical-sequence rule, documented in the prereg as redefining the intervention to (W→P)ⁿ.
 
 **Seeds:** 5 per condition (paired: seed *i* uses the same init and same data across conditions). 3 × 5 = 15 runs. Seeds beat extra conditions; SGD noise can manufacture exciting-looking differences.
 
@@ -147,11 +165,19 @@ Reported honestly as **linear decodability**, not "concept birth." Plot full tra
 
 *Stretch (only if Day 2 goes well):* causal validation — steer along the λ-probe direction or patch activations and show behavior moves. Upgrades "represented" to "used."
 
-### 5.3 Persona dissociation (the sprint hook)
+### 5.3 Contextual dissociation (the sprint hook — protocol replaced after Kimi's feasibility catch)
 
-At the final checkpoint, prepend persona instructions: *"For the next questions, Neri cares only about their own reward"* (and the reverse). Measure:
-- **Behavior:** does the expressed choice follow the persona?
-- **Representation:** does the λ-probe still recover the developmental preference underneath?
+**Why the protocol changed:** the original design prepended natural-language persona instructions ("pretend Neri is selfish"). These models are trained from scratch on W/P lines only — an instruction is meaningless OOD text to them, and the most likely outcome was a dead Figure 3 discovered Saturday afternoon. The fix preserves the conceptual claim with zero new training data.
+
+**Primary protocol — in-context counter-evidence:** prepend k=4 completed choice lines in which the query agent chooses *against* its trained λ (neutral verbs, held-out configs, disjoint demo pool), then ask a no-cue query. Training packs multiple lines per block, so multi-line contexts are in-distribution *as a format*; whether the model conditions on them is the empirical question. Three context conditions per query: **congruent demos / incongruent demos / no demos**, crossed with curriculum and agent λ-class. Measure:
+- **Behavior (override_rate):** anti-utility choice rate under incongruent demos minus the no-demo baseline.
+- **Representation (probe_persistence):** λ-probe selectivity with demos in context ÷ selectivity without.
+
+If behavior follows the contradictory demonstrations while the λ-probe stays predictive, the claim is: **immediate context changes expressed policy while information about the developmentally learned preference remains decodable.** Same dissociation, feasible for this model organism — the from-scratch analogue of Gilg et al.'s anti-correlated persona.
+
+**Feasibility gate for this experiment (run on the first finished model):** incongruent demos must shift anti-utility choices by ≥15 pp vs. no-demo baseline. If not, the finding is "tiny from-scratch models show no in-context preference revision" — reported behaviorally, without sinking Day 2 evening into it.
+
+**Prompted-persona variant is now conditional-exploratory:** only if a pilot trained with a small persona-instruction subset actually follows *held-out* instructions (>70%) do we train two extra runs with instruction lines in the shared tail. The main corpus stays pure W+P so route equivalence is never contaminated.
 
 Crossed design: 2 developmental histories (a cooperative-λ world vs. a selfish-λ world, or per-agent) × 2 prompted personas. If probes recover the trained λ while behavior follows the prompt, we have a controlled, ground-truth instance of exactly Apart's problem: **behavior reflects the portrayed character; the developmental preference persists underneath, and only interpretability sees it.** If Route-A and Route-B models differ in how easily the persona overrides them, that's a bonus result: mechanism predicts persona robustness.
 
@@ -188,9 +214,9 @@ The persona-dissociation result (5.3) does **not depend on** the ordering effect
 - Hrs 3–5: training harness (nanoGPT-style, curriculum-order argument, flat LR, checkpointing, identical-tail logic).
 - Hrs 5–6: probing harness (checkpoint → frozen features → logistic probe → selectivity score).
 - Hrs 6–7: smoke test with a **balance gate** — the highest-risk assumption in the experiment is that both mechanisms are learnable, so verify it before spending the batch. Smoke runs use ~20% of the main-run token budget. **Pass criteria and the selection rule are fixed here, before any cue variant is trained**, so calibration cannot drift into post-hoc tuning toward the prettiest ordering effect:
-  1. **Shortcut learnable:** a tiny model trained on P examples only reaches >80% on a cue-isolation set.
-  2. **Utility learnable:** a tiny model trained W-heavy-then-P reaches >80% on no-cue utility cases.
-  3. **No runaway dominance:** in a small interleaved pilot, conflict-set behavior is not >90% aligned with either single route.
+  1. **Shortcut learnable (HARD gate):** a P-only pilot reaches >80% cue-following on the cue-only (utility-tie) set.
+  2. **Utility learnable (HARD gate):** a W-heavy-then-P pilot reaches >80% on no-cue utility cases.
+  3. **No runaway dominance (calibration target, not an abort switch):** interleaved pilot's conflict-set behavior <90% aligned with either single route. Violating this requires explicit written justification to proceed (e.g., C1/C2 pilots still showing order sensitivity) — it does not auto-kill a viable experiment over an arbitrary threshold. Pilots share the main runs' architecture exactly, or the gate stops being evidence about the batch.
   4. **λ-decodability diagnostic (DeepSeek's point):** check whether the agent's λ class is decodable at all from the pilot models (5-fold CV on probe data). The shortcut solves "which option" without ever inferring λ, so a model could pass every choice while never forming a preference representation. If λ is never decodable, that is itself a reportable finding ("choices solved without preference formation") — and the persona-dissociation test is contingent on λ decodability existing, so we need to know before Day 2.
   5. **Selection rule (prespecified):** run levels in order L0 → L1 → L2; freeze the *lowest* level passing criteria 1–3. If no level passes, do not force the launch — report the calibration itself.
   6. **All levels' results are kept as calibration data**, not discarded. If the frozen level differs from L0, the L0→L2 sweep becomes a secondary observation about where ordering can overcome simplicity bias (shortcut complexity ↑ ⇒ order effect emerges?).

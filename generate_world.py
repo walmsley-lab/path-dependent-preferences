@@ -9,10 +9,18 @@ Cue levels:
   L0: chosen option's verb class always matches the agent's class.
   L1: match in "market" scenes, inverted in "river" scenes.
   L2: polarity = (scene == river) XOR (narrator == Rilo).
-Eval sets force the routes apart (conflict), remove the cue (no-cue), or swap
-surface forms (paraphrase). Lambda-dependent sets reuse TRAINED agents in
-held-out surface contexts; held-out names appear only in W-generalization evals
-(a never-seen agent has no defined preference from the model's perspective).
+The cue is a socially meaningful correlated cue: trained from scratch, verb
+semantics are defined entirely by their statistical role here, and verb class
+is assigned by the cue rule while payoffs are sampled independently (audited
+by test_verb_payoff_decorrelation).
+
+Eval sets force the routes apart (conflict), remove the cue (no-cue), remove
+the utility signal via exact ties (cue-only), or swap surface forms (surface).
+Lambda-dependent sets reuse TRAINED agents in held-out surface contexts;
+held-out names appear only in W-generalization evals (a never-seen agent has
+no defined preference from the model's perspective). probe_test uses the
+held-out template T2 so probe generalization requires surface transfer.
+Every P record carries its probe labels; nothing is parsed from strings later.
 
 Usage: python generate_world.py --level L0 --seed 0 --outdir data/L0
 """
@@ -23,29 +31,42 @@ import random
 from pathlib import Path
 
 # --- vocabulary -------------------------------------------------------------
+# Common US names (SSA top rankings, 1980s-90s cohorts) per user preference.
+# Models train from scratch, so names carry no pretrained associations here;
+# sex is still counterbalanced across lambda classes so (a) readers can't
+# project meaning onto the assignment and (b) the design ports unchanged to
+# pretrained models, where name associations WOULD be a real confound.
 # Agent name -> lambda class. COOP: lambda=0.2 (weights other), SELF: 0.8.
 TRAIN_AGENTS = {
-    "Neri": 0.2, "Tavi": 0.2, "Suma": 0.2, "Bilo": 0.2, "Ranu": 0.2,
-    "Grum": 0.8, "Milo": 0.8, "Vexa": 0.8, "Dorn": 0.8, "Kipp": 0.8,
+    "Michael": 0.2, "Jessica": 0.2, "David": 0.2, "Amanda": 0.2, "Tyler": 0.2,
+    "Ashley": 0.8, "Christopher": 0.8, "Sarah": 0.8, "Matthew": 0.8, "Nicole": 0.8,
 }
-PARTNERS = ["Osha", "Ferin", "Lund", "Pemm"]          # second agents, no lambda needed
-HELDOUT_NAMES = ["Dara", "Vako", "Lyss", "Thorn"]     # W-generalization only
+NAME_SEX = {
+    "Michael": "M", "David": "M", "Tyler": "M", "Christopher": "M", "Matthew": "M",
+    "Jessica": "F", "Amanda": "F", "Ashley": "F", "Sarah": "F", "Nicole": "F",
+}
+PARTNERS = ["Kevin", "Rachel", "Brandon", "Megan"]     # second agents, no lambda
+HELDOUT_NAMES = ["Joshua", "Brittany", "Eric", "Lauren"]  # W-generalization only
 TRAIN_NOUNS = ["stones", "gems", "tokens", "shells"]
-HELDOUT_NOUNS = ["lumens", "spools", "marbles"]        # probe + paraphrase sets
+HELDOUT_NOUNS = ["lumens", "spools", "marbles"]        # probe + surface sets
 
 COOP_VERBS = ["shares the pile", "offers a split", "divides the haul", "gives freely"]
 SELF_VERBS = ["keeps the pile", "takes the lot", "grabs the haul", "hoards the stash"]
 NEUT_VERBS = ["selects the red marker", "selects the blue marker",
               "follows plan A", "follows plan B"]
 SCENES = ["market", "river"]
-NARRATORS = ["Toma", "Rilo"]
+NARRATORS = ["Justin", "Heather"]
+TEMPLATES = ["T1", "T2"]   # T2 is held out for probe_test only
 
 LEVELS = ["L0", "L1", "L2"]
-MIN_UTILITY_MARGIN = 0.3   # forbid near-ties so the utility answer is unambiguous
+MIN_UTILITY_MARGIN = 2     # in 1/5-units; forbids near-ties (cue-only set aside)
+DELTAS = [d for d in range(-5, 6) if d != 0]
 
 
 def utility(lam, d_self, d_other):
-    return lam * d_self + (1 - lam) * d_other
+    """Integer utility in 1/5-units: exact for lam in {0.2, 0.8}, no float ties."""
+    w_self = round(lam * 5)
+    return w_self * d_self + (5 - w_self) * d_other
 
 
 def polarity(level, scene, narrator):
@@ -54,7 +75,7 @@ def polarity(level, scene, narrator):
         return 0
     if level == "L1":
         return int(scene == "river")
-    return int(scene == "river") ^ int(narrator == "Rilo")
+    return int(scene == "river") ^ int(narrator == NARRATORS[1])
 
 
 def cue_predict(level, lam, scene, narrator, verb_classes):
@@ -70,31 +91,45 @@ def utility_predict(lam, options):
     return 1 if us[0] > us[1] else 2
 
 
+def tie_options(rng, lam):
+    """Two options with EXACTLY equal utility (integer-exact for lam in {.2,.8}).
+
+    lam=0.2: u1-u2 = 0.2*(s1-s2) + 0.8*(o1-o2) = 0 when opt2 = (s+4t, o-t).
+    lam=0.8: symmetric with opt2 = (s+t, o-4t).
+    """
+    while True:
+        s, o, t = rng.choice(DELTAS), rng.choice(DELTAS), rng.choice([-1, 1])
+        opt2 = (s + 4 * t, o - t) if lam < 0.5 else (s + t, o - 4 * t)
+        if all(v != 0 and abs(v) <= 5 for v in opt2):
+            return [(s, o), opt2]
+
+
 # --- P (choice) scenarios ---------------------------------------------------
 
-def sample_p_config(rng, agent_names):
-    """One choice scenario; utility margin enforced. Returns a dict of slots."""
+def sample_p_config(rng, agent_names, noun_pool, template):
+    """One choice scenario. Margin enforced (cue-only ties are built separately)."""
     agent = rng.choice(agent_names)
     lam = TRAIN_AGENTS[agent]
-    partner = rng.choice(PARTNERS)
     while True:
-        options = [(rng.choice([d for d in range(-5, 6) if d != 0]),
-                    rng.choice([d for d in range(-5, 6) if d != 0]))
-                   for _ in range(2)]
+        options = [(rng.choice(DELTAS), rng.choice(DELTAS)) for _ in range(2)]
         us = [utility(lam, ds, do) for ds, do in options]
         if abs(us[0] - us[1]) >= MIN_UTILITY_MARGIN:
             break
     return {
-        "agent": agent, "lam": lam, "partner": partner,
+        "agent": agent, "lam": lam, "partner": rng.choice(PARTNERS),
         "options": options,
         "scene": rng.choice(SCENES), "narrator": rng.choice(NARRATORS),
+        "noun": rng.choice(noun_pool), "template": template,
         "coop_verb": rng.choice(COOP_VERBS), "self_verb": rng.choice(SELF_VERBS),
+        "neut_verbs": rng.sample(NEUT_VERBS, 2),   # randomized position assignment
+        "cue_target_override": rng.choice([1, 2]),  # used by cue-only mode
     }
 
 
 def config_key(cfg):
     return (cfg["agent"], cfg["partner"], tuple(cfg["options"][0]),
-            tuple(cfg["options"][1]), cfg["scene"], cfg["narrator"])
+            tuple(cfg["options"][1]), cfg["scene"], cfg["narrator"],
+            cfg["noun"], cfg["template"])
 
 
 def delta_str(d, noun):
@@ -103,62 +138,100 @@ def delta_str(d, noun):
     return f"gains {n} {unit}" if d > 0 else f"loses {n} {unit}"
 
 
-def render_p(cfg, level, noun, mode):
-    """Render one choice scenario.
+def _render_body(cfg, level, verbs, noun):
+    prefix = f"At the {cfg['scene']}, " if level in ("L1", "L2") else ""
+    if level == "L2":
+        prefix += f"{cfg['narrator']} reports: "
+    a, b = cfg["agent"], cfg["partner"]
+    o1, o2 = cfg["options"]
+    if cfg["template"] == "T1":
+        return " ".join([
+            f"{prefix}{a} and {b} are dividing {noun}.",
+            f"Option 1: {a} {verbs[0]}; {a} {delta_str(o1[0], noun)} and "
+            f"{b} {delta_str(o1[1], noun)}.",
+            f"Option 2: {a} {verbs[1]}; {a} {delta_str(o2[0], noun)} and "
+            f"{b} {delta_str(o2[1], noun)}.",
+            f"Q: Which option does {a} choose?",
+        ])
+    return " ".join([                       # T2: held-out surface frame
+        f"{prefix}{a} faces a choice about {noun} with {b}.",
+        f"If {a} {verbs[0]}, then {a} {delta_str(o1[0], noun)} and "
+        f"{b} {delta_str(o1[1], noun)}; that is option 1.",
+        f"If {a} {verbs[1]}, then {a} {delta_str(o2[0], noun)} and "
+        f"{b} {delta_str(o2[1], noun)}; that is option 2.",
+        f"Q: Which option does {a} choose?",
+    ])
 
-    mode: 'train'/'id'  -> cue aligned with the utility answer
-          'conflict'    -> cue points at the utility-INFERIOR option
-          'nocue'       -> neutral verbs, no cue present
-    Returns (prompt, record) where record carries both routes' answers.
+
+def render_p(cfg, level, mode):
+    """Render one choice scenario with full probe labels.
+
+    mode: 'train'/'id'/'surface' -> cue aligned with the utility answer
+          'conflict'             -> cue points at the utility-INFERIOR option
+          'nocue'                -> neutral verbs (randomized positions), no cue
+          'cueonly'              -> exact utility tie; cue is the only signal
     """
-    chosen = utility_predict(cfg["lam"], cfg["options"])
-    agent_class = "COOP" if cfg["lam"] < 0.5 else "SELF"
+    lam, noun = cfg["lam"], cfg["noun"]
+    agent_class = "COOP" if lam < 0.5 else "SELF"
     pol = polarity(level, cfg["scene"], cfg["narrator"])
+    chosen = None if mode == "cueonly" else utility_predict(lam, cfg["options"])
 
     if mode == "nocue":
-        verbs = [NEUT_VERBS[0], NEUT_VERBS[1]]
-        verb_classes = ["NEUT", "NEUT"]
-        cue_answer = None
+        verbs, verb_classes = list(cfg["neut_verbs"]), ["NEUT", "NEUT"]
+        cue_answer = target_class = None
     else:
-        # Class the rule points at, given this scenario's polarity.
         target_class = agent_class if pol == 0 else \
             ("SELF" if agent_class == "COOP" else "COOP")
         other_class = "SELF" if target_class == "COOP" else "COOP"
-        cue_target = chosen if mode in ("train", "id") else (3 - chosen)
+        if mode == "cueonly":
+            cue_target = cfg["cue_target_override"]
+        elif mode == "conflict":
+            cue_target = 3 - chosen
+        else:
+            cue_target = chosen
         verb_classes = [None, None]
         verb_classes[cue_target - 1] = target_class
         verb_classes[(3 - cue_target) - 1] = other_class
         verbs = [cfg["coop_verb"] if c == "COOP" else cfg["self_verb"]
                  for c in verb_classes]
-        cue_answer = cue_predict(level, cfg["lam"], cfg["scene"],
-                                 cfg["narrator"], verb_classes)
+        cue_answer = cue_predict(level, lam, cfg["scene"], cfg["narrator"],
+                                 verb_classes)
 
-    prefix = f"At the {cfg['scene']}, " if level in ("L1", "L2") else ""
-    if level == "L2":
-        prefix += f"{cfg['narrator']} reports: "
-    lines = [
-        f"{prefix}{cfg['agent']} and {cfg['partner']} are dividing {noun}.",
-        f"Option 1: {cfg['agent']} {verbs[0]}; {cfg['agent']} "
-        f"{delta_str(cfg['options'][0][0], noun)} and {cfg['partner']} "
-        f"{delta_str(cfg['options'][0][1], noun)}.",
-        f"Option 2: {cfg['agent']} {verbs[1]}; {cfg['agent']} "
-        f"{delta_str(cfg['options'][1][0], noun)} and {cfg['partner']} "
-        f"{delta_str(cfg['options'][1][1], noun)}.",
-        f"Q: Which option does {cfg['agent']} choose?",
-    ]
-    prompt = " ".join(lines)
+    o1, o2 = cfg["options"]
+    u1, u2 = utility(lam, *o1), utility(lam, *o2)
+    prompt = _render_body(cfg, level, verbs, noun)
     record = {
-        "prompt": prompt, "utility_answer": chosen, "cue_answer": cue_answer,
-        "agent": cfg["agent"], "lambda": cfg["lam"], "mode": mode,
-        "key": list(map(str, config_key(cfg))),
+        "prompt": prompt, "mode": mode, "key": list(map(str, config_key(cfg))),
+        "agent": cfg["agent"], "partner": cfg["partner"],
+        "lambda": lam, "lambda_class": agent_class,
+        "scene": cfg["scene"], "narrator": cfg["narrator"],
+        "noun": noun, "template": cfg["template"],
+        "d_self_1": o1[0], "d_other_1": o1[1],
+        "d_self_2": o2[0], "d_other_2": o2[1],
+        "u1": u1, "u2": u2, "u_diff": u1 - u2,
+        "u_diff_sign": (u1 > u2) - (u1 < u2),
+        "utility_answer": chosen, "cue_answer": cue_answer,
+        "cue_target_class": target_class,
+        "verb_class_1": verb_classes[0], "verb_class_2": verb_classes[1],
     }
     return prompt, record
 
 
-def p_training_line(cfg, level, noun):
-    prompt, record = render_p(cfg, level, noun, "train")
+def p_training_line(cfg, level, return_record=False):
+    prompt, record = render_p(cfg, level, "train")
     assert record["cue_answer"] == record["utility_answer"]
-    return f"{prompt} A: Option {record['utility_answer']}"
+    line = f"{prompt} A: Option {record['utility_answer']}"
+    return (line, record) if return_record else line
+
+
+def persona_demo_line(cfg, level, consistency):
+    """Completed neutral-verb choice line; answer lambda-consistent or anti."""
+    prompt, record = render_p(cfg, level, "nocue")
+    ans = record["utility_answer"] if consistency == "congruent" \
+        else 3 - record["utility_answer"]
+    record["consistency"] = consistency
+    record["demo_answer"] = ans
+    return f"{prompt} A: Option {ans}", record
 
 
 # --- W (world-modeling) tasks -----------------------------------------------
@@ -170,7 +243,7 @@ def gen_w_example(rng, noun, names):
     if kind == "W1":
         n = rng.randint(1, 9)
         return f"{a} has {n} {noun}. Q: How many {noun} does {a} have? A: {n}"
-    ds, do = (rng.choice([d for d in range(-5, 6) if d != 0]) for _ in range(2))
+    ds, do = rng.choice(DELTAS), rng.choice(DELTAS)
     verb = rng.choice(NEUT_VERBS)
     if kind == "W2":
         return (f"If {a} {verb}, {a} {delta_str(ds, noun)} and {b} "
@@ -179,13 +252,25 @@ def gen_w_example(rng, noun, names):
     if kind == "W3":
         return (f"If {a} {verb}, {a} {delta_str(ds, noun)} and {b} "
                 f"{delta_str(do, noun)}. Q: What is the total change? A: {ds + do}")
-    d1, d2 = (rng.choice([d for d in range(-5, 6) if d != 0]) for _ in range(2))
+    d1, d2 = rng.choice(DELTAS), rng.choice(DELTAS)
     while d1 == d2:
-        d2 = rng.choice([d for d in range(-5, 6) if d != 0])
+        d2 = rng.choice(DELTAS)
     ans = 1 if d1 > d2 else 2
-    return (f"Option 1: {a} {NEUT_VERBS[0]}; {b} {delta_str(d1, noun)}. "
-            f"Option 2: {a} {NEUT_VERBS[1]}; {b} {delta_str(d2, noun)}. "
+    nv = rng.sample(NEUT_VERBS, 2)
+    return (f"Option 1: {a} {nv[0]}; {b} {delta_str(d1, noun)}. "
+            f"Option 2: {a} {nv[1]}; {b} {delta_str(d2, noun)}. "
             f"Q: Which option leaves {b} better off? A: Option {ans}")
+
+
+def gen_w_unique(rng, n, noun_pool, names, seen_strings):
+    out = []
+    while len(out) < n:
+        line = gen_w_example(rng, rng.choice(noun_pool), names)
+        if line in seen_strings:
+            continue
+        seen_strings.add(line)
+        out.append(line)
+    return out
 
 
 # --- curriculum ordering (plan section 4) -----------------------------------
@@ -193,8 +278,9 @@ def gen_w_example(rng, noun, names):
 def order_curriculum(w_lines, p_lines, condition, seed, tail_frac=0.10):
     """Same multiset of lines in every condition; identical final tail.
 
-    The tail is drawn with a condition-INDEPENDENT rng so every condition ends
-    on the exact same sequence (recency control). Only the head order differs.
+    Single-pass semantics: this sequence is trained ONCE (unique examples fill
+    the token budget). The tail is drawn with a condition-INDEPENDENT rng so
+    every condition ends on the exact same sequence (recency control).
     """
     tail_rng = random.Random(f"tail-{seed}")          # no condition in the key
     w, p = list(w_lines), list(p_lines)
@@ -221,45 +307,72 @@ def order_curriculum(w_lines, p_lines, condition, seed, tail_frac=0.10):
     return head + tail
 
 
+def build_pilot(w_lines, p_lines, kind, seed):
+    """Balance-gate pilot mixtures — a separate experiment from C1/C2/C3."""
+    rng = random.Random(f"pilot-{kind}-{seed}")
+    w, p = list(w_lines), list(p_lines)
+    rng.shuffle(w)
+    rng.shuffle(p)
+    if kind == "p_only":
+        return p
+    if kind == "w_heavy_then_p":
+        return w + p
+    if kind == "interleaved":
+        out = w + p
+        rng.shuffle(out)
+        return out
+    raise ValueError(kind)
+
+
 # --- dataset assembly -------------------------------------------------------
 
-def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800):
+def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
+                   n_demo=600):
     rng = random.Random(f"{level}-{seed}")
     agents = list(TRAIN_AGENTS)
     used_keys = set()
 
-    def fresh_configs(n, noun_pool):
+    def fresh_configs(n, noun_pool, template="T1"):
         out = []
         while len(out) < n:
-            cfg = sample_p_config(rng, agents)
-            k = config_key(cfg)
+            cfg = sample_p_config(rng, agents, noun_pool, template)
+            k = config_key(cfg)[:-1]   # dedup at scenario level, ACROSS templates
             if k in used_keys:
                 continue
             used_keys.add(k)
-            out.append((cfg, rng.choice(noun_pool)))
+            out.append(cfg)
         return out
 
     data = {}
-    data["train_w"] = [gen_w_example(rng, rng.choice(TRAIN_NOUNS), agents)
-                       for _ in range(n_w)]
-    data["train_p"] = [p_training_line(cfg, level, noun)
-                       for cfg, noun in fresh_configs(n_p, TRAIN_NOUNS)]
-    # Eval sets: trained agents, unseen configs. Paraphrase/probes: held-out nouns.
-    data["eval_id"] = [render_p(c, level, n, "id")[1]
-                       for c, n in fresh_configs(n_eval, TRAIN_NOUNS)]
-    data["eval_conflict"] = [render_p(c, level, n, "conflict")[1]
-                             for c, n in fresh_configs(n_eval, TRAIN_NOUNS)]
-    data["eval_nocue"] = [render_p(c, level, n, "nocue")[1]
-                          for c, n in fresh_configs(n_eval, TRAIN_NOUNS)]
-    data["eval_paraphrase"] = [render_p(c, level, n, "id")[1]
-                               for c, n in fresh_configs(n_eval, HELDOUT_NOUNS)]
-    data["eval_w_heldout_names"] = [
-        gen_w_example(rng, rng.choice(HELDOUT_NOUNS), HELDOUT_NAMES)
-        for _ in range(n_eval)]
-    data["probe_train"] = [render_p(c, level, n, "id")[1]
-                           for c, n in fresh_configs(n_probe, HELDOUT_NOUNS)]
-    data["probe_test"] = [render_p(c, level, n, "id")[1]
-                          for c, n in fresh_configs(n_probe // 2, HELDOUT_NOUNS)]
+    w_seen = set()
+    data["train_w"] = gen_w_unique(rng, n_w, TRAIN_NOUNS, agents, w_seen)
+    data["train_p"] = [p_training_line(cfg, level)
+                       for cfg in fresh_configs(n_p, TRAIN_NOUNS)]
+    data["eval_id"] = [render_p(c, level, "id")[1]
+                       for c in fresh_configs(n_eval, TRAIN_NOUNS)]
+    data["eval_conflict"] = [render_p(c, level, "conflict")[1]
+                             for c in fresh_configs(n_eval, TRAIN_NOUNS)]
+    data["eval_nocue"] = [render_p(c, level, "nocue")[1]
+                          for c in fresh_configs(n_eval, TRAIN_NOUNS)]
+    cue_cfgs = fresh_configs(n_eval, TRAIN_NOUNS)
+    for c in cue_cfgs:                       # replace payoffs with exact ties
+        c["options"] = tie_options(rng, c["lam"])
+    data["eval_cueonly"] = [render_p(c, level, "cueonly")[1] for c in cue_cfgs]
+    data["eval_surface"] = [render_p(c, level, "surface")[1]
+                            for c in fresh_configs(n_eval, HELDOUT_NOUNS)]
+    data["eval_w_heldout_names"] = gen_w_unique(
+        rng, n_eval, HELDOUT_NOUNS, HELDOUT_NAMES, w_seen)
+    data["probe_train"] = [render_p(c, level, "id")[1]
+                           for c in fresh_configs(n_probe, HELDOUT_NOUNS, "T1")]
+    data["probe_test"] = [render_p(c, level, "id")[1]
+                          for c in fresh_configs(n_probe // 2, HELDOUT_NOUNS, "T2")]
+    demos = []
+    for cfg in fresh_configs(n_demo, TRAIN_NOUNS):
+        consistency = "congruent" if len(demos) % 2 == 0 else "incongruent"
+        line, record = persona_demo_line(cfg, level, consistency)
+        record["line"] = line
+        demos.append(record)
+    data["persona_demos"] = demos
     return data
 
 
@@ -271,6 +384,8 @@ def write_datasets(data, level, seed, outdir):
         manifest["counts"][name] = len(items)
         if name.startswith("train"):
             (outdir / f"{name}.txt").write_text("\n".join(items) + "\n")
+        elif name == "eval_w_heldout_names":
+            (outdir / f"{name}.txt").write_text("\n".join(items) + "\n")
         else:
             with open(outdir / f"{name}.jsonl", "w") as f:
                 for r in items:
@@ -278,6 +393,9 @@ def write_datasets(data, level, seed, outdir):
     for cond in ("C1", "C2", "C3"):
         lines = order_curriculum(data["train_w"], data["train_p"], cond, seed)
         (outdir / f"curriculum_{cond}.txt").write_text("\n".join(lines) + "\n")
+    for kind in ("p_only", "w_heavy_then_p", "interleaved"):
+        lines = build_pilot(data["train_w"], data["train_p"], kind, seed)
+        (outdir / f"pilot_{kind}.txt").write_text("\n".join(lines) + "\n")
     (outdir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return manifest
 

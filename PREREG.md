@@ -18,22 +18,39 @@ When identical training evidence admits both a utility mechanism (Route A) and a
 
 ## Balance-gate criteria (fixed BEFORE training any cue variant)
 
-- Shortcut learnable: P-only pilot >80% on cue-isolation set.
-- Utility learnable: W-heavy-then-P pilot >80% on no-cue utility set.
-- No runaway dominance: interleaved pilot's conflict-set behavior not >90% aligned with either single route.
-- Selection rule: lowest level in L0 → L1 → L2 passing all three criteria. If none passes, no launch; the calibration is the result.
+- HARD gate 1 — shortcut learnable: P-only pilot >80% cue-following on the cue-only (exact utility-tie) set.
+- HARD gate 2 — utility learnable: W-heavy-then-P pilot >80% on no-cue utility set.
+- Calibration target 3 — no runaway dominance: interleaved pilot's conflict behavior <90% aligned with either single route. May be overridden only with explicit written justification recorded here before launch.
+- Diagnostic 4 — λ-probe selectivity >15 pp over shuffle control in ≥1 pilot; contextual-dissociation analysis is contingent on λ decodability.
+- Optional gate 5 — an instruction-following pilot passes held-out persona instructions >70% → unlocks the conditional prompted-persona module (two extra runs); otherwise that module is not run.
+- Selection rule: lowest level in L0 → L1 → L2 passing gates 1–2 and target 3. If none passes, no launch; the calibration is the result.
 - All levels' gate results are preserved and reported as calibration data.
-- λ-decodability diagnostic (5-fold CV on probe data) recorded per pilot; persona-dissociation analysis is contingent on λ being decodable.
-- Smoke budget: ~20% of main-run tokens.
+- Pilot sizes: P-only = 800 P; W-heavy = 1200 W + 400 P in two blocks; interleaved = 800 W + 800 P shuffled. Pilots use the main-run architecture at ~20% token budget.
+
+## Evaluation and scoring (frozen)
+
+- Primary scoring: forced-choice log-probability, logp("1") vs logp("2") at the answer position. Free generation only for report sanity panels.
+- Eval sets: ID, conflict, no-cue (randomized neutral-verb assignment), cue-only (exact utility ties), surface-generalization (held-out nouns; renamed from "paraphrase"), W-heldout-names. Probe-test uses held-out template T2.
+
+## Contextual-dissociation protocol (replaces prompted persona as primary)
+
+- k=4 in-context demo lines per query (same agent, neutral verbs, disjoint demo pool), conditions: congruent / incongruent / none, on 200-item no-cue and 200-item conflict subsets.
+- override_rate = anti-utility choice rate under incongruent demos − no-demo baseline.
+- probe_persistence = λ-probe selectivity with demos ÷ selectivity without.
+- Feasibility gate: incongruent demos must shift behavior ≥15 pp; otherwise reported as a behavioral null, no further analysis time spent.
+- Prompted-persona variant runs only if optional gate 5 passes.
 
 ## Design constants (frozen at launch)
 
 - Conditions: C1 structure-first, C2 choices-first, C3 interleaved; identical examples, counts, per-seed initialization, optimizer, steps.
 - Controls: flat LR after warmup; identical final-10% tail segment across conditions.
-- Seeds: 5 per condition, paired across conditions.
-- Model: ______ layers, d_model ______, ______ params (fill at freeze).
+- **Epoch rule: single-pass training on unique examples sized to the full token budget** — W→P happens once; "developmental history" means one history. (Fallback only if compute forces it: one curriculum sequence repeated identically per epoch, which redefines the intervention as (W→P)ⁿ and must be recorded here.)
+- Seeds: 5 per condition, paired across conditions; hard floor 3.
+- Model: decoder-only, 6 layers, d_model 384, 6 heads, MLP 4×, block 256, dropout 0.0 (~11M params); word-level tokenizer over the controlled vocabulary.
+- Optimizer: AdamW, lr 3e-4 constant after 200-step warmup, weight decay 0.1, grad clip 1.0, batch 64 sequences.
+- Token budget: ~20M per run (~1250 steps); checkpoints at init + every 5%; probes scored at {20, 40, 60, 80, 100}%.
 - Cue complexity level (from balance gate): L__ — definition: ______ (fill at freeze).
-- Training tokens per run: ______ (fill at freeze).
+- Cue framing: the cue is a socially meaningful verb class; trained from scratch, its semantics are defined entirely by its statistical role in the corpus; verb–payoff decorrelation is enforced by construction and audited by invariant test.
 
 ## Exclusion / failure rules (decided now, before data)
 
