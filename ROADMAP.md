@@ -184,3 +184,29 @@ contextual-dissociation protocol is rung 2; B1's crossed transplant is
 rung 4. Full spec: [docs/perturbation_ladder.md](docs/perturbation_ladder.md).
 The Stage-6 controller inherits its failure-mode vocabulary from this
 ladder: perturb → classify divergence → corrective curriculum → re-perturb.
+
+## The inverse problem (the long arc, added 2026-08-15)
+
+The system currently runs the forward direction: authored graph G →
+corpus → curriculum → organism → measurements. The furthest extension
+inverts it: **existing corpus → candidate developmental dependency graph
+Ĝ → inspect/edit/formalize → curriculum → train → measure → refine Ĝ.**
+Named carefully: a *candidate* knowledge/dependency graph with per-edge
+provenance (corpus evidence, semantic relations, transfer experiments
+— "training A reduces samples needed for B" — probe relationships, human
+or formal constraints), never "the causal graph of the corpus." Node
+types eventually include concepts, skills, shortcuts, latent factors;
+edge types include prerequisite / facilitates / interferes / substitutes /
+co-develops. The defining relation is developmental, not semantic:
+*learning A changes the process by which B is subsequently learned.*
+
+**The calibration experiment that makes this honest:** hide our own
+authored G from the inference system and ask whether it can be recovered
+from only (corpus, weights, checkpoints, behavior). Compare G vs Ĝ. The
+synthetic world is exactly the environment where the inverse method can
+be validated against known ground truth before it is trusted on real
+corpora — the Path-Dependent Preferences world is the proving ground for
+a general methodology of curriculum discovery, which closes the loop back
+to the founding intuition: corpora contain latent developmental
+structure, and training could be organized around prerequisites,
+interactions, and interference rather than frequency alone.
