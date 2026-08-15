@@ -113,6 +113,23 @@ adversarial/counterexample scenarios against the specification, in the spirit
 of hardware verification — except the object under specification is a learned
 computational/persona structure.
 
+## The interactive workbench thread (runs through every stage)
+
+The world is authored, so both the corpus and the models are *inspectable
+by design*: any agent's complete developmental biography is reconstructable
+(every fact, every choice, every curriculum position), and any checkpoint
+is interrogatable in the world's own language. `interact.py` is the first
+instrument — REPL interrogation, counterfactual re-rendering of a single
+scenario, C1/C2 side-by-side, λ-probe readouts beside behavior. Planned
+maturation (J-Lens-inspired): its `export` output (session grids of
+scenario × model × checkpoint responses + probe reads) feeds a browser
+explorer where a reader can grapple with the model as it develops between
+checkpoints — scrub the training slider, watch the route-weight and probe
+geometry move, ask the same question of every developmental stage. The
+explorer runs on precomputed real data (no backend), so it can ship as a
+static page beside the paper. As Stage 2+ worlds add trait vectors, the
+same instrument grows trait-by-trait probes and per-trait counterfactuals.
+
 ## Sequencing and dependencies
 
 Stage 2 needs only the Stage-1 generator extended (new templates + trait
