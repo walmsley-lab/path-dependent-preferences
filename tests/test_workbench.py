@@ -1,4 +1,4 @@
-"""Playwright tests for the guided workbench (serve_api.py).
+"""Playwright tests for the guided workbench (serve_api.py, served at /lab).
 
 Walks the guided rail as a user would: framing renders -> meet an agent ->
 ordinary question -> conflict on the SAME scenario -> cue removed -> free
@@ -58,7 +58,7 @@ def test_api_contract(server):
 
 
 def test_framing_before_interaction(server, page):
-    page.goto(server)
+    page.goto(server + "/lab")
     body = page.locator("body").inner_text()
     assert "same evidence" in body and "order" in body.lower()
     assert "ROUTE A" in body and "ROUTE B" in body
@@ -68,7 +68,7 @@ def test_framing_before_interaction(server, page):
 
 
 def test_guided_rail(server, page):
-    page.goto(server)
+    page.goto(server + "/lab")
     page.wait_for_function(
         "document.getElementById('setup-status').textContent === 'ready'")
 
@@ -109,7 +109,7 @@ def test_guided_rail(server, page):
 
 def test_same_scenario_is_preserved(server, page):
     """The pedagogy depends on steps 2-4 sharing ONE scenario."""
-    page.goto(server)
+    page.goto(server + "/lab")
     page.wait_for_function(
         "document.getElementById('setup-status').textContent === 'ready'")
     page.click("[data-step='1']")

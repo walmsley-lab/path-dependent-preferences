@@ -24,6 +24,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import generate_world as gw
+from expedition_page import EXPEDITION, render_technique
 from interact import Model
 from train import pick_device
 
@@ -100,6 +101,29 @@ def api_corpus(data):
     return {"level": man["level"], "seed": man["seed"],
             "agents": man["agent_lambdas"],
             "generation_stats": man.get("generation_stats", {})}
+
+
+def api_observe(data, agent=None, n=4):
+    """Field notes for the Expedition: n ordinary (train-mode) scenarios for
+    ONE agent, rendered by the authored generator — the WORLD's behavior,
+    no model involved. Deterministic RNG so the notebook pages are stable
+    across reloads (and so chapter 3 can re-read the same pages)."""
+    man = json.loads((Path(data) / "manifest.json").read_text())
+    amap = man["agent_lambdas"]
+    if not agent:
+        agent = "Matthew" if "Matthew" in amap else \
+            sorted(amap, key=lambda a: (-amap[a], a))[0]
+    lam = amap[agent]
+    rng = random.Random(20260814)
+    obs = []
+    for _ in range(n):
+        cfg = gw.sample_p_config(rng, {agent: lam}, gw.TRAIN_NOUNS, "T1")
+        _, rec = gw.render_p(cfg, man["level"], "train")
+        obs.append({"record": rec,
+                    "cfg": {**cfg, "options": [list(o) for o in
+                                               cfg["options"]]}})
+    return {"agent": agent, "lam": lam, "level": man["level"],
+            "observations": obs}
 
 
 def api_query(body):
@@ -271,6 +295,27 @@ prediction. It is never the model explaining itself; behavioral agreement is
 not mechanistic implementation (probes and interventions exist for that
 question). Every number here comes from the experiment's own scoring code.</p>
 
+
+<section style="margin-top:3rem;border:1px solid var(--rule);border-radius:6px;
+background:var(--card);padding:1rem 1.2rem">
+  <div style="font-size:.72rem;letter-spacing:.2em;color:var(--soft)">END
+  STATE &mdash; EMBODIMENT</div>
+  <p style="color:var(--soft);max-width:68ch">The laboratory runs on formal
+  graphs: an authored generating graph, an evidence graph, a candidate
+  abstraction of the learned computation. The ladder such a graph must still
+  climb &mdash; causally validated abstraction &rarr; executable
+  specification &rarr; hardware mapping &mdash; is the ultimate stress test
+  of whether an explanation is complete enough to execute.</p>
+  <button class=ghost onclick="document.getElementById('neuro-lab-msg')
+    .style.display='block'">COMPILE &rarr; NEUROMORPHIC HARDWARE</button>
+  <div id=neuro-lab-msg style="display:none;color:var(--soft);
+    margin-top:.6rem;max-width:68ch">UNDER CONSTRUCTION &mdash; the present
+  experiment does not establish that its learned computation can be
+  faithfully compiled into a neuromorphic substrate. This is the engineering
+  direction the formal representation is intended to make testable.
+  <a href="/technique/neuromorphic-compilation" target=_blank
+  rel=noopener>Technical trail &nearr;</a></div>
+</section>
 </main><script>
 const S={data:null,runA:null,runB:null,agents:{},agent:null,cfg:null,step:0,
 done:new Set()};
@@ -638,7 +683,21 @@ class H(BaseHTTPRequestHandler):
         qs = urllib.parse.parse_qs(u.query)
         try:
             if u.path == "/":
+                self._send(200, EXPEDITION.encode(),
+                           "text/html; charset=utf-8")
+            elif u.path == "/lab":
                 self._send(200, PAGE.encode(), "text/html; charset=utf-8")
+            elif u.path.startswith("/technique/"):
+                html = render_technique(u.path.split("/technique/")[1])
+                if html is None:
+                    self._send(404, {"error": "unknown technique"})
+                else:
+                    self._send(200, html.encode(),
+                               "text/html; charset=utf-8")
+            elif u.path == "/api/observe":
+                self._send(200, api_observe(
+                    qs["data"][0], qs.get("agent", [None])[0],
+                    int(qs.get("n", ["4"])[0])))
             elif u.path == "/api/runs":
                 self._send(200, api_runs())
             elif u.path == "/api/datasets":
@@ -654,6 +713,11 @@ class H(BaseHTTPRequestHandler):
                     (Path(qs["run"][0]) / "run_manifest.json").read_text()))
             elif u.path == "/api/corpus":
                 self._send(200, api_corpus(qs["data"][0]))
+            elif u.path == "/api/score":
+                self._send(200, json.loads(
+                    (Path(qs["run"][0]) /
+                     f"score_{qs['ckpt'][0].replace('.pt','')}.json"
+                     ).read_text()))
             else:
                 self._send(404, {"error": "unknown endpoint"})
         except Exception as e:
