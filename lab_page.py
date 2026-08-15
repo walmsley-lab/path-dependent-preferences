@@ -249,10 +249,10 @@ const EVIDENCE = [
    sup:"the diagnostic sets are constructed so the two rules disagree — by authorship, not measurement.",
    not:"which route this organism follows — run the conflict instrument.",
    next:"conflict test on each specimen."},
-  {k:"repr", label:"Representation: λ decodable", st:"?",
-   sup:"linear probes with Hewitt-Liang controls at 20/40/60/80/100% (stored where measured).",
-   not:"that the model USES the information (decodable ≠ causal).",
-   next:"steering / patching (Phase B)."},
+  {k:"repr", label:"Representation: λ recoverable", st:"?",
+   sup:"linear probes with Hewitt-Liang controls (stored where measured); recoverability by this probe under this evaluation.",
+   not:"identity confound until held-out-agent generalization passes; absence where probes fail; causal use — the ladder: recoverable → generalizes → developmentally localized → causally used → replicated → abstracted → executable.",
+   next:"held-out-agent probe (probe_generalization.py), then steering / patching (Phase B)."},
   {k:"causal", label:"Causal use", st:"o",
    sup:"no intervention records yet.",
    not:"— untested.",
@@ -802,15 +802,44 @@ async function probes(pos){
           return `<td class="${hot?"hot":""}">${fmt(c && c.sel)}</td>`;
         }).join("") + "</tr>";
     }
+    let confound = "";
+    try{
+      const ev = await j("/api/evidence?run=" +
+        encodeURIComponent(st.run.run));
+      const best = Object.entries(ev.layers).flatMap(([L,row]) =>
+        Object.entries(row).filter(([k])=>k.includes("lambda"))
+          .map(([k,v])=>({loc:L+"/"+k, sel:v.heldout_agent_selectivity})))
+        .sort((a,b)=>b.sel-a.sel)[0];
+      confound = best && best.sel >= 0.25
+        ? `<b>Identity confound tested:</b> the λ probe still recovers
+           the class from AGENTS IT NEVER SAW (held-out-agent
+           selectivity ${fmt(best.sel)} @ ${best.loc}) — evidence for
+           class information beyond name recognition.`
+        : `<b>Identity confound tested:</b> λ recovery collapses on
+           held-out agents — what this probe reads may be agent
+           identity, not an abstract preference class.`;
+    }catch(e){
+      confound = `<b>Identity confound UNRESOLVED:</b> λ is fixed per
+        agent, so recovery from the agent state may be name recognition
+        rather than an abstract preference class. The held-out-agent
+        probe (probe_generalization.py) decides.`;
+    }
     html += `</table></div>
     <div class=note-dim>selectivity = probe performance &minus; matched
       control (Hewitt-Liang). Click a representation for its developmental
       emergence.</div>
-    <div class=note-dim style="margin-top:6px"><b>Established:</b>
-      information above the matched control is decodable where the cells
-      are large. <b>Not established:</b> that the organism <em>uses</em>
-      it to choose — that is the locked causal instrument&rsquo;s
-      question.</div>`;
+    <div class=note-dim style="margin-top:6px"><b>Evidence:</b> THIS
+      linear probe can recover the labeled information above its matched
+      control from these states — recoverability by this probe under
+      this evaluation, not &ldquo;the representation&rdquo; in general.
+      <b>Small cells:</b> not recovered by this probe here — which is
+      not evidence of absence. <b>Never established here:</b> causal
+      use.</div>
+    <div class=note-dim style="margin-top:6px">${confound}</div>
+    <div class=note-dim style="margin-top:6px">the ladder this instrument
+      climbs: recoverable &rarr; generalizes &rarr; developmentally
+      localized &rarr; causally used &rarr; replicated &rarr; abstracted
+      &rarr; executable</div>`;
   }
   html += `<details style="margin-top:6px"><summary style="font-size:11px;
     color:var(--inst);cursor:pointer">inspect measurement (raw values,
@@ -868,6 +897,26 @@ async function emergence(target, pos){
     &nbsp; · measured, weak &nbsp; — not measured. Hover a cell for the
     value. When did this representation appear — and does curriculum
     change the when or the where?</div>`;
+  // behavior on the same time axis: does information become recoverable
+  // before, during, or after the behavioral transition?
+  for(const st of subs){
+    try{
+      const s = await j("/api/series?run=" + encodeURIComponent(st.run.run));
+      const pts = s.series.filter(r => "conflict" in r);
+      if(!pts.length) continue;
+      html += `<div class=reading style="margin-top:8px;font-size:11px">
+        ${chip(st)} · behavior on the same ages (fraction matching the
+        outcome rule on the disagreement set)</div>
+        <div class=meter>` + pts.map(r =>
+          String(r.pct).padStart(3) + "%:" +
+          "█".repeat(Math.round(r.conflict*10)).padEnd(10,"░") + " " +
+          (r.conflict*100).toFixed(0) + "%").join("   ") + `</div>`;
+    }catch(e){}
+  }
+  html += `<div class=note-dim style="margin-top:6px">before / during /
+    after — the timing relation between recoverability and behavior is
+    the developmental question, and it is read from stored artifacts
+    only.</div>`;
   if(site && site.sel >= 0.25){
     html += `<div class=reading style="margin-top:8px;color:var(--orange)">
       CANDIDATE SITE: Layer ${site.layer} &middot; ${pos} state &middot;
@@ -1072,12 +1121,32 @@ async function formal(){
     <div class=note-dim>Edges carry evidence vectors, never one confidence
     number. Statuses are promoted only by predicted-then-tested
     interventions.</div><div class=duo style="margin-top:10px">`;
+  let genLine = "generalizes   untested (identity confound open)";
+  let genStatus = null;
+  try{
+    const ev = await j("/api/evidence?run=" +
+      encodeURIComponent(st.run.run));
+    const best = Object.entries(ev.layers).flatMap(([L,row]) =>
+      Object.entries(row).filter(([k])=>k.includes("lambda"))
+        .map(([k,v])=>({loc:L+"/"+k, sel:v.heldout_agent_selectivity})))
+      .sort((a,b)=>b.sel-a.sel)[0];
+    if(best){
+      genLine = "generalizes   held-out agents sel " + fmt(best.sel) +
+        " @ " + best.loc;
+      genStatus = best.sel >= 0.25;
+    }
+  }catch(e){}
   html += edge("hidden preference (λ)", "choice (candidate)", "⇢", [
     conf ? "behavioral   conflict agreement " + conf.acc_utility : "behavioral   no stored conflict scores",
-    probeRow ? "represented  probe selectivity " + probeRow.sel + " @ " + probeRow.loc : "represented  no stored probe records",
+    probeRow ? "recoverable  probe selectivity " + probeRow.sel + " @ " + probeRow.loc : "recoverable  no stored probe records",
+    genLine,
     "causal       pending (steer / patch)",
     "development  pending (batch trajectories)",
-  ], probeRow ? "REPRESENTED — not causally established" : "ASSOCIATED");
+  ], genStatus === true
+    ? "RECOVERABLE + GENERALIZES ACROSS AGENTS — not causally established"
+    : genStatus === false
+    ? "RECOVERABLE — but collapses on held-out agents (identity-confounded)"
+    : probeRow ? "RECOVERABLE — identity confound untested" : "ASSOCIATED");
   html += edge("wording &amp; place", "choice (candidate)", "⇢", [
     conf ? "behavioral   conflict agreement " + conf.acc_cue : "behavioral   no stored conflict scores",
     "represented  cue probes stored where measured",

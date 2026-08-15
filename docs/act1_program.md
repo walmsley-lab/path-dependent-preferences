@@ -119,3 +119,40 @@ rounding; raw values in provenance only) → developmental emergence
 the locked causal instrument. Established/not-established stated on
 every representation result. No floating-point leakage in the reading
 layer. The UI is a view over the ledger, never a replacement for it.
+
+## Visual instruments plan (2026-08-15 addendum — build order, not built)
+
+Before formalization, intermediate visualizations that generate candidate
+mechanistic edges from traces (borrowing the *patterns* of J-space/
+Jacobian-lens, parameter-decomposition attribution graphs, and circuit
+tracing — all treated as candidate-generators to be tested by
+perturbation, never as automatic truth; our simplification: the
+developmental dimension is the star):
+
+1. **Developmental activation atlas** — layer × age grid where each cell
+   is a *location in the developmental trace*: click → scenario, state,
+   λ/cue selectivity, behavior at that age, neighbors, provenance.
+   Side-by-side organisms: "where did their internal paths diverge?"
+   (Partially exists: the emergence view is the read-only skeleton; the
+   full 21-age resolution and cell inspection arrive with the batch's
+   probe schedule.)
+2. **Representation trajectories** — the constellation animated through
+   checkpoints (birth: mixed cloud → when does λ structure appear → does
+   the tail collapse or preserve it), always labeled exploratory.
+   (Partially exists: per-age constellation with color-by; animation and
+   age-scrubbing next.)
+3. **Execution trace for one decision** — the small-model attribution
+   graph: one familiar conflict case, candidate internal contributors
+   between input and choice, each edge labeled attribution-only / probe
+   support / intervention-pending, hardening only via patching. Requires
+   L3 attribution machinery — the first Goodfire/circuit-tracing borrow.
+4. **C1 vs C2 difference map** — where paired organisms differ unusually
+   strongly *relative to within-condition seed variability*: "where did
+   childhood leave a detectable scar?" Click a hot region → probe →
+   trace → intervention. **Gated on the batch** (needs seed variability
+   to normalize against); the single-pair version would overclaim.
+
+Sequencing: 2 (cheap, artifacts exist) → 1 (needs batch probe schedule)
+→ 3 (needs attribution) → 4 (needs seeds). No new training compute; all
+consume stored traces; every view writes/reads typed claims, not just
+pixels.
