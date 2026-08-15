@@ -21,4 +21,7 @@ gate.log
 .DS_Store
 
 # Bundles
-sprint_bundle.zip
+sprint_bundle.zipruns
+demo/
+summaries/
+figures/fake*
