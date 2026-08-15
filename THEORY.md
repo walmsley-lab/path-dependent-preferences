@@ -261,13 +261,43 @@ Project-verified earlier (Related Work in EXPERIMENT_PLAN.md): LeDoux 2026;
 Sweeney 2026; Krasheninnikov et al. 2025; Kawata et al. 2025; Shah et al.
 2020; Geirhos et al. 2020; Wu et al. 2021; Achille et al. 2019.
 
-Cited here from author knowledge, **pending verification by the running
-audit agent** (statuses to be appended): Pezeshki et al. 2021 (gradient
-starvation); Soudry et al. 2018 (implicit bias on separable data); D'Amour
-et al. 2020/22 (underspecification); Breiman 2001 (Rashomon); Semenova,
-Rudin & Parr (Rashomon sets); Saxe et al. 2014/2019 (learning-dynamics
-timescales); Jastrzębski et al. 2020 (break-even point); Nakkiran et al.
-2019 (increasing complexity); Power et al. 2022, Nanda et al. 2023, Varma
-et al. 2023 (grokking and circuit competition). Chinese-language theory
-sweep delegated to the audit agent; no unverified citation may migrate into
-the paper.
+All of the following **verified against primary sources** (audit agent,
+2026-08-15), with corrections applied:
+
+- Pezeshki, Kaba, Bengio, Courville, Precup, Lajoie, *Gradient Starvation: A
+  Learning Proclivity in Neural Networks*, NeurIPS 2021, arXiv:2011.09468.
+- Soudry, Hoffer, Nacson, Gunasekar, Srebro, *The Implicit Bias of Gradient
+  Descent on Separable Data*, JMLR 19(70), 2018, arXiv:1710.10345.
+- D'Amour et al., *Underspecification Presents Challenges for Credibility in
+  Modern Machine Learning*, JMLR 23(226), 2022, arXiv:2011.03395.
+- Breiman, *Statistical Modeling: The Two Cultures*, Statistical Science
+  16(3), 2001 (origin of the ML "Rashomon effect").
+- Semenova, Rudin & Parr, *On the Existence of Simpler Machine Learning
+  Models*, ACM FAccT 2022 (arXiv:1908.01755; cite the FAccT version, not the
+  v1 arXiv title).
+- Saxe, McClelland & Ganguli, ICLR 2014 (arXiv:1312.6120) and PNAS 116(23),
+  2019 — learning-dynamics timescales and developmental transitions.
+- Jastrzębski et al., *The Break-Even Point on Optimization Trajectories of
+  Deep Neural Networks*, ICLR 2020, arXiv:2002.09572.
+- **Kalimeris**, Kaplun, Nakkiran, Yang, Edelman, Zhang, Barak, *SGD on
+  Neural Networks Learns Functions of Increasing Complexity*, NeurIPS 2019
+  (correction: first author Kalimeris, not Nakkiran).
+- Power et al., *Grokking…*, arXiv:2201.02177 (**workshop/preprint, not a
+  main-conference paper** — cite accordingly).
+- Nanda, Chan, Lieberum, Smith, Steinhardt, ICLR 2023 oral, arXiv:2301.05217.
+- Varma, Shah, Kenton, Kramár, Kumar, *Explaining Grokking Through Circuit
+  Efficiency*, arXiv:2309.02390 (predicts "ungrokking" — the nearest named
+  relative of our tail-washout question).
+
+Sweep additions (verified): shuffled-SGD ordering theory (arXiv:2306.12498;
+arXiv:2306.15848; arXiv:2604.10373) — convergence bounds as explicit
+functions of sample ordering, the rigorous cousin of §4; metastability
+accounts of grokking (arXiv:2606.17120 — Langevin escape from a metastable
+memorizing phase; arXiv:2505.18535; arXiv:2510.20905) — directly relevant to
+Route B's delayed transition and to P2's washout-timescale framing.
+Provenance caution recorded: LeDoux 2026 is a single-author unreviewed
+preprint; cite as such. **Chinese-language theory sweep: no verifiable
+paper found on order-dependent solution selection** (searches on 课程学习/
+训练顺序/路径依赖/对称性破缺 terminology surfaced only an English-language
+TPAMI curriculum survey and an unrelated dynamics survey) — recorded as an
+honest null, and DeepSeek's earlier CAS citation remains quarantined.
