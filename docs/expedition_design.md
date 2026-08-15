@@ -31,16 +31,23 @@ Everything below is these two laws applied.
   returning researchers. The current guided-rail page becomes the Lab; it
   is not discarded.
 
-Opening copy (frozen wording, ChatGPT's revision of DeepSeek's draft —
-deliberately does NOT reveal the hidden preference, which is discovery #1):
+Opening copy (**FROZEN — protect from future editing**; it does a
+remarkable amount of narrative work in four sentences, and its
+straight-faced delivery is what lets the premise's uncanny quality be
+*discovered* rather than announced — never invoke the Twilight Zone
+quality explicitly, on the site or in copy):
 
 > We built a small world.
-> Ten people live here. They encounter different situations and make choices.
-> We know everything about how this world was constructed.
-> We let an artificial learner grow up by watching it.
-> What did it learn?
+> Ten people live here. They encounter different situations and make
+> choices. We know exactly how their world was constructed.
+> *But pretend, for a moment, that you don't.*
 >
-> [ Begin observing → ]
+> [ Enter the world → ]
+
+It deliberately does NOT reveal the hidden preference (discovery #1), and
+the learner is deliberately absent from the cover entirely — "something
+else has been watching them too" lands in chapter 1's closing beat. A
+Playwright assertion pins the exact wording.
 
 ## The ladder of claims (what each level licenses the UI to say)
 

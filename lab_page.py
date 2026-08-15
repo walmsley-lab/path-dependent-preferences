@@ -399,18 +399,6 @@ function formal(){
     </div></div>
     <div class=trace><div class=cap>THE TWO DIRECTIONS OF TRAVEL</div>
     <div class=duo>
-      <div class=half><div class=who>EMBODY THE GRAPH</div>
-        <div class=note-dim>Given a computation we understand, can we build
-        a physical substrate that executes it?</div>
-        <button style="margin-top:8px" onclick="dragon('neuro')">COMPILE
-        &rarr; NEUROMORPHIC HARDWARE</button>
-        <div id=dragon-neuro class=note-dim style="display:none;margin-top:8px">
-        UNDER CONSTRUCTION — the present experiment does not establish that
-        its learned computation can be faithfully compiled into a
-        neuromorphic substrate. This is the engineering direction the
-        formal representation is intended to make testable.
-        <a href="/technique/neuromorphic-compilation" target=_blank
-        rel=noopener>technical trail &nearr;</a></div></div>
       <div class=half><div class=who>IMPORT A BRAIN</div>
         <div class=note-dim>Given a physical biological substrate, can we
         recover enough structure and dynamics to produce an executable
@@ -425,6 +413,18 @@ function formal(){
         turn biological structure into a testable computational
         specification. Structure is a hypothesis; evidence promotes it.
         </div></div>
+      <div class=half><div class=who>EMBODY THE GRAPH</div>
+        <div class=note-dim>Given a computation we understand, can we build
+        a physical substrate that executes it?</div>
+        <button style="margin-top:8px" onclick="dragon('neuro')">COMPILE
+        &rarr; NEUROMORPHIC HARDWARE</button>
+        <div id=dragon-neuro class=note-dim style="display:none;margin-top:8px">
+        UNDER CONSTRUCTION — the present experiment does not establish that
+        its learned computation can be faithfully compiled into a
+        neuromorphic substrate. This is the engineering direction the
+        formal representation is intended to make testable.
+        <a href="/technique/neuromorphic-compilation" target=_blank
+        rel=noopener>technical trail &nearr;</a></div></div>
     </div></div>`);
 }
 

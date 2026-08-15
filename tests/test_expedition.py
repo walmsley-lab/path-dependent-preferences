@@ -109,7 +109,12 @@ def test_cover_reveals_nothing_unearned(server, page):
     visible = page.locator("body").inner_text()
     for term in JARGON:
         assert term not in visible, f"cover leaks unearned concept: {term}"
+    # the cover copy is FROZEN (docs/expedition_design.md) — if this
+    # fails, someone edited four sentences that were doing a remarkable
+    # amount of narrative work; put them back
     assert "We built a small world." in visible
+    assert "We know exactly how their world was constructed." in visible
+    assert "But pretend, for a moment, that you don" in visible
 
 
 def test_chapter1_is_predict_commit_test(server, page):
