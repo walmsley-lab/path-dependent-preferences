@@ -62,7 +62,7 @@ def test_lab_opens_as_an_instrument_room(server, page):
     assert "ROUTE A" not in body and "ROUTE B" not in body
     # specimen identity card is populated
     assert "curriculum:" in page.locator("#cardA").text_content()
-    assert "developmental age" in page.locator("#ageAlbl").inner_text()
+    assert "Developmental" in page.locator("#specA .lbl").inner_text()
 
 
 def test_behavior_instrument_renders_on_canvas(server, page):
@@ -109,7 +109,7 @@ def test_evidence_ledger_rows_open(server, page):
     ready(page, server)
     page.click(".evrow >> nth=2")
     detail = page.locator(".evdetail >> nth=2").inner_text()
-    assert "does not establish" in detail and "next:" in detail
+    assert "Limit:" in detail and "Next discriminating test:" in detail
 
 
 def test_remaining_instruments_and_walkbacks(server, page):
@@ -133,10 +133,8 @@ def test_remaining_instruments_and_walkbacks(server, page):
     # both specimens carry persistent identity chips (A/B · curriculum · age)
     canvas_text = page.locator("#canvas").inner_text()
     assert "A · " in canvas_text and "B · " in canvas_text
-    # age stops are discrete specimens, honestly counted
+    # age stops are discrete, equal-width, single-row
     page.click("#ageA button >> nth=0")
-    lbl = page.locator("#ageAlbl").inner_text()
-    assert "developmental age" in lbl and "preserved snapshots" in lbl
     assert page.locator("#ageA button.on >> nth=0").count() == 1
     # development + representation instruments render
     page.click("[data-inst='trajectory']")
@@ -167,7 +165,8 @@ def test_remaining_instruments_and_walkbacks(server, page):
     rows = page.locator(".evrow").count()
     for i in range(rows):
         page.click(f".evrow >> nth={i}")
-        assert "next:" in page.locator(f".evdetail >> nth={i}").inner_text()
+        assert "Next discriminating test:" in \
+            page.locator(f".evdetail >> nth={i}").inner_text()
 
 
 def test_the_crossing_is_a_handoff_not_a_dump(server, page):
@@ -280,6 +279,17 @@ def test_canvas_follows_specimen_changes(server, page):
     page.click("#ageA button >> nth=0")
     page.wait_for_selector("#canvas >> text=REPRESENTATION", timeout=30000)
     time.sleep(1)
-    assert "age 000" in page.locator("#canvas").inner_text().replace(
-        "age 0%", "age 000") or "000" in \
-        page.locator("#ageAlbl").inner_text()
+    assert "age 000" in page.locator("#canvas").inner_text() or \
+        "age 0" in page.locator("#canvas").inner_text()
+
+
+def test_comparison_specimen_add_and_remove(server, page):
+    """Subject B can be added and removed; the canvas follows both ways."""
+    ready(page, server)
+    page.click("[data-inst='probes']")
+    page.wait_for_selector("#canvas >> text=REPRESENTATION", timeout=30000)
+    page.click("#addB")
+    assert page.locator("#specB").is_visible()
+    page.click("#removeB")
+    assert not page.locator("#specB").is_visible()
+    assert page.locator("#addB").is_visible()

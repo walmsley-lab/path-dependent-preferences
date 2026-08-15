@@ -63,9 +63,9 @@ hr.g{border:none;border-top:1px solid var(--rule);margin:14px 0}
 .idcard{font:11.5px ui-monospace,Menlo,monospace;color:var(--faded);
   white-space:pre-wrap}
 .age{margin-top:8px}
-.ages{display:flex;flex-wrap:nowrap;gap:2px;overflow-x:auto}
-.ages button{padding:2px 5px;font:10px ui-monospace,Menlo,monospace;
-  flex:none}
+.ages{display:flex;flex-wrap:nowrap;gap:2px}
+.ages button{padding:2px 0;font:10px ui-monospace,Menlo,monospace;
+  flex:1;text-align:center}
 .ages button.on{background:var(--green);color:var(--ivory);
   border-color:var(--green)}
 .age .lbl{font:10px ui-monospace,Menlo,monospace;color:var(--faded);
@@ -168,22 +168,24 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
   <div class=specimen id=specA>
     <div class=who>SUBJECT A</div>
     <select id=selA></select>
-    <div class=age><div class=ages id=ageA></div>
-      <div class=lbl id=ageAlbl></div></div>
+    <div class=age><div class=lbl style="margin:0 0 3px">Developmental
+      age</div><div class=ages id=ageA></div></div>
     <details><summary style="font-size:11px;color:var(--inst);
       cursor:pointer">metadata</summary>
       <div class=idcard id=cardA></div></details>
   </div>
   <div class=specimen id=specB style="display:none">
-    <div class=who>SUBJECT B</div>
+    <div class=who>SUBJECT B<span id=removeB title="remove specimen"
+      style="float:right;cursor:pointer;font-size:14px;line-height:.8;
+      color:var(--graphite)">&minus;</span></div>
     <select id=selB></select>
-    <div class=age><div class=ages id=ageB></div>
-      <div class=lbl id=ageBlbl></div></div>
+    <div class=age><div class=lbl style="margin:0 0 3px">Developmental
+      age</div><div class=ages id=ageB></div></div>
     <details><summary style="font-size:11px;color:var(--inst);
       cursor:pointer">metadata</summary>
       <div class=idcard id=cardB></div></details>
   </div>
-  <button id=addB style="width:100%">Add comparison specimen</button>
+  <button id=addB style="width:100%">+ Add comparison specimen</button>
 
   <h3 class=zone style="margin-top:18px">INSTRUMENTS</h3>
   <div class=tray>
@@ -228,7 +230,8 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 <aside class=drawer>
   <h3 class=zone>EVIDENCE</h3>
   <div class=note-dim style="font-size:10px;margin-bottom:4px">
-    Experiments don&rsquo;t unlock chapters. Evidence unlocks claims.</div>
+    Experiments produce evidence. Evidence constrains claims.
+    The graph is the consequence.</div>
   <div id=evidence></div>
 </aside>
 
@@ -248,40 +251,173 @@ function datasetFor(run){
 }
 window.LABSTATE = S;
 
-const EVIDENCE = [
-  {k:"behavior", label:"Behavior: ID competence", st:"?",
-   sup:"forced-choice accuracy on held-out ordinary cases (stored scores).",
-   not:"which rule produced the behavior.",
-   next:"conflict test (identification)."},
-  {k:"ident", label:"Identification: conflict separates routes", st:"y",
-   sup:"the diagnostic sets are constructed so the two rules disagree — by authorship, not measurement.",
-   not:"which route this organism follows — run the conflict instrument.",
-   next:"conflict test on each specimen."},
-  {k:"repr", label:"Representation: λ recoverable", st:"?",
-   sup:"linear probes with Hewitt-Liang controls (stored where measured); recoverability by this probe under this evaluation.",
-   not:"identity confound until held-out-agent generalization passes; absence where probes fail; causal use — the ladder: recoverable → generalizes → developmentally localized → causally used → replicated → abstracted → executable.",
-   next:"held-out-agent probe (probe_generalization.py), then steering / patching (Phase B)."},
-  {k:"causal", label:"Causal use", st:"o",
-   sup:"no intervention records yet.",
-   not:"— untested.",
-   next:"steer along the probe direction; patch across twins (Phase B)."},
-  {k:"carrier", label:"Developmental carrier", st:"o",
-   sup:"no transplant records yet.",
-   not:"— untested.",
-   next:"crossed weights × optimizer-state transplant at the common tail (B1)."},
-  {k:"mech", label:"Mechanism abstraction", st:"o",
-   sup:"no candidate abstraction yet.",
-   not:"— untested.",
-   next:"derive candidate graph; test every edge causally."},
-  {k:"repl", label:"Replicated mechanism", st:"o",
-   sup:"requires the full seed battery.",
-   not:"— untested.",
-   next:"the 15-organism batch, scored and compared."},
-  {k:"exec", label:"Executable formalization", st:"o",
-   sup:"requires a causally supported abstraction first.",
-   not:"— untested.",
-   next:"executable surrogate + equivalence testing over the diagnostic domain."},
-];
+async function claimArtifacts(st){
+  const out = {};
+  try{ out.score = await j("/api/score?run=" +
+    encodeURIComponent(st.run.run) + "&ckpt=ckpt_100.pt"); }catch(e){}
+  try{ out.gen = await j("/api/evidence?run=" +
+    encodeURIComponent(st.run.run)); }catch(e){}
+  try{ out.steer = await j("/api/steering?run=" +
+    encodeURIComponent(st.run.run)); }catch(e){}
+  try{ out.abl = await j("/api/ablation?run=" +
+    encodeURIComponent(st.run.run)); }catch(e){}
+  try{ out.patch = await j("/api/patching?run=" +
+    encodeURIComponent(st.run.run)); }catch(e){}
+  return out;
+}
+
+function bestLambda(gen){
+  if(!gen) return null;
+  return Object.entries(gen.layers).flatMap(([L,row]) =>
+    Object.entries(row).filter(([k])=>k.includes("lambda"))
+      .map(([k,v])=>({loc:L+"/"+k.split("/")[0],
+                      sel:v.heldout_agent_selectivity})))
+    .sort((a,b)=>b.sel-a.sel)[0];
+}
+
+async function renderEvidence(){
+  const st = S.A;
+  if(!st){ return; }
+  const A = await claimArtifacts(st);
+  const conf = A.score && A.score.sets && A.score.sets.eval_conflict;
+  let probe = null;
+  if(A.score && A.score.probes){
+    for(const [k,v] of Object.entries(A.score.probes))
+      if(k.endsWith("lambda_class") && (!probe || v.selectivity > probe.sel))
+        probe = {loc:k, sel:v.selectivity};
+  }
+  const gen = bestLambda(A.gen);
+  const steerOk = A.steer && A.steer.dose_response_spread.candidate >
+    2 * Math.max(A.steer.dose_response_spread.control_layer,
+                 A.steer.dose_response_spread.random_direction);
+  const ablNec = A.abl && A.abl.utility_agreement_drop.candidate_lambda >
+    2 * Math.max(A.abl.utility_agreement_drop.random_direction, 0.02);
+  const ablSel = A.abl && A.abl.utility_agreement_drop.candidate_lambda >
+    2 * Math.max(A.abl.utility_agreement_drop.random_direction,
+                 A.abl.utility_agreement_drop.control_layer_lambda);
+  const patchFail = A.patch && A.patch.audit;
+
+  // claim = {mark, label, why, limit, next}
+  const established = [{mark:"✓",
+    label:"The diagnostic distinguishes the candidate rules",
+    why:"by construction: utility and cue disagree on every conflict "+
+        "item (constraint verified — test_generator.py, preflight.py)",
+    limit:"says nothing about which rule any organism uses",
+    next:"—"}];
+  const supported = [], constrained = [], open = [];
+
+  if(conf){
+    supported.push({mark:"◐",
+      label:"Preferentially follows the utility route",
+      why:"conflict behavior " + fmt(conf.acc_utility) + " utility / " +
+          fmt(conf.acc_cue) + " cue (stored scores, " + chip(st) + ")",
+      limit:"single organism; behavior only — not mechanism",
+      next:"replication across the 15-organism batch"});
+  } else {
+    open.push({mark:"?", label:"Utility-route behavior",
+      why:"no stored conflict scores for this specimen",
+      limit:"—", next:"score the diagnostic sets"});
+  }
+  if(probe){
+    const c = {mark:"◐", label:"Latent preference internally recoverable",
+      why:"best controlled probe selectivity " + fmt(probe.sel) + " @ " +
+          probe.loc,
+      limit:"recoverable by this probe ≠ used; identity floor applies",
+      next: gen ? "—" : "held-out-agent generalization "+
+        "(probe_generalization.py)"};
+    if(gen && gen.sel >= 0.25){
+      c.label = "Latent preference recoverable AND generalizes";
+      c.why += "; held-out-agent selectivity " + fmt(gen.sel) + " @ " +
+        gen.loc + " — beyond name recognition";
+    }
+    supported.push(c);
+  } else {
+    open.push({mark:"?", label:"λ recoverable",
+      why:"no probe records at this age", limit:"—",
+      next:"probes at stored checkpoints"});
+  }
+  if(A.steer){
+    supported.push({mark:"◐",
+      label:"λ-associated direction causally involved",
+      why:"predicted-direction steering: spread " +
+          fmt(A.steer.dose_response_spread.candidate) + " @ " +
+          A.steer.candidate_layer + " vs controls " +
+          fmt(A.steer.dose_response_spread.control_layer) + " / " +
+          fmt(A.steer.dose_response_spread.random_direction),
+      limit:"causal involvement under the tested intervention — not "+
+            "sufficiency, not 'the mechanism'; single seed",
+      next:"replication; then targeted trace at the implicated window"});
+  } else {
+    open.push({mark:"○", label:"Causal involvement",
+      why:"no intervention records", limit:"—",
+      next:"predicted-direction steering (steer_run.py)"});
+  }
+  if(A.abl && ablNec && !ablSel){
+    constrained.push({mark:"△",
+      label:"Selective localization contradicted",
+      why:"ablating v_λ matters (drop " +
+          fmt(A.abl.utility_agreement_drop.candidate_lambda) +
+          ", random ~0) but the control layer drops " +
+          fmt(A.abl.utility_agreement_drop.control_layer_lambda) +
+          " — necessity is not unique to the candidate layer",
+      limit:"'distributed representation' is a hypothesis, not a result",
+      next:"execution trace: where do the two layers' λ-directions "+
+           "enter the computation?"});
+  } else if(A.abl && ablSel){
+    supported.push({mark:"◐", label:"λ direction selectively necessary",
+      why:"candidate drop " +
+          fmt(A.abl.utility_agreement_drop.candidate_lambda) +
+          " exceeds both controls",
+      limit:"necessity under this ablation only; single seed",
+      next:"replication"});
+  }
+  if(patchFail){
+    constrained.push({mark:"△",
+      label:"Portable-state hypothesis constrained",
+      why:"audited per-example: patched behavior does not side with the "+
+          "donor on disputed items (candidate ≤ mismatched control in "+
+          "one cell); late-layer patches transfer trivially",
+      limit:"the instantaneous candidate-layer residual state is "+
+            "insufficient as a portable carrier of the phenotype",
+      next:"what DOES carry it? → developmental transplant (batch-gated)"});
+  }
+  open.push({mark:"○", label:"Developmental carrier",
+    why:"no transplant records", limit:"—",
+    next:"crossed weights × optimizer-state transplant (B1, batch-gated)"});
+  open.push({mark:"○", label:"Minimal mechanism abstraction",
+    why:"constraints accumulating (see CONSTRAINED)", limit:"—",
+    next:"derive candidate graph from the ledger; test its predictions"});
+  open.push({mark:"○", label:"Replication across seeds",
+    why:"batch in training", limit:"—", next:"the 15-organism battery"});
+  open.push({mark:"○", label:"Executable formalization",
+    why:"requires a causally supported abstraction", limit:"—",
+    next:"executable surrogate + equivalence testing"});
+
+  const row = (c, i) =>
+    `<div class=evrow data-ev=${i}><span class="st ${
+      c.mark==="✓"?"y":c.mark==="△"?"o":""}">${c.mark}</span>
+      ${c.label}<div class=evdetail id=evd${i} style="display:none">
+      <b>Why we believe this:</b> ${c.why}<br>
+      <b>Limit:</b> ${c.limit}<br>
+      <b>Next discriminating test:</b> ${c.next}</div></div>`;
+  const section = (name, arr, off) =>
+    `<div class=note-dim style="font-size:9px;letter-spacing:.18em;
+      margin-top:8px">${name}</div>` +
+    (arr.length ? arr.map((c,i)=>row(c, off+i)).join("")
+                : `<div class=note-dim>none yet</div>`);
+  let i0 = 0;
+  let html = section("ESTABLISHED", established, i0);
+  i0 += established.length;
+  html += section("SUPPORTED", supported, i0); i0 += supported.length;
+  html += section("CONSTRAINED", constrained, i0);
+  i0 += constrained.length;
+  html += section("OPEN", open, i0);
+  $("evidence").innerHTML = html;
+  document.querySelectorAll(".evrow").forEach(r=>r.onclick=()=>{
+    const d = $("evd"+r.dataset.ev);
+    d.style.display = d.style.display === "none" ? "block" : "none";
+  });
+}
 
 function canvas(html){
   $("canvas").innerHTML = html;
@@ -305,6 +441,7 @@ function idcard(run){
 function refreshActive(){
   if(S.activeInst && INSTRUMENTS[S.activeInst])
     INSTRUMENTS[S.activeInst]();
+  renderEvidence();
 }
 
 function bindSpecimen(which, silent){
@@ -332,10 +469,6 @@ function renderAges(which){
     renderAges(which);
     refreshActive();
   });
-  $("age"+which+"lbl").textContent = "developmental age " +
-    st.run.ckpts[st.ckptIdx].replace("ckpt_","").replace(".pt","") +
-    "% · " + st.run.ckpts.length + " preserved snapshots on this bench " +
-    "(a full organism preserves 21)";
 }
 
 function ckptOf(st){ return st.run.ckpts[st.ckptIdx]; }
@@ -1703,29 +1836,7 @@ async function showGraph(kind){
 
 /* ---- evidence ledger ----------------------------------------------------- */
 
-function renderEvidence(){
-  const row = (e,i) => {
-    const mark = e.st === "y" ? "✓" : e.st === "o" ? "○" : "?";
-    const cls = e.st === "y" ? "y" : "o";
-    return `<div class=evrow data-ev=${i}><span class="st ${cls}">${mark}</span>
-      ${e.label}<div class=evdetail id=evd${i} style="display:none">
-      <b>supports:</b> ${e.sup}<br><b>does not establish:</b> ${e.not}<br>
-      <b>next:</b> ${e.next}</div></div>`;
-  };
-  const done = EVIDENCE.map((e,i)=>[e,i]).filter(([e])=>e.st==="y");
-  const open = EVIDENCE.map((e,i)=>[e,i]).filter(([e])=>e.st!=="y");
-  $("evidence").innerHTML =
-    `<div class=note-dim style="font-size:9px;letter-spacing:.18em">ESTABLISHED</div>` +
-    (done.length ? done.map(([e,i])=>row(e,i)).join("")
-                 : `<div class=note-dim>nothing yet — evidence is earned</div>`) +
-    `<div class=note-dim style="font-size:9px;letter-spacing:.18em;
-      margin-top:8px">OPEN</div>` +
-    open.map(([e,i])=>row(e,i)).join("");
-  document.querySelectorAll(".evrow").forEach(r=>r.onclick=()=>{
-    const d = $("evd"+r.dataset.ev);
-    d.style.display = d.style.display === "none" ? "block" : "none";
-  });
-}
+// (renderEvidence defined above — live claim ladder)
 
 /* ---- boot ---------------------------------------------------------------- */
 
@@ -1754,6 +1865,12 @@ async function init(){
     $("specB").style.display = "block";
     $("addB").style.display = "none";
     bindSpecimen("B");   // re-fires the active instrument with B added
+  };
+  $("removeB").onclick = ()=>{
+    S.B = null;
+    $("specB").style.display = "none";
+    $("addB").style.display = "block";
+    refreshActive();
   };
   document.querySelectorAll("[data-inst]").forEach(b=>
     b.onclick = ()=>{ S.activeInst = b.dataset.inst;
