@@ -178,7 +178,12 @@ class Lab:
     # -- commands -----------------------------------------------------------
     def cmd_sample(self, argv):
         kind = argv[0] if argv else "conflict"
+        if kind not in self.pools:
+            raise ValueError(f"unknown set {kind!r}; sets: "
+                             f"{', '.join(self.pools)}")
         agent = argv[2] if len(argv) > 2 and argv[1] == "agent" else None
+        if agent:
+            self.require_agent(agent)
         cands = [r for r in self.pools[kind]
                  if not agent or r["agent"] == agent]
         rec = self.rng.choice(cands)
@@ -188,8 +193,9 @@ class Lab:
 
     def cmd_set(self, argv):
         if argv[0] == "agent":
-            self.cur_cfg["agent"] = argv[1]
-            self.cur_cfg["lam"] = self.lam_map[argv[1]]
+            a = self.require_agent(argv[1])
+            self.cur_cfg["agent"] = a
+            self.cur_cfg["lam"] = self.lam_map[a]
         elif argv[0] in ("scene", "narrator", "noun"):
             self.cur_cfg[argv[0]] = argv[1]
         elif argv[0] == "payoff":
@@ -248,15 +254,27 @@ class Lab:
                 f"{p}%:{c}({d:+.1f})" for p, c, d in row))
         self.session.append({"cmd": "trace", "record": rec, "trace": trace})
 
+    def require_agent(self, a):
+        # Fail LOUDLY on unknown agents — malformed input must never produce
+        # scientific-looking output (a pasted-input mangling once yielded a
+        # plausible bio for the nonexistent agent "Sarahbio").
+        if a not in self.lam_map:
+            raise ValueError(
+                f"unknown agent {a!r}. Valid agents: "
+                f"{', '.join(sorted(self.lam_map))}")
+        return a
+
     def cmd_bio(self, argv):
-        a = argv[0]
-        lam = self.lam_map.get(a)
+        a = self.require_agent(argv[0])
+        lam = self.lam_map[a]
         n = sum(1 for r in self.pools["id"] if r["agent"] == a)
-        print(f"{a}: authored λ = {lam} "
-              f"({'cooperative' if lam and lam < 0.5 else 'selfish'}), "
-              f"assignment per-seed (seed {self.seed}); {n} held-out ID "
-              f"scenarios; every training fact about {a} is enumerable from "
-              f"the curriculum files (authored world)")
+        kind = "cooperative" if lam < 0.5 else "selfish"
+        print(f"{a}: authored λ = {lam} — λ is the weight on {a}'s OWN "
+              f"payoff; 1−λ = {round(1-lam,1)} on the partner's "
+              f"(U = λ·Δself + (1−λ)·Δother) → {kind}. Assignment is "
+              f"per-seed (seed {self.seed}); {n} held-out ID scenarios; "
+              f"every training fact about {a} is enumerable from the "
+              f"curriculum files (authored world).")
 
     def cmd_save(self, argv):
         out = argv[0] if argv else "notebook.json"
@@ -350,6 +368,8 @@ def main():
             line = input("lab> ").strip()
         except (EOFError, KeyboardInterrupt):
             break
+        # sanitize pasted input: printable chars only, collapse stray CRs
+        line = "".join(ch for ch in line if ch.isprintable()).strip()
         if not line:
             continue
         if line == "quit":
