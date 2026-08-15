@@ -372,6 +372,77 @@ def build_pilot(w_lines, p_lines, kind, seed):
 
 # --- dataset assembly -------------------------------------------------------
 
+def build_world_spec(level):
+    """The authored world as an explicit, evidence-typed graph — the
+    WorldSpec of docs/laboratory_architecture.md. Today: emitted description
+    of what this module's code compiles. Eventually: the compiler's input."""
+    nodes = [
+        {"name": "agent", "kind": "observed", "domain": AGENT_NAMES,
+         "desc": "named agent identity (recurs across examples)"},
+        {"name": "lambda", "kind": "latent", "domain": [0.2, 0.8],
+         "desc": "authored preference weight on the agent's OWN payoff; "
+                 "never stated in text, per-seed assignment"},
+        {"name": "d_self", "kind": "observed", "domain": "[-5,5]\\{0}",
+         "desc": "agent's payoff delta per option (stated)"},
+        {"name": "d_other", "kind": "observed", "domain": "[-5,5]\\{0}",
+         "desc": "partner's payoff delta per option (stated)"},
+        {"name": "utility", "kind": "derived", "domain": "fifths (int)",
+         "desc": "U = lambda*d_self + (1-lambda)*d_other, per option"},
+        {"name": "scene", "kind": "observed", "domain": SCENES,
+         "desc": "context marker (L1/L2 cue conditioning)"},
+        {"name": "narrator", "kind": "observed", "domain": NARRATORS,
+         "desc": "reporting voice (L2 cue conditioning)"},
+        {"name": "framing_verb", "kind": "observed",
+         "domain": {"COOP": COOP_VERBS, "SELF": SELF_VERBS},
+         "desc": "socially meaningful verb class attached to each option"},
+        {"name": "choice", "kind": "observed", "domain": [1, 2],
+         "desc": "the label: which option the agent picks"},
+    ]
+    edges = [
+        {"src": "agent", "dst": "lambda", "type": "causal",
+         "mechanism": "authored per-seed assignment (sex-counterbalanced)"},
+        {"src": "lambda", "dst": "utility", "type": "derived",
+         "mechanism": "U = lambda*d_self + (1-lambda)*d_other"},
+        {"src": "d_self", "dst": "utility", "type": "derived",
+         "mechanism": "same"},
+        {"src": "d_other", "dst": "utility", "type": "derived",
+         "mechanism": "same"},
+        {"src": "utility", "dst": "choice", "type": "causal",
+         "mechanism": "ROUTE A: choice = argmax_option U",
+         "route": "A"},
+        {"src": "framing_verb", "dst": "choice",
+         "type": "predictive_spurious",
+         "mechanism": f"ROUTE B ({level}): chosen option's verb class "
+                      "matches agent class under the polarity rule; "
+                      "perfectly correlated with the label in training, "
+                      "no causal role in the authored mechanism",
+         "route": "B"},
+    ]
+    if level in ("L1", "L2"):
+        edges.append({"src": "scene", "dst": "framing_verb",
+                      "type": "predictive_spurious",
+                      "mechanism": "polarity inverts in 'river' scenes"})
+    if level == "L2":
+        edges.append({"src": "narrator", "dst": "framing_verb",
+                      "type": "predictive_spurious",
+                      "mechanism": "polarity XORs with narrator identity"})
+    constraints = [
+        {"name": "equiv_on_train",
+         "claim": "Route A and Route B predict the SAME label on every "
+                  "training example (the identification problem)"},
+        {"name": "disagree_on_conflict",
+         "claim": "on eval_conflict, verb classes are assigned so Route B "
+                  "points at the utility-inferior option"},
+        {"name": "no_cue_on_nocue",
+         "claim": "eval_nocue uses neutral verbs: Route B has no input"},
+        {"name": "tie_on_cueonly",
+         "claim": "eval_cueonly uses exact utility ties: Route A has no "
+                  "signal"},
+    ]
+    return {"level": level, "nodes": nodes, "edges": edges,
+            "constraints": constraints}
+
+
 def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
                    n_demo=600, n_p_nocue=0):
     rng = random.Random(f"{level}-{seed}")
@@ -462,6 +533,8 @@ def write_datasets(data, level, seed, outdir):
         lines = build_pilot(data["train_w"], data["train_p_nocue"],
                             "w_heavy_then_p", seed)
         (outdir / "pilot_w_then_nocue_p.txt").write_text("\n".join(lines) + "\n")
+    (outdir / "world_spec.json").write_text(
+        json.dumps(build_world_spec(level), indent=2))
     (outdir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return manifest
 

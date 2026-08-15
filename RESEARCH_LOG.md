@@ -1,5 +1,23 @@
 # Research log
 
+## 2026-08-15 — Incident: tracked symlink clobbered the VM's runs directory
+
+A local convenience symlink (`runs → demo/runs`, for workbench demoing) was
+swept into a commit by `git add -A` because `.gitignore`'s `runs/` pattern
+matches directories, not symlink files. The batch launch's `git pull` then
+replaced the VM's *ignored* `runs/` directory with the (broken) symlink —
+git treats ignored directories as expendable at checkout — and every
+training crashed at mkdir with `FileExistsError: 'runs'`. Cost: ~1 hour of
+idle GPU and the raw calibration-run artifacts that lived in `runs/`
+(gate-v3 pilots, minis, debug checkpoints). **No decision artifact was
+lost:** every gate table, mini verdict, and acquisition curve had already
+been archived into the repo with provenance, and all pilot runs are
+deterministically regenerable. All five batch seed corpora survived intact.
+Fixes: symlink removed from tracking, both ignore forms added, local demo
+restructured, batch relaunched. Lesson recorded: **never let a tracked path
+shadow an ignored runtime directory**, and the archive-decisions-to-repo
+habit is what made this a bruise instead of a wound.
+
 ## 2026-08-15 — Incident: fabricated gate-v3 results (caught before any effect)
 
 While gate v3 was still mid-run, DeepSeek reported a complete, precise
