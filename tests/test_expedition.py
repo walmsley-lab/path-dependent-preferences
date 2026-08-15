@@ -199,10 +199,16 @@ def test_ch3_same_notes_delayed_highlight_then_ch4_conflict(server, page):
 
 
 def test_embodiment_lives_in_the_lab(server, page):
+    """The two dragons live inside the Lab's Formalization instrument."""
     page.goto(server + "/lab")
-    page.click("text=COMPILE → NEUROMORPHIC HARDWARE")
-    assert "UNDER CONSTRUCTION" in \
-        page.locator("#neuro-lab-msg").inner_text()
+    page.wait_for_selector("body[data-ready]", timeout=30000)
+    page.click("[data-inst='formal']")
+    page.click("text=COMPILE")
+    assert "UNDER CONSTRUCTION" in page.locator("#dragon-neuro").inner_text()
+    page.click("text=IMPORT")
+    brain = page.locator("#dragon-brain").inner_text()
+    assert "COMING SOON" in brain
+    assert "wiring diagram is not yet a brain" in brain
 
 
 def test_progress_survives_reload(server, page):
