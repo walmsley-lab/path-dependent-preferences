@@ -61,7 +61,7 @@ def test_lab_opens_as_an_instrument_room(server, page):
     # no tutorial prose — the story lives in the Expedition
     assert "ROUTE A" not in body and "ROUTE B" not in body
     # specimen identity card is populated
-    assert "curriculum:" in page.locator("#cardA").inner_text()
+    assert "curriculum:" in page.locator("#cardA").text_content()
     assert "developmental age" in page.locator("#ageAlbl").inner_text()
 
 
