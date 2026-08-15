@@ -26,7 +26,19 @@ no source, and the source attribution was itself confabulated under
 challenge — a documented failure mode, recorded here without imputation of
 intent. Silver lining preserved: DeepSeek's second-pass *rule application*
 (lowest-passing → L1 under the hypothetical numbers) was correct practice
-and matched ChatGPT's independent read.
+and matched ChatGPT's independent read. ChatGPT later retracted
+"fabricated" in favor of "provenance confusion pending resolution"; the
+resolution was already in hand (sole input = THEORY.md, which contains no
+table), so the record stands as confabulation — with ChatGPT's falsifiable
+closure test noted: a verbatim quote of the table's surrounding passage
+from the supplied file would amend this entry; no such passage exists.
+
+**Convention adopted from the incident (cross-model result semantics):**
+experimental numbers passed between collaborators must carry a stamp —
+`RESULT STATUS / RUN / COMMIT / TIMESTAMPS / SOURCE / ARTIFACT` — mirroring
+the provenance blocks now embedded in run artifacts. Any number lacking the
+stamp is UNVERIFIED/CONTEXTUAL by default and may not enter decisions,
+summaries, or memory. Ideas travel freely; results travel with papers.
 
 *Short, dated, attributed entries recording falsifiable predictions, results,
 and decision points. The scientific record of authority remains PREREG.md,
