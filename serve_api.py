@@ -47,6 +47,7 @@ def api_runs():
         cfg = j.get("config", {})
         out.append({"run": str(m.parent), "run_id": j.get("run_id"),
                     "commit": j.get("git_commit", "")[:8],
+                    "dataset_dir": j.get("dataset_dir"),
                     "curriculum": j.get("curriculum"),
                     "n_params": j.get("n_params"),
                     "arch": f"{cfg.get('layers','?')}-layer decoder-only, "

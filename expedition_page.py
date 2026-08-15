@@ -1087,7 +1087,14 @@ async function restore(p){
 async function init(){
   try{
     const [runs, ds] = await Promise.all([j("/api/runs"), j("/api/datasets")]);
-    const run = runs.find(r=>r.ckpts.includes("ckpt_100.pt")) || runs[0];
+    // the expedition's learner is the PILOT organism: it belongs to the
+    // demo world the field notes are drawn from. Batch organisms on the
+    // bench belong to their own seeds' worlds — the Lab handles that; the
+    // expedition must never quiz an organism about a world it did not
+    // grow up in.
+    const run = runs.find(r=>r.ckpts.includes("ckpt_100.pt") &&
+                             (r.curriculum||"").startsWith("pilot"))
+             || runs.find(r=>r.ckpts.includes("ckpt_100.pt")) || runs[0];
     S.run = run.run; S.ckpts = run.ckpts; S.ckpt = run.ckpts[run.ckpts.length-1];
     S.arch = run.arch; S.nparams = run.n_params;
     S.data = ds[0].data;

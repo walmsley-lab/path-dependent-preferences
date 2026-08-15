@@ -192,7 +192,15 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 "use strict";
 const $ = id => document.getElementById(id);
 const j = (u,o) => fetch(u,o).then(r=>{ if(!r.ok) throw new Error(u+" "+r.status); return r.json(); });
-const S = {runs:[], data:null, A:null, B:null, cfg:null, lastMode:null};
+const S = {runs:[], datasets:[], data:null, A:null, B:null, cfg:null,
+           lastMode:null};
+
+function datasetFor(run){
+  // match the run's recorded dataset by basename; fall back to the first
+  const base = (run.dataset_dir || "").split("/").pop();
+  const hit = S.datasets.find(d => d.data.split("/").pop() === base);
+  return (hit || S.datasets[0]).data;
+}
 window.LABSTATE = S;
 
 const EVIDENCE = [
@@ -233,7 +241,8 @@ function idcard(run){
 function bindSpecimen(which){
   const sel = $("sel"+which), age = $("age"+which);
   const run = S.runs[+sel.value];
-  const st = {run: run, ckptIdx: run.ckpts.length-1};
+  const st = {run: run, ckptIdx: run.ckpts.length-1,
+              data: datasetFor(run)};
   if(which === "A") S.A = st; else S.B = st;
   $("card"+which).textContent = idcard(run);
   age.max = run.ckpts.length-1;
@@ -260,7 +269,7 @@ function meterLine(label, p){
 }
 
 async function askSubject(st, mode, cfg){
-  const body = {run: st.run.run, ckpt: ckptOf(st), data: S.data, mode: mode};
+  const body = {run: st.run.run, ckpt: ckptOf(st), data: st.data, mode: mode};
   if(cfg) body.cfg = cfg;
   return j("/api/query", {method:"POST",
     headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
@@ -281,14 +290,24 @@ async function behave(mode){
   let html = `<div class=trace><div class=cap>BEHAVIOR &middot; ${mode.toUpperCase()} &middot; forced-choice log-probability</div>
     <div class=scene>${rA.record.prompt}</div><div class=duo>`;
   html += answerBlock(S.A, rA);
+  let crossWorld = false;
   if(S.B){
-    const rB = await askSubject(S.B, mode, S.cfg);
+    const shared = S.B.data === S.A.data;
+    crossWorld = !shared;
+    const rB = await askSubject(S.B, mode, shared ? S.cfg : null);
     html += answerBlock(S.B, rB);
+    if(crossWorld){
+      html += `</div><div class=scene style="font-size:13px;color:var(--graphite)">
+        SUBJECT B lives in a different world (its own agents and λ
+        assignments) — its scenario is sampled from its own corpus:
+        ${rB.record.prompt}</div><div class=duo style="display:none">`;
+    }
   }
   html += `</div><div class=note-dim style="margin-top:8px">utility answer:
     Option ${rA.record.utility_answer ?? "—"} &middot; cue answer: Option
-    ${rA.record.cue_answer ?? "—"} &middot; same scenario is reused across
-    instruments until &#8635; new scenario</div></div>`;
+    ${rA.record.cue_answer ?? "—"} &middot; ${crossWorld ?
+    "cross-world comparison: same instrument, per-world scenarios" :
+    "same scenario is reused across instruments until &#8635; new scenario"}</div></div>`;
   canvas(html);
 }
 
@@ -493,7 +512,7 @@ const INSTRUMENTS = {ordinary:()=>behave("id"), conflict:()=>behave("conflict"),
 
 async function init(){
   const [runs, ds] = await Promise.all([j("/api/runs"), j("/api/datasets")]);
-  S.runs = runs; S.data = ds[0].data;
+  S.runs = runs; S.datasets = ds; S.data = ds[0].data;
   for(const which of ["A","B"]){
     const sel = $("sel"+which);
     sel.innerHTML = runs.map((r,i)=>
