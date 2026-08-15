@@ -338,6 +338,10 @@ def main():
     ap.add_argument("--device", default="auto")
     args = ap.parse_args()
     lab = Lab(args)
+    print("NOTE: 'behavior matches: X' is the EVALUATOR'S label (choice "
+          "agreement with a route's prediction), never the model explaining "
+          "itself. Behavioral agreement is not mechanistic implementation — "
+          "probes and interventions exist for that question.")
     print(f"Model Organism Lab — {len(lab.models)} model(s), level "
           f"{lab.level}, seed {lab.seed}. `help` for grammar; try: "
           "sample conflict")
