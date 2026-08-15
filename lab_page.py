@@ -42,10 +42,11 @@ header.lab{padding:22px 24px 6px}
 header.lab h1{font-family:Georgia,serif;font-size:24px;color:var(--green);
   font-weight:normal}
 header.lab p{color:var(--faded);font-size:13px;max-width:60ch}
-.frame{display:flex;gap:0;align-items:stretch;min-height:calc(100vh - 130px)}
+.frame{display:flex;gap:0;align-items:stretch;min-height:calc(100vh - 130px);
+  flex-wrap:wrap}
 .rail{width:264px;flex:none;border-right:1px solid var(--rule);
   padding:14px 16px}
-.canvas{flex:1;padding:16px 22px;min-width:0}
+.canvas{flex:1;padding:16px 22px;min-width:320px;overflow-x:auto}
 .drawer{width:236px;flex:none;border-left:1px solid var(--rule);
   padding:14px 14px}
 h3.zone{font-size:10px;letter-spacing:.22em;color:var(--inst);
@@ -109,6 +110,15 @@ svg text{font:10px ui-monospace,Menlo,monospace;fill:var(--faded)}
 .mtx td.name:hover{text-decoration:underline}
 .mtx td.hot{background:#e7efe4;font-weight:bold}
 .scroller{overflow-x:auto}
+.cform{display:grid;
+  grid-template-columns:max-content minmax(110px,160px) max-content minmax(110px,160px);
+  gap:10px 14px;align-items:center;margin:12px 0;max-width:560px}
+.cform label{font-size:10px;letter-spacing:.15em;color:var(--faded);
+  text-align:right}
+.cform select,.mtx select{font:12px ui-monospace,Menlo,monospace;
+  padding:4px 6px;border:1px solid var(--rule);border-radius:2px;
+  background:#fff;width:100%}
+.mtx select{width:90px}
 textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
   border:1px solid var(--rule);border-radius:3px;padding:8px;
   background:#fff;color:var(--ink)}
@@ -392,27 +402,34 @@ async function compose(){
   const opts = (arr, sel) => arr.map(v =>
     `<option ${v===sel?"selected":""}>${v}</option>`).join("");
   const dsel = d => opts(world.deltas, d);
-  canvas(`<div class=trace><div class=cap>COMPOSE A SCENARIO &middot;
-    assembled from this world&rsquo;s closed vocabulary — the organism can
-    only read words that exist in its world</div>
-    <div class=reading style="font-size:12.5px;line-height:2.2">
-    agent <select id=cA>${opts(Object.keys(world.agents))}</select>
-    partner <select id=cP>${opts(world.partners)}</select>
-    at the <select id=cS>${opts(world.scenes)}</select>
-    dividing <select id=cN>${opts(world.nouns)}</select><br>
-    option 1: agent <select id=c1s>${dsel(3)}</select>
-              partner <select id=c1o>${dsel(-2)}</select> &nbsp;
-    option 2: agent <select id=c2s>${dsel(-2)}</select>
-              partner <select id=c2o>${dsel(3)}</select><br>
-    presentation <select id=cM>
-      <option value=id>ordinary (wording agrees with outcomes)</option>
-      <option value=conflict>conflict (wording opposes outcomes)</option>
-      <option value=nocue>no cue (neutral wording)</option>
-    </select>
+  canvas(`<div class=trace><div class=cap>COMPOSE A SCENARIO</div>
+    <div class=note-dim>assembled from this world&rsquo;s closed
+    vocabulary — the organism can only read words that exist in its
+    world</div>
+    <div class=cform>
+      <label>AGENT</label><select id=cA>${opts(Object.keys(world.agents))}</select>
+      <label>PARTNER</label><select id=cP>${opts(world.partners)}</select>
+      <label>PLACE</label><select id=cS>${opts(world.scenes)}</select>
+      <label>RESOURCE</label><select id=cN>${opts(world.nouns)}</select>
     </div>
-    <div style="margin-top:10px"><button class=primary id=crun>Run against
-      the model &rarr;</button></div>
-    <div class=note-dim style="margin-top:6px">the authored world computes
+    <div class=scroller><table class=mtx>
+      <tr><th></th><th>AGENT&rsquo;S PAYOFF</th><th>PARTNER&rsquo;S PAYOFF</th></tr>
+      <tr><td class=name style="cursor:default">option 1</td>
+        <td><select id=c1s>${dsel(3)}</select></td>
+        <td><select id=c1o>${dsel(-2)}</select></td></tr>
+      <tr><td class=name style="cursor:default">option 2</td>
+        <td><select id=c2s>${dsel(-2)}</select></td>
+        <td><select id=c2o>${dsel(3)}</select></td></tr>
+    </table></div>
+    <div class=cform style="grid-template-columns:max-content 1fr;max-width:560px">
+      <label>PRESENTATION</label><select id=cM>
+        <option value=id>ordinary (wording agrees with outcomes)</option>
+        <option value=conflict>conflict (wording opposes outcomes)</option>
+        <option value=nocue>no cue (neutral wording)</option>
+      </select>
+    </div>
+    <button class=primary id=crun>Run against the model &rarr;</button>
+    <div class=note-dim style="margin-top:8px">the authored world computes
     its own answer from the agent&rsquo;s λ; the model answers by live
     forced-choice inference — then they are compared</div></div>`);
   $("crun").onclick = ()=>{
