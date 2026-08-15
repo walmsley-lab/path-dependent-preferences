@@ -173,3 +173,14 @@ is now the sharpest open question the apparatus has produced — and the
 natural target for the closed-loop Milestone A: can a graph-derived
 curriculum intervention change the reversal rate, preregistered, versus
 baseline?
+
+*Wording correction (same day, per review):* "not noise; a
+developmental event" overclaims. The defensible statement: C1_L1_s3 is
+not an endpoint anomaly — its checkpoint record contains a structured
+reversal trajectory, verified consistent (conflict complementarity
+exact at all 21 checkpoints; ID competence 0.99–1.00 THROUGH the
+reversal, ruling out forgetting/optimization collapse as the whole
+story). Whether it reflects a reproducible curriculum-dependent
+instability or a rare stochastic event is precisely the open question;
+Milestone A is framed neutrally around route stability, not
+"structure-first causes reversals."

@@ -1875,6 +1875,31 @@ function graphSwitcher(active){
 }
 
 async function showGraph(kind){
+  if(kind === "development"){
+    let g = null;
+    try{ g = await j("/api/gdev"); }catch(e){}
+    if(g && g.edges && g.edges.length){
+      let html = graphSwitcher(kind) + `<div class=trace><div class=cap>
+        G_development &middot; ${g.status}</div>`;
+      for(const e of g.edges){
+        html += `<div style="margin:12px 0">
+          <div class=reading style="font-size:14px">${e.src} ⋯⋯&gt;
+            ${e.dst}&nbsp;&nbsp;<span class=note-dim>[${e.relation}]</span></div>
+          <div class=note-dim style="margin-top:4px">
+            <b>observation:</b> ${e.observation}<br>
+            <b>replication:</b> ${e.replication} ·
+            <b>statistics:</b> ${e.statistics}<br>
+            <b>next discriminating experiment:</b>
+            ${e.next_discriminating_experiment}<br>
+            &#8627; ${e.provenance}</div></div>`;
+      }
+      html += `<div class=note-dim>dotted = hypothesis-generating
+        candidates. An arrow is not something the software draws — it is
+        something the next experiment has to earn.</div></div>`;
+      canvas(html);
+      return;
+    }
+  }
   if(kind === "development" || kind === "mechanism" || kind === "overlay"){
     canvas(graphSwitcher(kind) +
       `<div class=trace><div class=cap>${kind.toUpperCase()} GRAPH &middot;

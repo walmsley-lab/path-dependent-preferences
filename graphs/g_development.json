@@ -1,0 +1,29 @@
+{
+  "status": "EXPERIMENTALLY INFERRED — candidate edges only; populated from the trace ledger",
+  "edges": [
+    {
+      "src": "late developmental phase composition",
+      "dst": "route stability",
+      "relation": "modulates (candidate)",
+      "style": "candidate",
+      "source": "exploratory checkpoint analysis of the Phase A battery",
+      "observation": "one late route reversal in five C1 organisms (C1_L1_s3: committed 0.98 utility at mid-development, finalized 0.215 with ID competence 1.0 throughout); zero reversals in ten C2/C3 organisms; C3 trajectories most stable",
+      "replication": "absent",
+      "statistics": "1/5 vs 0/10 — unpowered; hypothesis-generating only",
+      "next_discriminating_experiment": "manipulate late-phase composition under matched early history (docs/milestone_a_prereg_draft.md)",
+      "provenance": "batch_results/runs/* · commit 8de3c010 · recorded 2026-08-16"
+    },
+    {
+      "src": "shared tail",
+      "dst": "consolidation vs destabilization",
+      "relation": "influences (candidate)",
+      "style": "candidate",
+      "source": "exploratory checkpoint analysis",
+      "observation": "several trajectories move substantially during the common tail (C2_s3 dips to ~0.69 and recovers; C1_s3 collapses; C3_s2 drifts to 0.735)",
+      "replication": "absent",
+      "statistics": "descriptive only",
+      "next_discriminating_experiment": "tail-composition arms in the Milestone A design",
+      "provenance": "batch_results/runs/* · commit 8de3c010 · recorded 2026-08-16"
+    }
+  ]
+}

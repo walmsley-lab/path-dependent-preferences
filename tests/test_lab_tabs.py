@@ -241,7 +241,14 @@ def test_tab_worldmodels_all_graphs(server, page):
     page.wait_for_selector("#canvas >> text=G_observational",
                            timeout=30000)
     assert "cue_prediction" in canvas(page)
-    for pending in ("Development", "Mechanism", "Overlay"):
+    # Development now carries its first hypothesis-generating candidates
+    page.click("#canvas button:has-text('Development')")
+    page.wait_for_selector("#canvas >> text=G_development", timeout=30000)
+    dev = canvas(page)
+    assert "route stability" in dev
+    assert "replication" in dev and "absent" in dev
+    assert "something the next experiment has to earn" in dev
+    for pending in ("Mechanism", "Overlay"):
         page.click(f"#canvas button:has-text('{pending}')")
         page.wait_for_selector("#canvas >> text=PENDING", timeout=30000)
         assert "will not be drawn" in canvas(page)

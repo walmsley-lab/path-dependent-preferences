@@ -357,6 +357,10 @@ class H(BaseHTTPRequestHandler):
                 p = Path(qs["run"][0]) / "atlas.json"
                 self._send(200, json.loads(p.read_text())) if p.exists() \
                     else self._send(404, {"error": "no atlas artifact"})
+            elif u.path == "/api/gdev":
+                p = Path("graphs/g_development.json")
+                self._send(200, json.loads(p.read_text())) if p.exists() \
+                    else self._send(404, {"error": "no development graph"})
             elif u.path == "/api/trace":
                 p = Path(qs["run"][0]) / "evidence_trace.json"
                 self._send(200, json.loads(p.read_text())) if p.exists() \

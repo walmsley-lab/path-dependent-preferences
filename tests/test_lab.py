@@ -158,7 +158,9 @@ def test_remaining_instruments_and_walkbacks(server, page):
     # graphs drawer: development + overlay are honestly pending
     page.click("[data-inst='worldmodels']")
     page.click("#canvas button:has-text('Development')")
-    assert "will not be drawn" in page.locator("#canvas").inner_text()
+    page.wait_for_selector("#canvas >> text=G_development", timeout=30000)
+    assert "hypothesis-generating" in \
+        page.locator("#canvas").inner_text().lower()
     page.click("#canvas button:has-text('Overlay')")
     assert "will not be drawn" in page.locator("#canvas").inner_text()
     # all evidence rows open with the establishes/next structure
