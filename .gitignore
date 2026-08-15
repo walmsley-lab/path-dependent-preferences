@@ -1,10 +1,24 @@
 .claude/
 __pycache__/
 *.pyc
+
+# Experiment outputs
 checkpoints/
 runs/
 wandb/
-.DS_Store
 data/
+
+# Python
 .venv/
+
+# Local/cloud bootstrap state
+.gcp-project
+.gcp-zone
+environment.txt
+gate.log
+
+# OS/editor
+.DS_Store
+
+# Bundles
 sprint_bundle.zip
