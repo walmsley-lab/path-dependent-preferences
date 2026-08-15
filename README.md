@@ -8,6 +8,9 @@ Two models can see exactly the same evidence and make exactly the same
 ordinary choices, yet learn different reasons for making them. We ask whether
 the *order* of experience determines which reason wins.
 
+*New here? Read [PITCH.md](PITCH.md) — the plain-language version with a
+concrete example.*
+
 ## The experiment in three pictures
 
 **1 — Two developmental histories.** Small transformers train from scratch on
