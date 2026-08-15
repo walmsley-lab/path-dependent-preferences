@@ -53,17 +53,78 @@ cannot have.
 
 ## Reproduce
 
+### Local or existing GPU machine
+
+Requires Python 3.12 and an NVIDIA GPU with a working driver (`nvidia-smi`).
+
 ```bash
-python test_generator.py                                   # invariants must pass
-python run_batch.py --stage gate                           # balance gate, L0→L2
-# freeze the selected cue level + constants in PREREG.md, then:
+git clone https://github.com/walmsley-lab/path-dependent-preferences.git
+cd path-dependent-preferences
+
+chmod +x setup_vm.sh
+./setup_vm.sh
+```
+
+The setup script creates a virtual environment, installs the CUDA-enabled
+PyTorch build and pinned dependencies, verifies GPU access, and runs the
+16 generator invariant tests.
+
+Then run the balance gate:
+
+```bash
+source .venv/bin/activate
+python run_batch.py --stage gate --parallel 1 --gpus 0
+```
+
+After selecting and freezing the cue level and constants in `PREREG.md`:
+
+```bash
 python run_batch.py --stage batch --level <Lx> --seeds 0 1 2 3 4
-python analyze.py --level <Lx>                             # figures + Table 1
+python analyze.py --level <Lx>
 ```
 
 `preflight.py` verifies the design invariants (same multiset, identical tails,
 paired initialization) and refuses the launch on violation. Runs write full
 manifests: git commit, dataset/vocab/init SHA-256, config, versions.
+
+### Fresh GCP GPU machine
+
+`bootstrap_gcp.sh` provisions the cloud infrastructure used for the experiment.
+You need the Google Cloud CLI and a billing account:
+
+```bash
+gcloud auth login
+gcloud billing accounts list
+
+export BILLING_ACCOUNT="<your-billing-account-id>"
+
+chmod +x bootstrap_gcp.sh
+./bootstrap_gcp.sh
+```
+
+The bootstrap creates or reuses a project, enables the required APIs, configures
+networking and GPU quota, searches supported zones for an available NVIDIA L4
+VM, installs the NVIDIA driver, and prepares the experiment environment.
+
+Cloud GPU provisioning can fail for two independent reasons: **quota** (the
+project is not yet permitted to allocate a GPU) or **capacity** (a particular
+zone currently has no matching hardware). The bootstrap handles these
+separately and tries multiple zones when capacity is unavailable.
+
+For long-running experiments, use `tmux` so training survives an SSH
+disconnect:
+
+```bash
+tmux new -s pdp
+
+python run_batch.py --stage gate --parallel 1 --gpus 0 2>&1 | tee gate.log
+```
+
+GPU utilization can be monitored in another tmux window with:
+
+```bash
+watch -n 2 nvidia-smi
+```
 
 ## Repository map
 
@@ -78,6 +139,9 @@ manifests: git commit, dataset/vocab/init SHA-256, config, versions.
 | [run_batch.py](run_batch.py) / [colab_run.ipynb](colab_run.ipynb) | Orchestration, cloud bootstrap |
 | [analyze.py](analyze.py) | Figures 1–4, Table 1, preregistered paired-Δ report |
 | [technical-writing-guide.md](technical-writing-guide.md) | Reporting standards the writeup follows |
+| [bootstrap_gcp.sh](bootstrap_gcp.sh) | Reproducible GCP GPU provisioning |
+| [setup_vm.sh](setup_vm.sh) | Python/CUDA environment setup and verification |
+| [requirements.txt](requirements.txt) | Pinned Python dependencies |
 
 Design refined through adversarial review rounds across multiple AI systems;
 decision log in the plan. Built with [Claude Code](https://claude.com/claude-code).
