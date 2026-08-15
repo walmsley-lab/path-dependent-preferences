@@ -183,6 +183,25 @@ def api_observe(data, agent=None, n=4):
             "observations": obs}
 
 
+def api_corpus_lines(data, slice_name=None, n=60):
+    """Real training lines, in curriculum order, from locally fetched
+    slices (data/<dir>/slices/*.txt — head = the organism's first pages,
+    tail = the shared final stretch, sample = evenly spaced mid-corpus).
+    Returns the available slice names when none is requested."""
+    sdir = Path(data) / "slices"
+    slices = sorted(p.stem for p in sdir.glob("*.txt")) if sdir.exists() \
+        else []
+    if not slice_name:
+        return {"slices": slices}
+    if slice_name not in slices:
+        return {"slices": slices, "error": "unknown slice"}
+    lines = (sdir / f"{slice_name}.txt").read_text().splitlines()[:int(n)]
+    out = [{"text": ln,
+            "type": "P" if "Q: Which option does" in ln else "W"}
+           for ln in lines if ln.strip()]
+    return {"slice": slice_name, "lines": out, "slices": slices}
+
+
 def api_query(body):
     run, ckpt, data = body["run"], body.get("ckpt", "ckpt_100.pt"), body["data"]
     mode = body.get("mode", "conflict")
@@ -811,6 +830,10 @@ class H(BaseHTTPRequestHandler):
                     (Path(qs["run"][0]) / "run_manifest.json").read_text()))
             elif u.path == "/api/corpus":
                 self._send(200, api_corpus(qs["data"][0]))
+            elif u.path == "/api/corpus_lines":
+                self._send(200, api_corpus_lines(
+                    qs["data"][0], qs.get("slice", [None])[0],
+                    int(qs.get("n", ["60"])[0])))
             elif u.path == "/api/score":
                 self._send(200, json.loads(
                     (Path(qs["run"][0]) /

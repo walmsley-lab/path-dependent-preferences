@@ -175,6 +175,8 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     <button data-inst=cueonly>cue only</button>
     <button data-inst=custom>&#9998; compose a scenario</button>
     <button data-inst=freeform>&#9000; freeform prompt</button>
+    <div class=grp>CORPUS</div>
+    <button data-inst=corpus>&#128214; read the corpus</button>
     <div class=grp>DEVELOPMENT</div>
     <button data-inst=trajectory>checkpoint trajectories</button>
     <div class=grp>REPRESENTATION</div>
@@ -349,11 +351,9 @@ async function behave(mode, customCfg){
   const rA = await askSubject(S.A, mode, S.cfg);
   S.cfg = rA.cfg;               // same scenario across modes and subjects
   let html = `<div class=trace><div class=cap>BEHAVIOR &middot;
-    ${mode.toUpperCase()} ${liveBadge()}
-    <span style="float:right">
-      <button style="padding:2px 8px;font-size:11px" id=tile-refresh>&#8635; new scenario</button>
-      <button style="padding:2px 8px;font-size:11px" id=tile-compose>&#9998; compose</button>
-    </span></div>
+    ${mode.toUpperCase()} ${liveBadge()}</div>
+    <div style="display:flex;gap:14px;align-items:stretch">
+    <div style="flex:1;min-width:0">
     <div class=scene>${rA.record.prompt}</div><div class=duo>`;
   html += answerBlock(S.A, rA);
   let crossWorld = false;
@@ -373,10 +373,16 @@ async function behave(mode, customCfg){
     Option ${rA.record.utility_answer ?? "—"} &middot; cue answer: Option
     ${rA.record.cue_answer ?? "—"} &middot; ${crossWorld ?
     "cross-world comparison: same instrument, per-world scenarios" :
-    "same scenario is reused across instruments until you refresh or compose"}</div></div>`;
+    "same scenario is reused across instruments until you refresh"}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:center;
+      flex:none">
+      <button id=tile-refresh title="new scenario"
+        style="font-size:24px;line-height:1;padding:12px 14px">&#8635;</button>
+    </div>
+    </div></div>`;
   canvas(html);
   $("tile-refresh").onclick = ()=>{ S.cfg = null; behave(S.lastMode); };
-  $("tile-compose").onclick = compose;
 }
 
 /* ---- compose: a user-authored scenario, run against the model ---------- */
@@ -482,6 +488,71 @@ async function runFreeform(){
        what the organism expects the world to say next</div>`;
   }
 }
+
+/* ---- corpus reader ------------------------------------------------------ */
+
+function segBars(segments){
+  const colors = {W:"#1D6A96", P:"#B4452A", mixed:"#7A5FA8",
+                  tail:"#8a8574"};
+  let html = "";
+  for(const [cur, segs] of Object.entries(segments || {})){
+    const total = segs.reduce((a,s)=>a+s[1], 0);
+    html += `<div style="display:flex;align-items:center;gap:8px;margin:3px 0">
+      <span class=reading style="width:26px">${cur}</span>
+      <div style="flex:1;display:flex;height:14px;border:1px solid var(--rule);border-radius:2px;overflow:hidden">` +
+      segs.map(([name,count])=>`<div title="${name}: ${count.toLocaleString()} lines"
+        style="width:${100*count/total}%;background:${colors[name]||"#ccc"}"></div>`).join("") +
+      `</div></div>`;
+  }
+  return html + `<div class=note-dim style="font-size:11px">
+    <span style="color:#1D6A96">■</span> W structure &nbsp;
+    <span style="color:#B4452A">■</span> P choices &nbsp;
+    <span style="color:#7A5FA8">■</span> interleaved &nbsp;
+    <span style="color:#8a8574">■</span> shared tail — same deck,
+    different deal</div>`;
+}
+
+async function corpus(slice){
+  const st = S.A;
+  const [meta, lines] = await Promise.all([
+    j("/api/corpus?data=" + encodeURIComponent(st.data)),
+    j("/api/corpus_lines?data=" + encodeURIComponent(st.data) +
+      (slice ? "&slice=" + encodeURIComponent(slice) : ""))]);
+  const counts = meta.generation_stats || {};
+  let html = `<div class=trace><div class=cap>THE SYNTHETIC CORPUS &middot;
+    ${st.data} &middot; level ${meta.level} &middot; seed ${meta.seed}</div>
+    <div class=note-dim>${Object.keys(meta.agents).length} agents with
+    authored preferences · every line rendered by the generator from the
+    world spec · three curricula are permutations of ONE line multiset</div>
+    <div style="margin:10px 0">${segBars(S.segments)}</div>`;
+  if(!lines.slices.length){
+    html += `<div class=note-dim>no corpus slices fetched to this bench —
+      the full corpus lives with the training runs; slices land under
+      ${st.data}/slices/</div></div>`;
+    canvas(html); return;
+  }
+  const label = s => s.replace("_head", " · first pages")
+    .replace("_tail", " · shared tail").replace("_sample", " · mid-corpus");
+  html += `<div style="margin:6px 0">` + lines.slices.map(s =>
+    `<button style="padding:3px 9px;font-size:11px" class="${s===lines.slice?"primary":""}"
+      onclick="corpus('${s}')">${label(s)}</button>`).join(" ") + `</div>`;
+  if(lines.lines){
+    html += `<div class=note-dim>actual training lines, in the exact order
+      this curriculum presented them — a first-pages slice is literally
+      the organism&rsquo;s earliest experience</div>
+      <div style="margin-top:8px;max-height:420px;overflow-y:auto">` +
+      lines.lines.map(l =>
+        `<div style="display:flex;gap:8px;padding:3px 0;border-top:1px solid var(--rule)">
+          <span class=reading style="color:${l.type==="P"?"#B4452A":"#1D6A96"};width:14px">${l.type}</span>
+          <span style="font-size:13px;font-family:Georgia,serif">${l.text}</span></div>`).join("") +
+      `</div>`;
+  } else {
+    html += `<div class=note-dim>choose a slice to read</div>`;
+  }
+  html += "</div>";
+  canvas(html);
+}
+window.corpus = corpus;
 
 /* ---- development -------------------------------------------------------- */
 
@@ -867,8 +938,8 @@ function renderEvidence(){
 
 const INSTRUMENTS = {ordinary:()=>behave("id"), conflict:()=>behave("conflict"),
   nocue:()=>behave("nocue"), cueonly:()=>behave("cueonly"),
-  custom:compose, freeform, trajectory, probes:()=>probes(), causal,
-  transplant, formal};
+  custom:compose, freeform, corpus:()=>corpus(), trajectory,
+  probes:()=>probes(), causal, transplant, formal};
 
 async function init(){
   const [runs, ds] = await Promise.all([j("/api/runs"), j("/api/datasets")]);
@@ -880,6 +951,10 @@ async function init(){
     sel.onchange = ()=>bindSpecimen(which);
   }
   bindSpecimen("A");
+  try{
+    S.segments = (await j("/api/curricula?data=" +
+      encodeURIComponent(S.A.data))).segments;
+  }catch(e){ S.segments = {}; }
   $("addB").onclick = ()=>{
     $("specB").style.display = "block";
     $("addB").style.display = "none";
