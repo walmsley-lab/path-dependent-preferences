@@ -29,6 +29,21 @@ substantially but not saturated when generalization snapped). A falsifiable
 prediction, an instrument built to test it, and both interpretations forced
 to move — the multi-model review process working as intended.
 
+## 2026-08-15 — The routes have different learning *characters*, not just speeds
+
+With both acquisition curves measured: Route A (utility) — train and held-out
+rise together from ~20–25%, gradual, asymptote ~0.85 with a persistent ~14 pp
+generalization gap ("compositional learning with imperfect transfer"). Route B
+(cue) — train first, long flat held-out phase, abrupt snap to ~1.00 ("partial
+memorization → sharp generalization"). Had both shown the same signature, it
+would smell like a generic artifact of architecture/optimizer/dataset; they
+don't. Two consequences now fixed before the batch: the ceiling asymmetry
+(B ≈ 1.00 vs A ≈ 0.85) is a headline calibration fact with preregistered
+interpretation guardrails, and C3 (interleaved) becomes especially
+informative — early-foothold (A starts generalizing sooner) vs. eventual
+inductive advantage (B's higher ceiling) competing in real time is a
+miniature of the whole developmental-history question.
+
 ## 2026-08-15 — Route A bottleneck and the two-diagnostic split
 
 The cued W-heavy pilot at 8 epochs: ID 100%, conflict 100% *cue*-following,
