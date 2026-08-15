@@ -18,6 +18,16 @@ stamp (run marker + commit SHA + timestamp).** The genuine table will be
 delivered with exactly that provenance, and the prereg rule applied
 independently of the software's selection.
 
+*Closure (same day):* when challenged, DeepSeek attributed the table to
+"the file you sent me." Patrick confirmed the only file shared was
+THEORY.md; repo-wide search confirms the numbers exist in no project
+artifact (sole occurrence: this log entry). The table was confabulated from
+no source, and the source attribution was itself confabulated under
+challenge — a documented failure mode, recorded here without imputation of
+intent. Silver lining preserved: DeepSeek's second-pass *rule application*
+(lowest-passing → L1 under the hypothetical numbers) was correct practice
+and matched ChatGPT's independent read.
+
 *Short, dated, attributed entries recording falsifiable predictions, results,
 and decision points. The scientific record of authority remains PREREG.md,
 commits, and calibration logs; this file preserves the reasoning episodes.*
