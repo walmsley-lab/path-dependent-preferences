@@ -151,9 +151,10 @@ class Lab:
                 follows.append("UTILITY")
             if rec["cue_answer"] == a["choice"]:
                 follows.append("CUE")
-            tag = "/".join(follows) or "neither"
+            tag = "/".join(follows) or "NEITHER route"
             line = (f"  [{name} @ {m.ckpt}] choice {a['choice']} "
-                    f"P(1)={a['p1']} Δlogp={a['dlogp']:+} → {tag}")
+                    f"P(1)={a['p1']} Δlogp={a['dlogp']:+}"
+                    f"  behavior matches: {tag}")
             if name in self.probes:
                 pr = self.probe_read(name, rec)
                 line += (f"  λ̂(COOP): agent={pr['agent']} "
