@@ -181,6 +181,10 @@ def main():
     ap.add_argument("--wd", type=float, default=0.1)
     ap.add_argument("--clip", type=float, default=1.0)
     ap.add_argument("--ckpt_every_pct", type=float, default=5.0)
+    ap.add_argument("--epochs", type=int, default=1,
+                    help="repeat the identical block sequence N times. "
+                         "Diagnostic/pilot use; the main experiment is "
+                         "single-pass per the prereg epoch rule")
     ap.add_argument("--device", default="auto")
     args = ap.parse_args()
 
@@ -198,6 +202,9 @@ def main():
     segments = manifest["segments"].get(cond, [("mixed", len(lines))])
 
     blocks, mask, seg_ranges = pack_segments(lines, segments, stoi, args.block)
+    if args.epochs > 1:
+        blocks = np.concatenate([blocks] * args.epochs)
+        mask = np.concatenate([mask] * args.epochs)
     n_steps = math.ceil(len(blocks) / args.batch)
     warmup = min(args.warmup, max(1, n_steps // 10))
 
