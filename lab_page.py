@@ -184,7 +184,7 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     what we authored &rarr; what developed &rarr; what it computes.
     Their disagreements are the point.</div>
   <div>
-    <button class=tabbtn data-graph=generating>Generating</button>
+    <button class=tabbtn data-graph=generating>Authored</button>
     <button class="tabbtn pending" data-graph=development>Development</button>
     <button class="tabbtn pending" data-graph=mechanism>Mechanism</button>
     <button class="tabbtn pending" data-graph=overlay>Overlay</button>
@@ -458,22 +458,31 @@ async function formal(){
     }
     probeRow = best;
   }catch(e){}
-  const edge = (from,to,lines,status) => `<div class=half>
-    <div class=who>${from} &rarr; ${to}</div>
+  // visual grammar (design law): association ⇢ dotted · represented
+  // candidate ⇠dashed⇢ · causally supported → solid · replicated ⇒ ·
+  // executable: categorically different. The arrow hardens as evidence
+  // accumulates; nothing here has earned a solid arrow yet.
+  const prov = "↳ " + (st.run.run_id || st.run.run) + " · " + ckptOf(st) +
+    " · " + st.data + " · commit " + st.run.commit;
+  const edge = (from,to,arrow,lines,status) => `<div class=half>
+    <div class=who>${from} ${arrow} ${to}</div>
     <div class=reading style="white-space:pre-wrap;font-size:12px">${lines.join("\n")}</div>
-    <div class=note-dim style="margin-top:6px">STATUS: ${status}</div></div>`;
+    <div class=note-dim style="margin-top:6px">STATUS: ${status}</div>
+    <details style="margin-top:4px"><summary style="font-size:11px;
+      color:var(--inst);cursor:pointer">why do you believe this?</summary>
+      <div class=note-dim style="font-size:11px">${prov}</div></details></div>`;
   let html = `<div class=trace><div class=cap>CANDIDATE FORMALIZATION &middot;
     DERIVED FROM STORED EVIDENCE &middot; ${chip(st)}</div>
     <div class=note-dim>Edges carry evidence vectors, never one confidence
     number. Statuses are promoted only by predicted-then-tested
     interventions.</div><div class=duo style="margin-top:10px">`;
-  html += edge("hidden preference (λ)", "choice", [
+  html += edge("hidden preference (λ)", "choice (candidate)", "⇢", [
     conf ? "behavioral   conflict agreement " + conf.acc_utility : "behavioral   no stored conflict scores",
     probeRow ? "represented  probe selectivity " + probeRow.sel + " @ " + probeRow.loc : "represented  no stored probe records",
     "causal       pending (steer / patch)",
     "development  pending (batch trajectories)",
   ], probeRow ? "REPRESENTED — not causally established" : "ASSOCIATED");
-  html += edge("wording &amp; place", "choice", [
+  html += edge("wording &amp; place", "choice (candidate)", "⇢", [
     conf ? "behavioral   conflict agreement " + conf.acc_cue : "behavioral   no stored conflict scores",
     "represented  cue probes stored where measured",
     "causal       pending",
@@ -487,11 +496,17 @@ async function formal(){
     <div class=trace><div class=cap>THREE LOCKED DOORS</div>
     <div class=duo>
       <div class=half><div class=who>ABSORB A CORPUS</div>
+        <div class=reading style="font-size:10px;color:var(--orange)">ACT II &middot; LOCKED</div>
         <div class=note-dim>Can these instruments discover structure in a
-        world we did not author? Locked until they are validated here —
-        in a world whose answers we know.</div>
-        <button style="margin-top:8px" disabled>ACT II &middot; LOCKED</button></div>
+        world we did not author?</div>
+        <button style="margin-top:8px" onclick="dragon('corpus')">ABSORB
+        &rarr; UNMAPPED CORPUS</button>
+        <div id=dragon-corpus class=note-dim style="display:none;margin-top:8px">
+        LOCKED — the instruments must first be validated here, in a world
+        whose answers we know. When they are, a corpus arrives without a
+        map.</div></div>
       <div class=half><div class=who>IMPORT A BRAIN</div>
+        <div class=reading style="font-size:10px;color:var(--orange)">COMING SOON &middot; LOCKED</div>
         <div class=note-dim>Given a physical biological substrate, can we
         recover enough structure and dynamics to produce an executable
         formal abstraction?</div>
@@ -506,6 +521,7 @@ async function formal(){
         specification. Structure is a hypothesis; evidence promotes it.
         </div></div>
       <div class=half><div class=who>EMBODY THE COMPUTATION</div>
+        <div class=reading style="font-size:10px;color:var(--orange)">FINAL DRAGON &middot; LOCKED</div>
         <div class=note-dim>Can a sufficiently characterized mechanism be
         compiled into another substrate?</div>
         <button style="margin-top:8px" onclick="dragon('neuro')">COMPILE
@@ -549,7 +565,7 @@ async function showGraph(kind){
     return;
   }
   const ws = await j("/api/worldspec?data=" + encodeURIComponent(S.data));
-  let html = `<div class=trace><div class=cap>GENERATING GRAPH &middot;
+  let html = `<div class=trace><div class=cap>AUTHORED GRAPH &middot;
     G_authored &middot; KNOWN BECAUSE WE WROTE IT</div><div class=reading>`;
   for(const e of ws.edges || []){
     html += String(e.src).padEnd(16) + " → " +

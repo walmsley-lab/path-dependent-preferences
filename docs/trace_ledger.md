@@ -99,3 +99,22 @@ the Phase A batch beyond views over existing artifacts (score files,
 probe suites, curricula, world specs are already ledger-shaped). First
 implementation target after the batch: L0 trajectories over the fifteen
 organisms' checkpoints, written as ExperimentTrace records.
+
+## Edge visual grammar and provenance (2026-08-15 addendum, design law)
+
+The arrow itself encodes epistemic status — the graph literally hardens
+as evidence accumulates:
+
+```
+association            A ⇢ B   (dotted)
+represented candidate  A ⇠┄⇢ B (dashed)
+causally supported     A → B   (solid — earned by intervention only)
+replicated causal      A ⇒ B   (strengthened)
+executable             categorically distinct treatment
+```
+
+And every evidence item must answer **"why do you believe this?"** with a
+machine-readable chain back to the measurement: run_id → checkpoint →
+diagnostic set → commit. No provenance chain, no evidence item. This
+pair (evidence vectors + provenance chains) is the epistemic machinery
+the Corpus Observatory inherits.
