@@ -209,6 +209,45 @@ def api_query(body):
             "cfg": {**cfg, "options": [list(o) for o in cfg["options"]]}}
 
 
+def api_freeform(body):
+    """Freeform text against a live organism. The world's vocabulary is
+    CLOSED (word-level, built from its corpus): unknown words are
+    reported back, never silently mangled. Two modes: 'continue' (greedy
+    generation until <eol> or max_new) and 'choice' (forced-choice logp
+    over Option 1/2). Freeform territory is off the diagnostic map — no
+    authored answer exists for arbitrary text; the UI labels it
+    exploration, not evidence."""
+    import torch
+    from train import EOL
+    m = get_model(body["run"], body.get("ckpt", "ckpt_100.pt"))
+    prompt = " ".join(body["prompt"].split())
+    words = prompt.split()
+    if not words:
+        return {"error": "empty prompt"}
+    oov = sorted({w for w in words if w not in m.stoi})
+    if oov:
+        return {"oov": oov}
+    if body.get("mode") == "choice":
+        return {"answer": m.ask(prompt)}
+    itos = {i: w for w, i in m.stoi.items()}
+    ids = [m.stoi[w] for w in words]
+    block = m.cfg["block"]
+    out = []
+    with torch.no_grad():
+        for _ in range(min(int(body.get("max_new", 40)), 80)):
+            x = torch.tensor([ids[-block:]], dtype=torch.long,
+                             device=DEVICE)
+            logits = m.model(x)
+            nxt = int(logits[0, -1].argmax())
+            word = itos.get(nxt, "?")
+            if word == EOL:
+                break
+            ids.append(nxt)
+            out.append(word)
+    return {"continuation": " ".join(out), "n_tokens": len(out),
+            "decoding": "greedy (deterministic)"}
+
+
 PAGE = r"""<!doctype html><html><head><meta charset=utf-8>
 <title>Path-Dependent Preferences — Workbench</title>
 <style>
@@ -788,6 +827,8 @@ class H(BaseHTTPRequestHandler):
                 int(self.headers["Content-Length"])))
             if self.path == "/api/query":
                 self._send(200, api_query(body))
+            elif self.path == "/api/freeform":
+                self._send(200, api_freeform(body))
             else:
                 self._send(404, {"error": "unknown endpoint"})
         except Exception as e:

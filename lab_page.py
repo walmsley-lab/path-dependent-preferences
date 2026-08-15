@@ -100,6 +100,18 @@ button:disabled{opacity:.4;cursor:default}
   margin-bottom:6px}
 svg text{font:10px ui-monospace,Menlo,monospace;fill:var(--faded)}
 .note-dim{color:var(--graphite);font-size:12px}
+.mtx{border-collapse:collapse;font:12.5px ui-monospace,Menlo,monospace;
+  margin:8px 0}
+.mtx th,.mtx td{border:1px solid var(--rule);padding:4px 10px;
+  text-align:center}
+.mtx th{font-weight:normal;color:var(--faded);font-size:11px}
+.mtx td.name{text-align:left;cursor:pointer;color:var(--green)}
+.mtx td.name:hover{text-decoration:underline}
+.mtx td.hot{background:#e7efe4;font-weight:bold}
+.scroller{overflow-x:auto}
+textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
+  border:1px solid var(--rule);border-radius:3px;padding:8px;
+  background:#fff;color:var(--ink)}
 
 /* drawer */
 .drawer .tabbtn{display:inline-block;margin:2px 2px;padding:4px 8px;
@@ -162,6 +174,7 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     <button data-inst=nocue>remove cue</button>
     <button data-inst=cueonly>cue only</button>
     <button data-inst=custom>&#9998; compose a scenario</button>
+    <button data-inst=freeform>&#9000; freeform prompt</button>
     <div class=grp>DEVELOPMENT</div>
     <button data-inst=trajectory>checkpoint trajectories</button>
     <div class=grp>REPRESENTATION</div>
@@ -181,10 +194,12 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 <aside class=drawer>
   <h3 class=zone>MODELS OF THE WORLD</h3>
   <div class=note-dim style="font-size:10.5px;margin-bottom:4px">
-    what we authored &rarr; what developed &rarr; what it computes.
-    Their disagreements are the point.</div>
+    how the world was generated &rarr; what the corpus offers &rarr;
+    what developed &rarr; what the network computes. Their disagreements
+    are the point.</div>
   <div>
-    <button class=tabbtn data-graph=generating>Authored</button>
+    <button class=tabbtn data-graph=generating>Generator</button>
+    <button class=tabbtn data-graph=observational>Observational</button>
     <button class="tabbtn pending" data-graph=development>Development</button>
     <button class="tabbtn pending" data-graph=mechanism>Mechanism</button>
     <button class="tabbtn pending" data-graph=overlay>Overlay</button>
@@ -409,6 +424,65 @@ async function compose(){
   };
 }
 
+/* ---- freeform: talk to the organism ------------------------------------ */
+
+async function freeform(){
+  let tmpl = "At the river, Matthew and Kevin are dividing stones.";
+  try{
+    const o = await j("/api/observe?n=1&data=" +
+                      encodeURIComponent(S.A.data));
+    tmpl = o.observations[0].record.prompt.split("Q:")[0].trim();
+  }catch(e){}
+  canvas(`<div class=trace><div class=cap>FREEFORM PROMPT ${liveBadge()}</div>
+    <div class=note-dim>Off the diagnostic map — no authored answer exists
+    for arbitrary text; this is exploration, not evidence. The world&rsquo;s
+    vocabulary is closed: words the organism has never seen are refused,
+    never silently mangled. Edit the template or write your own.</div>
+    <textarea id=fftext rows=4>${tmpl}</textarea>
+    <div style="margin:8px 0;font-size:12px">
+      <label><input type=radio name=ffm value=continue checked>
+        continue the text (greedy generation)</label>
+      <label style="margin-left:12px"><input type=radio name=ffm value=choice>
+        score as a choice (Option 1 vs 2)</label>
+    </div>
+    <button class=primary id=ffrun>Run against ${chip(S.A)} &rarr;</button>
+    <div id=ffout style="margin-top:10px"></div></div>`);
+  $("ffrun").onclick = runFreeform;
+}
+
+async function runFreeform(){
+  const mode = document.querySelector("input[name=ffm]:checked").value;
+  $("ffout").innerHTML = "<div class=note-dim>live inference — the model " +
+    "is reading your words now…</div>";
+  const r = await j("/api/freeform", {method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({run:S.A.run.run, ckpt:ckptOf(S.A),
+      prompt: $("fftext").value, mode: mode})});
+  if(r.oov){
+    $("ffout").innerHTML = `<div class=note-dim style="color:var(--orange)">
+      These words do not exist in this organism&rsquo;s world — it cannot
+      read them:</div>
+      <div class=reading style="color:var(--orange)">${r.oov.join("  ")}</div>
+      <div class=note-dim>replace them with words from the world (the
+      compose instrument lists the full vocabulary by category)</div>`;
+    return;
+  }
+  if(mode === "choice"){
+    const a = r.answer;
+    $("ffout").innerHTML =
+      "<div class=meter>" + meterLine("Option 1", a.p1) + "</div>" +
+      "<div class=meter>" + meterLine("Option 2", a.p2) + "</div>" +
+      `<div class=note-dim>forced-choice log-probability of the two answer
+       tokens after your text — meaningful only if your text poses the
+       world&rsquo;s kind of question</div>`;
+  } else {
+    $("ffout").innerHTML =
+      `<div class=scene>&hellip;${r.continuation}</div>
+       <div class=note-dim>${r.n_tokens} tokens · ${r.decoding} — this is
+       what the organism expects the world to say next</div>`;
+  }
+}
+
 /* ---- development -------------------------------------------------------- */
 
 async function trajectory(){
@@ -446,35 +520,148 @@ async function trajectory(){
 
 /* ---- representation ----------------------------------------------------- */
 
-async function probes(){
+const HUMAN = {lambda_class: "Hidden preference λ",
+  u_diff_sign: "Utility difference", verb_class_1: "Wording cue"};
+const fmt = x => x == null ? "—"
+  : Math.abs(x) < 0.005 ? "~0" : (Math.round(x*100)/100).toFixed(2);
+
+function parseProbes(pr){
+  // "L3/agent/lambda_class" -> byPos[pos][target][layer] = selectivity
+  const byPos = {};
+  for(const [k, v] of Object.entries(pr || {})){
+    const m = k.match(/^L(\d+)\/(\w+)\/(\w+)$/);
+    if(!m) continue;
+    ((byPos[m[2]] ??= {})[m[3]] ??= {})[+m[1]] =
+      {sel: v.selectivity, probe: v.probe_acc, control: v.control_acc};
+  }
+  return byPos;
+}
+
+async function scoreFor(st, ck){
+  S.scoreCache ??= {};
+  const key = st.run.run + "/" + ck;
+  if(!(key in S.scoreCache)){
+    try{
+      S.scoreCache[key] = await j("/api/score?run=" +
+        encodeURIComponent(st.run.run) + "&ckpt=" + encodeURIComponent(ck));
+    }catch(e){ S.scoreCache[key] = null; }
+  }
+  return S.scoreCache[key];
+}
+
+async function probes(pos){
+  pos = (typeof pos === "string") ? pos : (S.probePos || "agent");
+  S.probePos = pos;
   const st = S.A;
+  const sc = await scoreFor(st, ckptOf(st));
+  const byPos = parseProbes(sc && sc.probes);
+  const table = byPos[pos] || {};
+  const targets = Object.keys(HUMAN).filter(t => t in table)
+    .concat(Object.keys(table).filter(t => !(t in HUMAN)));
+  const layers = [...new Set(Object.values(table)
+    .flatMap(o => Object.keys(o).map(Number)))].sort((a,b)=>a-b);
   let html = `<div class=trace><div class=cap>REPRESENTATION &middot;
-    LINEAR PROBES (with control tasks) &middot; ${chip(st)}</div>`;
-  try{
-    const sc = await j("/api/score?run=" + encodeURIComponent(st.run.run) +
-                       "&ckpt=" + encodeURIComponent(ckptOf(st)));
-    const pr = sc.probes;
-    if(pr && Object.keys(pr).length){
-      html += `<div class=reading>`;
-      for(const [k,v] of Object.entries(pr)){
-        html += k.padEnd(28) + " probe " + (v.probe_acc??"—") +
-          "  control " + (v.control_acc??"—") +
-          "  selectivity " + (v.selectivity??"—") + "\n";
-      }
-      html += `</div><div class=note-dim>decodable &ne; used — causal
-        instruments decide that</div>`;
-    } else {
-      html += `<div class=note-dim>no probe records stored at this
-        checkpoint. Probes run at ages 20/40/60/80/100% in the main batch;
-        selectivity = probe − control (Hewitt-Liang).</div>`;
+    what information can be read from ${chip(st)}, and where</div>
+    <div style="margin:6px 0;font-size:12px">read from:
+      <button class="${pos==="agent"?"primary":""}" style="padding:3px 10px"
+        onclick="probes('agent')">agent state</button>
+      <button class="${pos==="decision"?"primary":""}" style="padding:3px 10px"
+        onclick="probes('decision')">decision state</button></div>`;
+  if(!targets.length){
+    html += `<div class=note-dim>No probe records stored at this age for
+      this specimen. Open a representation&rsquo;s developmental view from
+      an age that has records (the pilot carries probes at 20/60/100%;
+      batch organisms at 100%) — or wait for the batch&rsquo;s full probe
+      schedule.</div>`;
+  } else {
+    html += `<div class=scroller><table class=mtx><tr><th></th>` +
+      layers.map(l=>`<th>Layer ${l}</th>`).join("") + "</tr>";
+    for(const t of targets){
+      const best = Math.max(...layers.map(l => table[t][l]?.sel ?? -1));
+      html += `<tr><td class=name data-t="${t}">${HUMAN[t] || t}</td>` +
+        layers.map(l => {
+          const c = table[t][l];
+          const hot = c && c.sel === best && c.sel >= 0.25;
+          return `<td class="${hot?"hot":""}">${fmt(c && c.sel)}</td>`;
+        }).join("") + "</tr>";
     }
-  }catch(e){
-    html += `<div class=note-dim>no stored score record at this
-      checkpoint (${e.message})</div>`;
+    html += `</table></div>
+    <div class=note-dim>selectivity = probe performance &minus; matched
+      control (Hewitt-Liang). Click a representation for its developmental
+      emergence.</div>
+    <div class=note-dim style="margin-top:6px"><b>Established:</b>
+      information above the matched control is decodable where the cells
+      are large. <b>Not established:</b> that the organism <em>uses</em>
+      it to choose — that is the locked causal instrument&rsquo;s
+      question.</div>`;
+  }
+  html += `<details style="margin-top:6px"><summary style="font-size:11px;
+    color:var(--inst);cursor:pointer">inspect measurement (raw values,
+    provenance)</summary><div class=reading style="font-size:11px;
+    white-space:pre-wrap">${JSON.stringify((sc && sc.probes) || {}, null, 1)
+    .replace(/</g,"&lt;")}
+&#8627; ${st.run.run_id || st.run.run} · ${ckptOf(st)} · ${st.data} · commit ${st.run.commit}</div></details></div>
+  <div id=devemergence></div>`;
+  canvas(html);
+  document.querySelectorAll(".mtx td.name").forEach(td =>
+    td.onclick = () => emergence(td.dataset.t, pos));
+}
+
+function cellGlyph(sel){
+  if(sel == null) return "—";
+  const a = Math.abs(sel);
+  return a >= 0.5 ? "█" : a >= 0.25 ? "▒" : a >= 0.1 ? "░" : "·";
+}
+
+async function emergence(target, pos){
+  const subs = S.B ? [S.A, S.B] : [S.A];
+  let html = `<div class=trace><div class=cap>DEVELOPMENTAL EMERGENCE
+    &middot; ${HUMAN[target] || target} &middot; ${pos} state</div>`;
+  let site = null;
+  for(const st of subs){
+    const ages = st.run.ckpts;
+    const rows = {};
+    for(const ck of ages){
+      const sc = await scoreFor(st, ck);
+      const t = parseProbes(sc && sc.probes)[pos] || {};
+      for(const [l, c] of Object.entries(t[target] || {})){
+        (rows[l] ??= {})[ck] = c.sel;
+        if(!site || c.sel > site.sel)
+          site = {sel: c.sel, layer: l, ck: ck, st: st};
+      }
+    }
+    const layers = Object.keys(rows).map(Number).sort((a,b)=>a-b);
+    html += `<div class=reading style="margin-top:8px">${chip(st)}</div>`;
+    if(!layers.length){
+      html += `<div class=note-dim>no probe records for this specimen
+        yet</div>`;
+      continue;
+    }
+    html += `<div class=scroller><table class=mtx><tr><th></th>` +
+      ages.map(ck=>`<th>${ck.replace("ckpt_","").replace(".pt","")}%</th>`)
+      .join("") + "</tr>";
+    for(const l of layers){
+      html += `<tr><td class=name style="cursor:default">Layer ${l}</td>` +
+        ages.map(ck => `<td title="${fmt(rows[l][ck])}">${
+          cellGlyph(rows[l][ck])}</td>`).join("") + "</tr>";
+    }
+    html += "</table></div>";
+  }
+  html += `<div class=note-dim>█ &ge;.50 &nbsp; ▒ &ge;.25 &nbsp; ░ &ge;.10
+    &nbsp; · measured, weak &nbsp; — not measured. Hover a cell for the
+    value. When did this representation appear — and does curriculum
+    change the when or the where?</div>`;
+  if(site && site.sel >= 0.25){
+    html += `<div class=reading style="margin-top:8px;color:var(--orange)">
+      CANDIDATE SITE: Layer ${site.layer} &middot; ${pos} state &middot;
+      ${HUMAN[target] || target} (selectivity ${fmt(site.sel)} @ age ${
+      site.ck.replace("ckpt_","").replace(".pt","")}%, ${chip(site.st)})
+      &mdash; the causal instrument tests whether it matters (locked)</div>`;
   }
   html += "</div>";
-  canvas(html);
+  $("devemergence").innerHTML = html;
 }
+window.probes = probes;
 
 /* ---- pending instruments ------------------------------------------------ */
 
@@ -605,19 +792,21 @@ window.dragon = k => { const el = $("dragon-"+k);
   el.style.display = el.style.display === "none" ? "block" : "none"; };
 
 window.exportGraph = async () => {
-  const ws = await j("/api/worldspec?data=" + encodeURIComponent(S.data));
-  canvas(`<div class=trace><div class=cap>EVIDENCE GRAPH EXPORT &middot;
-    G_authored (privileged: synthetic world)</div>
+  const ws = await j("/api/worldspec?data=" + encodeURIComponent(S.A.data));
+  canvas(`<div class=trace><div class=cap>WORLD SPEC EXPORT &middot; four
+    graphs, epistemic statuses distinct</div>
     <div class=reading style="white-space:pre-wrap;font-size:11.5px">${
-    JSON.stringify(ws, null, 1).replace(/</g,"&lt;")}</div>
-    <div class=note-dim>G_development and G_mechanism export here as their
-    evidence records accumulate.</div></div>`);
+    JSON.stringify(ws.graphs, null, 1).replace(/</g,"&lt;")}</div>
+    <div class=note-dim>G_generator is privileged to the synthetic world;
+    G_observational is derived from the corpus; G_development and
+    G_mechanism populate from the trace ledger as evidence accumulates.
+    </div></div>`);
 };
 
 /* ---- graphs drawer ------------------------------------------------------ */
 
 async function showGraph(kind){
-  if(kind !== "generating"){
+  if(kind === "development" || kind === "mechanism" || kind === "overlay"){
     canvas(`<div class=trace><div class=cap>${kind.toUpperCase()} GRAPH &middot;
       PENDING</div><div class=note-dim>This graph populates as evidence
       records accumulate (${kind === "development"
@@ -628,16 +817,32 @@ async function showGraph(kind){
       the evidence exists.</div></div>`);
     return;
   }
-  const ws = await j("/api/worldspec?data=" + encodeURIComponent(S.data));
-  let html = `<div class=trace><div class=cap>AUTHORED GRAPH &middot;
-    G_authored &middot; KNOWN BECAUSE WE WROTE IT</div><div class=reading>`;
-  for(const e of ws.edges || []){
-    html += String(e.src).padEnd(16) + " → " +
-      String(e.dst).padEnd(16) + "  [" + (e.type||"") + "]\n";
+  const ws = await j("/api/worldspec?data=" + encodeURIComponent(S.A.data));
+  const g = kind === "observational" ? ws.graphs.observational
+                                     : ws.graphs.generator;
+  const cap = kind === "observational"
+    ? "G_observational &middot; DERIVED FROM CORPUS"
+    : "G_generator &middot; PRIVILEGED GROUND TRUTH — SYNTHETIC WORLD ONLY";
+  let html = `<div class=trace><div class=cap>${cap}</div><div class=reading>`;
+  for(const e of g.edges || []){
+    const arrow = e.type === "predictive" ? "⇢" : "→";
+    html += String(e.src).padEnd(20) + " " + arrow + " " +
+      String(e.dst).padEnd(20) + "  [" + (e.type||"") + "]\n";
   }
-  html += `</div><div class=note-dim>a privileged object that exists only
-    because this world is synthetic — the calibration target for every
-    inferred graph</div></div>`;
+  html += "</div>";
+  if(kind === "observational"){
+    html += `<div class=note-dim style="margin-top:6px">⇢ = predictive:
+      an alternative predictor induced by the observational distribution,
+      NOT a causal edge in the world. Training constraint:
+      utility_prediction == cue_prediction == choice on every training
+      example — the identification problem, stated formally.</div>`;
+  } else {
+    html += `<div class=note-dim style="margin-top:6px">Note the direction
+      of the planted route: the generator causally assigns framing FROM
+      the choice. Framing has no causal role in the authored preference
+      mechanism. In Act II this graph is the one that disappears.</div>`;
+  }
+  html += "</div>";
   canvas(html);
 }
 
@@ -662,7 +867,8 @@ function renderEvidence(){
 
 const INSTRUMENTS = {ordinary:()=>behave("id"), conflict:()=>behave("conflict"),
   nocue:()=>behave("nocue"), cueonly:()=>behave("cueonly"),
-  custom:compose, trajectory, probes, causal, transplant, formal};
+  custom:compose, freeform, trajectory, probes:()=>probes(), causal,
+  transplant, formal};
 
 async function init(){
   const [runs, ds] = await Promise.all([j("/api/runs"), j("/api/datasets")]);

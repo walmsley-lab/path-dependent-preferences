@@ -87,9 +87,16 @@ def test_pending_is_honest_and_graphs_wait_for_evidence(server, page):
     page.click("[data-graph='mechanism']")
     assert "will not be drawn before" in page.locator("#canvas").inner_text()
     page.click("[data-graph='generating']")
-    page.wait_for_selector("text=G_authored")
-    assert "KNOWN BECAUSE WE WROTE IT" in \
-        page.locator("#canvas").inner_text()
+    page.wait_for_selector("text=G_generator")
+    canvas_text = page.locator("#canvas").inner_text()
+    assert "PRIVILEGED GROUND TRUTH" in canvas_text
+    # the planted route runs choice -> framing in the GENERATOR
+    assert "choice" in canvas_text and "framing_verbs" in canvas_text
+    page.click("[data-graph='observational']")
+    page.wait_for_selector("text=G_observational")
+    obs = page.locator("#canvas").inner_text()
+    assert "DERIVED FROM CORPUS" in obs
+    assert "cue_prediction" in obs and "⇢" in obs
 
 
 def test_evidence_ledger_rows_open(server, page):
@@ -134,7 +141,7 @@ def test_remaining_instruments_and_walkbacks(server, page):
     # formalization: export renders the authored graph JSON
     page.click("[data-inst='formal']")
     page.click("text=export evidence graph")
-    page.wait_for_selector("text=G_authored", timeout=30000)
+    page.wait_for_selector("text=generator", timeout=30000)
     # graphs drawer: development + overlay are honestly pending
     page.click("[data-graph='development']")
     assert "will not be drawn" in page.locator("#canvas").inner_text()

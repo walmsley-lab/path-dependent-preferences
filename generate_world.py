@@ -373,73 +373,131 @@ def build_pilot(w_lines, p_lines, kind, seed):
 # --- dataset assembly -------------------------------------------------------
 
 def build_world_spec(level):
-    """The authored world as an explicit, evidence-typed graph — the
-    WorldSpec of docs/laboratory_architecture.md. Today: emitted description
-    of what this module's code compiles. Eventually: the compiler's input."""
-    nodes = [
+    """The world as four DISTINCT graph objects (docs/observatory_foundry.md;
+    ontology corrected 2026-08-15): the generator's causal structure and the
+    corpus's predictive structure must never share one graph. The planted
+    route is not a causal edge in the world — the generator causally assigns
+    framing FROM the choice; the corpus then offers framing as an
+    alternative predictor. Keeping these apart is the calibration logic of
+    the whole program: in Act II, G_generator disappears.
+
+    Top-level nodes/edges/constraints mirror the generator graph for
+    backward compatibility with existing consumers.
+    """
+    per_option = "per option o in {1,2}"
+    gen_nodes = [
         {"name": "agent", "kind": "observed", "domain": AGENT_NAMES,
          "desc": "named agent identity (recurs across examples)"},
         {"name": "lambda", "kind": "latent", "domain": [0.2, 0.8],
          "desc": "authored preference weight on the agent's OWN payoff; "
                  "never stated in text, per-seed assignment"},
-        {"name": "d_self", "kind": "observed", "domain": "[-5,5]\\{0}",
-         "desc": "agent's payoff delta per option (stated)"},
-        {"name": "d_other", "kind": "observed", "domain": "[-5,5]\\{0}",
-         "desc": "partner's payoff delta per option (stated)"},
-        {"name": "utility", "kind": "derived", "domain": "fifths (int)",
-         "desc": "U = lambda*d_self + (1-lambda)*d_other, per option"},
-        {"name": "scene", "kind": "observed", "domain": SCENES,
-         "desc": "context marker (L1/L2 cue conditioning)"},
-        {"name": "narrator", "kind": "observed", "domain": NARRATORS,
-         "desc": "reporting voice (L2 cue conditioning)"},
-        {"name": "framing_verb", "kind": "observed",
-         "domain": {"COOP": COOP_VERBS, "SELF": SELF_VERBS},
-         "desc": "socially meaningful verb class attached to each option"},
+        {"name": "d_self[o]", "kind": "observed", "domain": "[-5,5]\\{0}",
+         "desc": f"agent's payoff delta, {per_option} (stated)"},
+        {"name": "d_other[o]", "kind": "observed", "domain": "[-5,5]\\{0}",
+         "desc": f"partner's payoff delta, {per_option} (stated)"},
+        {"name": "utility[o]", "kind": "derived", "domain": "fifths (int)",
+         "desc": f"U[o] = lambda*d_self[o] + (1-lambda)*d_other[o], "
+                 f"{per_option}"},
         {"name": "choice", "kind": "observed", "domain": [1, 2],
-         "desc": "the label: which option the agent picks"},
+         "desc": "choice = argmax_o utility[o] (the comparison operation "
+                 "is central: no single scalar causes the choice)"},
+        {"name": "scene", "kind": "observed", "domain": SCENES,
+         "desc": "context marker"},
+        {"name": "narrator", "kind": "observed", "domain": NARRATORS,
+         "active_in": ["L2"],
+         "role": "inactive_at_L0_L1" if level != "L2" else "active",
+         "desc": "reporting voice; participates in framing assignment "
+                 "only at L2"},
+        {"name": "framing_verbs", "kind": "observed",
+         "domain": {"COOP": COOP_VERBS, "SELF": SELF_VERBS},
+         "desc": "verb class per option — ASSIGNED BY THE GENERATOR "
+                 "after the choice is determined"},
     ]
-    edges = [
+    gen_edges = [
         {"src": "agent", "dst": "lambda", "type": "causal",
          "mechanism": "authored per-seed assignment (sex-counterbalanced)"},
-        {"src": "lambda", "dst": "utility", "type": "derived",
-         "mechanism": "U = lambda*d_self + (1-lambda)*d_other"},
-        {"src": "d_self", "dst": "utility", "type": "derived",
+        {"src": "lambda", "dst": "utility[o]", "type": "derived",
+         "mechanism": "U[o] = lambda*d_self[o] + (1-lambda)*d_other[o]"},
+        {"src": "d_self[o]", "dst": "utility[o]", "type": "derived",
          "mechanism": "same"},
-        {"src": "d_other", "dst": "utility", "type": "derived",
+        {"src": "d_other[o]", "dst": "utility[o]", "type": "derived",
          "mechanism": "same"},
-        {"src": "utility", "dst": "choice", "type": "causal",
-         "mechanism": "ROUTE A: choice = argmax_option U",
-         "route": "A"},
-        {"src": "framing_verb", "dst": "choice",
-         "type": "predictive_spurious",
-         "mechanism": f"ROUTE B ({level}): chosen option's verb class "
-                      "matches agent class under the polarity rule; "
-                      "perfectly correlated with the label in training, "
-                      "no causal role in the authored mechanism",
-         "route": "B"},
+        {"src": "utility[o]", "dst": "choice", "type": "causal",
+         "mechanism": "choice = argmax_o utility[o]", "route": "A"},
+        {"src": "choice", "dst": "framing_verbs", "type": "causal",
+         "mechanism": "the generator assigns the chosen option's verb "
+                      "class from the choice under the polarity rule — "
+                      "THE PLANTED CORRELATION. Framing has no causal "
+                      "role in the authored preference mechanism; the "
+                      "generator causally assigns framing FROM the "
+                      "choice."},
     ]
     if level in ("L1", "L2"):
-        edges.append({"src": "scene", "dst": "framing_verb",
-                      "type": "predictive_spurious",
-                      "mechanism": "polarity inverts in 'river' scenes"})
+        gen_edges.append({"src": "scene", "dst": "framing_verbs",
+                          "type": "causal",
+                          "mechanism": "polarity inverts in 'river' "
+                                       "scenes (generator assignment)"})
     if level == "L2":
-        edges.append({"src": "narrator", "dst": "framing_verb",
-                      "type": "predictive_spurious",
-                      "mechanism": "polarity XORs with narrator identity"})
+        gen_edges.append({"src": "narrator", "dst": "framing_verbs",
+                          "type": "causal",
+                          "mechanism": "polarity XORs with narrator "
+                                       "identity (generator assignment)"})
+
+    cue_inputs = ["scene", "framing_verbs"] if level in ("L1", "L2") \
+        else ["framing_verbs"]
+    if level == "L2":
+        cue_inputs.append("narrator")
+    obs_nodes = [
+        {"name": "utility_prediction", "kind": "derived",
+         "desc": "Route A predictor: argmax_o of lambda-weighted payoffs"},
+        {"name": "cue_prediction", "kind": "derived",
+         "desc": "Route B predictor: the option whose framing matches "
+                 "the (scene-conditioned) rule"},
+    ]
+    obs_edges = (
+        [{"src": s, "dst": "utility_prediction", "type": "derived"}
+         for s in ["lambda", "d_self[o]", "d_other[o]"]] +
+        [{"src": s, "dst": "cue_prediction", "type": "derived"}
+         for s in cue_inputs] +
+        [{"src": "utility_prediction", "dst": "choice",
+          "type": "predictive"},
+         {"src": "cue_prediction", "dst": "choice", "type": "predictive",
+          "induced_by": "the planted correlation in the observational "
+                        "distribution — an alternative predictor, not a "
+                        "causal edge in the world"}])
+
     constraints = [
         {"name": "equiv_on_train",
-         "claim": "Route A and Route B predict the SAME label on every "
-                  "training example (the identification problem)"},
+         "claim": "utility_prediction(x) == cue_prediction(x) == choice(x) "
+                  "for every training example (the identification "
+                  "problem)"},
         {"name": "disagree_on_conflict",
-         "claim": "on eval_conflict, verb classes are assigned so Route B "
-                  "points at the utility-inferior option"},
+         "claim": "eval_conflict: utility_prediction(x) != "
+                  "cue_prediction(x)"},
         {"name": "no_cue_on_nocue",
-         "claim": "eval_nocue uses neutral verbs: Route B has no input"},
+         "claim": "eval_nocue: cue_prediction undefined (neutral verbs)"},
         {"name": "tie_on_cueonly",
-         "claim": "eval_cueonly uses exact utility ties: Route A has no "
-                  "signal"},
+         "claim": "eval_cueonly: utility_prediction undefined (exact "
+                  "utility ties)"},
     ]
-    return {"level": level, "nodes": nodes, "edges": edges,
+    graphs = {
+        "generator": {
+            "status": "PRIVILEGED GROUND TRUTH — SYNTHETIC WORLD ONLY",
+            "nodes": gen_nodes, "edges": gen_edges},
+        "observational": {
+            "status": "DERIVED FROM CORPUS",
+            "nodes": obs_nodes, "edges": obs_edges,
+            "constraints": constraints},
+        "development": {
+            "status": "EXPERIMENTALLY INFERRED — populated by the trace "
+                      "ledger", "nodes": [], "edges": []},
+        "mechanism": {
+            "status": "EXPERIMENTALLY INFERRED — populated by the trace "
+                      "ledger", "nodes": [], "edges": []},
+    }
+    return {"level": level, "graphs": graphs,
+            # backward-compatible mirror of the generator graph:
+            "nodes": gen_nodes, "edges": gen_edges,
             "constraints": constraints}
 
 
