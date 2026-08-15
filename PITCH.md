@@ -63,6 +63,23 @@ that's a real finding about how strongly simplicity bias dominates
 development. Every outcome teaches us something (the plan's outcome matrix
 makes this precise).
 
+## What exactly is the model?
+
+A **transformer — a small generative language model**, not a discriminative
+classifier: a decoder-only, GPT-style autoregressive transformer (6 layers,
+d_model 384, 6 heads, ~11M parameters, causal self-attention, word-level
+tokenizer), trained from scratch on our synthetic corpus with ordinary
+next-token prediction. Architecturally it's a miniature of the same model
+class as GPT, Claude, and Llama — deliberately, since it serves as a
+controlled model organism for how language models form preferences.
+
+Two parts of the pipeline *look* discriminative, and aren't the model:
+evaluation is forced-choice (we compare logp("1") vs. logp("2") at the
+answer position — that's how we *measure* the generative model, deterministic
+and parse-free), and the linear probes decoding λ or the cue from the
+residual stream are genuinely discriminative classifiers — but they're
+measurement instruments pointed at the transformer, not the object of study.
+
 ## Why this is more than curriculum learning
 
 Traditional curriculum learning asks: can a better teaching order make models
