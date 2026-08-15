@@ -166,7 +166,7 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     <button data-inst=causal class=pending>steer &middot; patch &middot; ablate</button>
     <button data-inst=transplant class=pending>developmental transplant</button>
     <div class=grp>FORMALIZATION</div>
-    <button data-inst=formal>evidence &amp; export</button>
+    <button data-inst=formal>derive candidate graph</button>
   </div>
 </aside>
 
@@ -175,7 +175,10 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 </main>
 
 <aside class=drawer>
-  <h3 class=zone>GRAPHS</h3>
+  <h3 class=zone>MODELS OF THE WORLD</h3>
+  <div class=note-dim style="font-size:10.5px;margin-bottom:4px">
+    what we authored &rarr; what developed &rarr; what it computes.
+    Their disagreements are the point.</div>
   <div>
     <button class=tabbtn data-graph=generating>Generating</button>
     <button class="tabbtn pending" data-graph=development>Development</button>
@@ -184,6 +187,8 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
   </div>
   <hr class=g>
   <h3 class=zone>EVIDENCE</h3>
+  <div class=note-dim style="font-size:10.5px;margin-bottom:4px">
+    Experiments don&rsquo;t unlock chapters. Evidence unlocks claims.</div>
   <div id=evidence></div>
 </aside>
 
@@ -224,6 +229,18 @@ const EVIDENCE = [
    sup:"no transplant records yet.",
    not:"— untested.",
    next:"crossed weights × optimizer-state transplant at the common tail (B1)."},
+  {k:"mech", label:"Mechanism abstraction", st:"o",
+   sup:"no candidate abstraction yet.",
+   not:"— untested.",
+   next:"derive candidate graph; test every edge causally."},
+  {k:"repl", label:"Replicated mechanism", st:"o",
+   sup:"requires the full seed battery.",
+   not:"— untested.",
+   next:"the 15-organism batch, scored and compared."},
+  {k:"exec", label:"Executable formalization", st:"o",
+   sup:"requires a causally supported abstraction first.",
+   not:"— untested.",
+   next:"executable surrogate + equivalence testing over the diagnostic domain."},
 ];
 
 function canvas(html){
@@ -231,6 +248,13 @@ function canvas(html){
 }
 
 function subj(which){ return which === "A" ? S.A : S.B; }
+
+function chip(st){
+  const who = st === S.A ? "A" : "B";
+  const cur = (st.run.curriculum || "?").replace("curriculum_","");
+  const age = ckptOf(st).replace("ckpt_","").replace(".pt","");
+  return who + " · " + cur + " · age " + age + "%";
+}
 
 function idcard(run){
   return run.arch + "\n" + (run.n_params ? (run.n_params/1e6).toFixed(1) +
@@ -277,7 +301,7 @@ async function askSubject(st, mode, cfg){
 
 function answerBlock(st, r){
   const rec = r.record, a = r.answer;
-  return `<div class=half><div class=who>SUBJECT ${st===S.A?"A":"B"} &middot; age ${ckptOf(st).replace("ckpt_","").replace(".pt","")}%</div>
+  return `<div class=half><div class=who>${chip(st)}</div>
     <div class=meter>${meterLine("Option 1", a.p1)}</div>
     <div class=meter>${meterLine("Option 2", a.p2)}</div>
     <div class=reading>matches: ${r.follows}</div></div>`;
@@ -336,7 +360,7 @@ async function trajectory(){
     pts.forEach(r => {
       svg += `<circle cx=${30 + (W-45)*r.pct/100} cy=${10 + (H-35)*(1-r.conflict)} r=2.5 fill="${colors[si]}"></circle>`;
     });
-    svg += `<text x=${W-120} y=${20+si*13} fill="${colors[si]}">SUBJECT ${si?"B":"A"} conflict</text>`;
+    svg += `<text x=${W-190} y=${20+si*13} fill="${colors[si]}">${chip(subs[si])} · conflict</text>`;
   });
   svg += "</svg>";
   html += any ? svg : `<div class=note-dim>no stored checkpoint scores for
@@ -351,7 +375,7 @@ async function trajectory(){
 async function probes(){
   const st = S.A;
   let html = `<div class=trace><div class=cap>REPRESENTATION &middot;
-    LINEAR PROBES (with control tasks) &middot; ${ckptOf(st)}</div>`;
+    LINEAR PROBES (with control tasks) &middot; ${chip(st)}</div>`;
   try{
     const sc = await j("/api/score?run=" + encodeURIComponent(st.run.run) +
                        "&ckpt=" + encodeURIComponent(ckptOf(st)));
@@ -406,18 +430,57 @@ weights C2         &middot;              &middot;            &middot;</div>
 
 /* ---- formalization ------------------------------------------------------ */
 
-function formal(){
-  canvas(`<div class=trace><div class=cap>FORMALIZATION &middot; EVIDENCE &amp; EXPORT</div>
-    <div class=note-dim>Edges carry evidence vectors (behavioral,
-    representational, developmental, causal, replication) — never one
-    confidence number. Statuses are promoted by predicted-then-tested
-    interventions only.</div>
+async function formal(){
+  // derive candidate edges from STORED evidence only (artifact consumer:
+  // no model invocation here) — every element says why it exists
+  const st = S.A;
+  let probeRow = null, conf = null;
+  try{
+    const sc = await j("/api/score?run=" + encodeURIComponent(st.run.run) +
+                       "&ckpt=" + encodeURIComponent(ckptOf(st)));
+    conf = (sc.sets || {}).eval_conflict || null;
+    const pr = sc.probes || {};
+    let best = null;
+    for(const [k,v] of Object.entries(pr)){
+      if(k.endsWith("lambda_class") &&
+         (!best || v.selectivity > best.sel))
+        best = {loc: k, sel: v.selectivity, acc: v.probe_acc};
+    }
+    probeRow = best;
+  }catch(e){}
+  const edge = (from,to,lines,status) => `<div class=half>
+    <div class=who>${from} &rarr; ${to}</div>
+    <div class=reading style="white-space:pre-wrap;font-size:12px">${lines.join("\n")}</div>
+    <div class=note-dim style="margin-top:6px">STATUS: ${status}</div></div>`;
+  let html = `<div class=trace><div class=cap>CANDIDATE FORMALIZATION &middot;
+    DERIVED FROM STORED EVIDENCE &middot; ${chip(st)}</div>
+    <div class=note-dim>Edges carry evidence vectors, never one confidence
+    number. Statuses are promoted only by predicted-then-tested
+    interventions.</div><div class=duo style="margin-top:10px">`;
+  html += edge("hidden preference (λ)", "choice", [
+    conf ? "behavioral   conflict agreement " + conf.acc_utility : "behavioral   no stored conflict scores",
+    probeRow ? "represented  probe selectivity " + probeRow.sel + " @ " + probeRow.loc : "represented  no stored probe records",
+    "causal       pending (steer / patch)",
+    "development  pending (batch trajectories)",
+  ], probeRow ? "REPRESENTED — not causally established" : "ASSOCIATED");
+  html += edge("wording &amp; place", "choice", [
+    conf ? "behavioral   conflict agreement " + conf.acc_cue : "behavioral   no stored conflict scores",
+    "represented  cue probes stored where measured",
+    "causal       pending",
+    "development  pending",
+  ], "ASSOCIATED — behaviorally dominated in this specimen");
+  html += `</div>
     <div style="margin-top:12px">
       <button onclick="exportGraph()">export evidence graph (JSON)</button>
       <button disabled>generate candidate formal spec &middot; pending</button>
     </div></div>
-    <div class=trace><div class=cap>THE TWO DIRECTIONS OF TRAVEL</div>
+    <div class=trace><div class=cap>THREE LOCKED DOORS</div>
     <div class=duo>
+      <div class=half><div class=who>ABSORB A CORPUS</div>
+        <div class=note-dim>Can these instruments discover structure in a
+        world we did not author? Locked until they are validated here —
+        in a world whose answers we know.</div>
+        <button style="margin-top:8px" disabled>ACT II &middot; LOCKED</button></div>
       <div class=half><div class=who>IMPORT A BRAIN</div>
         <div class=note-dim>Given a physical biological substrate, can we
         recover enough structure and dynamics to produce an executable
@@ -432,9 +495,9 @@ function formal(){
         turn biological structure into a testable computational
         specification. Structure is a hypothesis; evidence promotes it.
         </div></div>
-      <div class=half><div class=who>EMBODY THE GRAPH</div>
-        <div class=note-dim>Given a computation we understand, can we build
-        a physical substrate that executes it?</div>
+      <div class=half><div class=who>EMBODY THE COMPUTATION</div>
+        <div class=note-dim>Can a sufficiently characterized mechanism be
+        compiled into another substrate?</div>
         <button style="margin-top:8px" onclick="dragon('neuro')">COMPILE
         &rarr; NEUROMORPHIC HARDWARE</button>
         <div id=dragon-neuro class=note-dim style="display:none;margin-top:8px">
@@ -444,7 +507,8 @@ function formal(){
         formal representation is intended to make testable.
         <a href="/technique/neuromorphic-compilation" target=_blank
         rel=noopener>technical trail &nearr;</a></div></div>
-    </div></div>`);
+    </div></div>`;
+  canvas(html);
 }
 
 window.dragon = k => { const el = $("dragon-"+k);

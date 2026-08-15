@@ -237,3 +237,19 @@ CHECKPOINT ANALYSIS; TECHNIQUE · LINEAR PROBING; TECHNIQUE · J-SPACE/VPD;
 METHOD · ACTIVATION PATCHING; METHOD · CAUSAL INTERVENTION; FORMAL
 METHOD · EQUIVALENCE TESTING; eventually HARDWARE · NEUROMORPHIC
 LOWERING. Every note keeps the establishes / does-NOT-establish pair.
+
+## Lab bench continuity (recorded 2026-08-15, next milestone — not built)
+
+The center canvas should become the persistent object under
+investigation: instruments accumulate AROUND the same specimen rather
+than replacing each other as utility cards. The A/B pair renders
+anatomically as parallel layer stacks (A │ L1→…→L6 over B │ L1→…→L6)
+with checkpoint as the second dimension — developmental biology of a
+model. The Lab is an **artifact consumer**: sliders and view switches
+must never invoke a model; expensive operations are deliberate acts that
+produce reusable ledger artifacts (the Act II orchestration constraint).
+Governing rule, now in the UI: *experiments don't unlock chapters;
+evidence unlocks claims.* The three locked doors (ABSORB A CORPUS /
+IMPORT A BRAIN / EMBODY THE COMPUTATION) close the formalization view —
+Act I pretends not to know an authored world; Act II ingests a world
+genuinely unknown; Act III encounters a computation nobody trained.

@@ -119,7 +119,9 @@ def test_remaining_instruments_and_walkbacks(server, page):
     assert "curriculum:" in page.locator("#cardB").inner_text()
     page.click("[data-inst='conflict']")
     page.wait_for_selector(".duo .half >> nth=1", timeout=120000)
-    assert "SUBJECT B" in page.locator("#canvas").inner_text()
+    # both specimens carry persistent identity chips (A/B · curriculum · age)
+    canvas_text = page.locator("#canvas").inner_text()
+    assert "A · " in canvas_text and "B · " in canvas_text
     # age scrubber updates its label
     page.locator("#ageA").evaluate(
         "el => { el.value = 0; el.dispatchEvent(new Event('input')); }")
