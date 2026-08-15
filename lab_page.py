@@ -92,7 +92,7 @@ button:disabled{opacity:.4;cursor:default}
 #canvas-empty{color:var(--graphite);font-family:Georgia,serif;
   font-size:16px;margin-top:80px;text-align:center}
 .trace{border:1px solid var(--rule);border-radius:3px;background:var(--card);
-  padding:14px;margin-bottom:12px}
+  padding:14px;margin-bottom:12px;max-width:940px}
 .trace .cap{font-size:10px;letter-spacing:.2em;color:var(--inst);
   margin-bottom:8px}
 .reading,.meter{font-family:ui-monospace,Menlo,monospace;font-size:13px;
@@ -108,9 +108,9 @@ svg text{font:10px ui-monospace,Menlo,monospace;fill:var(--faded)}
 .note-dim{color:var(--graphite);font-size:12px}
 .mtx{border-collapse:collapse;font:12.5px ui-monospace,Menlo,monospace;
   margin:8px 0}
-.mtx th,.mtx td{border:1px solid var(--rule);padding:4px 10px;
-  text-align:center}
-.mtx th{font-weight:normal;color:var(--faded);font-size:11px}
+.mtx th,.mtx td{border:none;padding:4px 10px;text-align:center}
+.mtx th{font-weight:normal;color:var(--faded);font-size:11px;
+  border-bottom:1px solid var(--rule)}
 .mtx td.name{text-align:left;cursor:pointer;color:var(--green)}
 .mtx td.name:hover{text-decoration:underline}
 .mtx td.hot{background:#e7efe4;font-weight:bold}

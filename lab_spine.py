@@ -57,7 +57,7 @@ h3{font-size:10px;letter-spacing:.22em;color:var(--inst);margin:0 0 10px;
 
 /* the spine */
 .level{border-left:3px solid var(--rule);padding:8px 0 8px 16px;
-  margin:0 0 6px}
+  margin:0 0 6px;max-width:860px}
 .level.done{border-left-color:var(--green)}
 .level.open{border-left-color:var(--orange)}
 .level .st{font-size:10px;letter-spacing:.2em;color:var(--faded)}
