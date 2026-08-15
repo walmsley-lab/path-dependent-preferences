@@ -90,8 +90,10 @@ def test_pending_is_honest_and_graphs_wait_for_evidence(server, page):
     page.wait_for_selector("text=G_generator")
     canvas_text = page.locator("#canvas").inner_text()
     assert "PRIVILEGED GROUND TRUTH" in canvas_text
-    # the planted route runs choice -> framing in the GENERATOR
-    assert "choice" in canvas_text and "framing_verbs" in canvas_text
+    # the planted route runs choice -> framing_class in the GENERATOR,
+    # with lexical realization a separate object
+    assert "choice" in canvas_text and "framing_class" in canvas_text
+    assert "rendered_framing" in canvas_text
     page.click("[data-graph='observational']")
     page.wait_for_selector("text=G_observational")
     obs = page.locator("#canvas").inner_text()

@@ -408,10 +408,21 @@ def build_world_spec(level):
          "role": "inactive_at_L0_L1" if level != "L2" else "active",
          "desc": "reporting voice; participates in framing assignment "
                  "only at L2"},
-        {"name": "framing_verbs", "kind": "observed",
+        {"name": "framing_class[o]", "kind": "authored_categorical",
+         "domain": ["COOP", "SELF"],
+         "desc": "latent categorical framing assignment per option — "
+                 "ASSIGNED BY THE GENERATOR after the choice is "
+                 "determined"},
+        {"name": "rendered_framing[o]", "kind": "observed",
          "domain": {"COOP": COOP_VERBS, "SELF": SELF_VERBS},
-         "desc": "verb class per option — ASSIGNED BY THE GENERATOR "
-                 "after the choice is determined"},
+         "desc": "the surface phrase realizing the class (one of four "
+                 "per class) — lexical realization is a separate object "
+                 "from the categorical assignment, so 'phrase shortcut' "
+                 "vs 'class shortcut' stays an experimental question"},
+        {"name": "argmax_utility", "kind": "operation",
+         "desc": "the comparison operation — first-class so the graph "
+                 "can eventually become executable, not merely "
+                 "explanatory"},
     ]
     gen_edges = [
         {"src": "agent", "dst": "lambda", "type": "causal",
@@ -422,29 +433,36 @@ def build_world_spec(level):
          "mechanism": "same"},
         {"src": "d_other[o]", "dst": "utility[o]", "type": "derived",
          "mechanism": "same"},
-        {"src": "utility[o]", "dst": "choice", "type": "causal",
+        {"src": "utility[o]", "dst": "argmax_utility",
+         "type": "derived", "mechanism": "both options' utilities enter "
+         "the comparison", "route": "A"},
+        {"src": "argmax_utility", "dst": "choice", "type": "causal",
          "mechanism": "choice = argmax_o utility[o]", "route": "A"},
-        {"src": "choice", "dst": "framing_verbs", "type": "causal",
+        {"src": "choice", "dst": "framing_class[o]", "type": "causal",
          "mechanism": "the generator assigns the chosen option's verb "
                       "class from the choice under the polarity rule — "
                       "THE PLANTED CORRELATION. Framing has no causal "
                       "role in the authored preference mechanism; the "
                       "generator causally assigns framing FROM the "
                       "choice."},
+        {"src": "framing_class[o]", "dst": "rendered_framing[o]",
+         "type": "causal",
+         "mechanism": "uniform draw among the class's four surface "
+                      "phrases"},
     ]
     if level in ("L1", "L2"):
-        gen_edges.append({"src": "scene", "dst": "framing_verbs",
+        gen_edges.append({"src": "scene", "dst": "framing_class[o]",
                           "type": "causal",
                           "mechanism": "polarity inverts in 'river' "
                                        "scenes (generator assignment)"})
     if level == "L2":
-        gen_edges.append({"src": "narrator", "dst": "framing_verbs",
+        gen_edges.append({"src": "narrator", "dst": "framing_class[o]",
                           "type": "causal",
                           "mechanism": "polarity XORs with narrator "
                                        "identity (generator assignment)"})
 
-    cue_inputs = ["scene", "framing_verbs"] if level in ("L1", "L2") \
-        else ["framing_verbs"]
+    cue_inputs = ["scene", "rendered_framing[o]"] \
+        if level in ("L1", "L2") else ["rendered_framing[o]"]
     if level == "L2":
         cue_inputs.append("narrator")
     obs_nodes = [
@@ -452,7 +470,10 @@ def build_world_spec(level):
          "desc": "Route A predictor: argmax_o of lambda-weighted payoffs"},
         {"name": "cue_prediction", "kind": "derived",
          "desc": "Route B predictor: the option whose framing matches "
-                 "the (scene-conditioned) rule"},
+                 "the (scene-conditioned) rule. Defined here from the "
+                 "learner's perspective (rendered surface text); whether "
+                 "a trained learner's shortcut lives at the phrase level "
+                 "or the class level is an experimental question"},
     ]
     obs_edges = (
         [{"src": s, "dst": "utility_prediction", "type": "derived"}
@@ -467,35 +488,74 @@ def build_world_spec(level):
                         "causal edge in the world"}])
 
     constraints = [
-        {"name": "equiv_on_train",
-         "claim": "utility_prediction(x) == cue_prediction(x) == choice(x) "
-                  "for every training example (the identification "
-                  "problem)"},
-        {"name": "disagree_on_conflict",
-         "claim": "eval_conflict: utility_prediction(x) != "
-                  "cue_prediction(x)"},
-        {"name": "no_cue_on_nocue",
-         "claim": "eval_nocue: cue_prediction undefined (neutral verbs)"},
-        {"name": "tie_on_cueonly",
-         "claim": "eval_cueonly: utility_prediction undefined (exact "
-                  "utility ties)"},
+        {"name": "equiv_on_train", "scope": "train",
+         "expression": "utility_prediction(x) == cue_prediction(x) "
+                       "== choice(x)",
+         "status": "verified",
+         "artifact": "test_generator.py (invariants), preflight.py "
+                     "(refuses launch on violation)"},
+        {"name": "disagree_on_conflict", "scope": "eval_conflict",
+         "expression": "utility_prediction(x) != cue_prediction(x)",
+         "status": "verified", "artifact": "test_generator.py"},
+        {"name": "no_cue_on_nocue", "scope": "eval_nocue",
+         "expression": "cue_prediction(x) is undefined (neutral verbs)",
+         "status": "verified", "artifact": "test_generator.py"},
+        {"name": "tie_on_cueonly", "scope": "eval_cueonly",
+         "expression": "utility_prediction(x) is undefined (exact "
+                       "utility ties)",
+         "status": "verified", "artifact": "test_generator.py"},
     ]
+    # the same formal objects are meant to be executed later against the
+    # trained transformer, an extracted surrogate, and any compiled
+    # implementation — the beginning of the formal test harness
+    registry = [{"name": n["name"], "kind": n["kind"]}
+                for n in gen_nodes + obs_nodes]
     graphs = {
         "generator": {
             "status": "PRIVILEGED GROUND TRUTH — SYNTHETIC WORLD ONLY",
             "nodes": gen_nodes, "edges": gen_edges},
         "observational": {
-            "status": "DERIVED FROM CORPUS",
+            "status": "OBSERVATIONAL STRUCTURE PRESENT IN CORPUS",
+            "provenance": "known from generator + verified exhaustively "
+                          "on corpus (Act II counterpart: INFERRED FROM "
+                          "CORPUS — a different epistemic state)",
+            "imports": ["lambda", "d_self[o]", "d_other[o]", "scene",
+                        "rendered_framing[o]", "choice"] +
+                       (["narrator"] if level == "L2" else []),
             "nodes": obs_nodes, "edges": obs_edges,
             "constraints": constraints},
         "development": {
             "status": "EXPERIMENTALLY INFERRED — populated by the trace "
-                      "ledger", "nodes": [], "edges": []},
+                      "ledger",
+            "edge_schema": {"type": ["facilitates", "interferes",
+                                     "prerequisite", "co-develops"],
+                            "fields": ["window", "effect", "persistence",
+                                       "conditions", "provenance"],
+                            "note": "developmental structure may not be "
+                                    "a static DAG; timing is first-class"},
+            "nodes": [], "edges": []},
         "mechanism": {
             "status": "EXPERIMENTALLY INFERRED — populated by the trace "
-                      "ledger", "nodes": [], "edges": []},
+                      "ledger",
+            "node_schema": {"kinds": ["subspace", "component",
+                                      "direction", "head", "parameter_"
+                                      "component"],
+                            "fields": ["hypothesized_role", "evidence",
+                                       "provenance"],
+                            "note": "nodes are named neutrally "
+                                    "(candidate_subspace_17) with a "
+                                    "hypothesized_role — never named "
+                                    "lambda_representation before that "
+                                    "interpretation is earned"},
+            "nodes": [], "edges": []},
+        "formal": {
+            "status": "NOT YET EARNED — the smallest executable "
+                      "abstraction that survives the evidence and "
+                      "reproduces the required tested behavior "
+                      "(docs/act1_program.md L5-L6); not another "
+                      "evidence graph"},
     }
-    return {"level": level, "graphs": graphs,
+    return {"level": level, "variables": registry, "graphs": graphs,
             # backward-compatible mirror of the generator graph:
             "nodes": gen_nodes, "edges": gen_edges,
             "constraints": constraints}

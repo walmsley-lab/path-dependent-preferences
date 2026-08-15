@@ -186,11 +186,12 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     <button data-inst=custom>&#9998; compose a scenario</button>
     <button data-inst=freeform>&#9000; freeform prompt</button>
     <div class=grp>CORPUS</div>
-    <button data-inst=corpus>&#128214; read the corpus</button>
+    <button data-inst=corpus>&#128065; what the learner saw</button>
     <div class=grp>DEVELOPMENT</div>
     <button data-inst=trajectory>checkpoint trajectories</button>
     <div class=grp>REPRESENTATION</div>
     <button data-inst=probes>&lambda; / cue probes</button>
+    <button data-inst=constellation>&#9737; representation map</button>
     <div class=grp>CAUSAL</div>
     <button data-inst=causal class=pending>steer &middot; patch &middot; ablate</button>
     <button data-inst=transplant class=pending>developmental transplant</button>
@@ -531,67 +532,144 @@ async function runFreeform(){
 function segBars(segments){
   const colors = {W:"#1D6A96", P:"#B4452A", mixed:"#7A5FA8",
                   tail:"#8a8574"};
+  const label = {W:"structure-rich", P:"choice-rich", mixed:"interleaved",
+                 tail:"shared tail"};
   let html = "";
   for(const [cur, segs] of Object.entries(segments || {})){
     const total = segs.reduce((a,s)=>a+s[1], 0);
     html += `<div style="display:flex;align-items:center;gap:8px;margin:3px 0">
       <span class=reading style="width:26px">${cur}</span>
-      <div style="flex:1;display:flex;height:14px;border:1px solid var(--rule);border-radius:2px;overflow:hidden">` +
-      segs.map(([name,count])=>`<div title="${name}: ${count.toLocaleString()} lines"
+      <div style="flex:1;display:flex;height:16px;border:1px solid var(--rule);border-radius:2px;overflow:hidden">` +
+      segs.map(([name,count])=>`<div title="${label[name]||name}: ${count.toLocaleString()} lines"
         style="width:${100*count/total}%;background:${colors[name]||"#ccc"}"></div>`).join("") +
       `</div></div>`;
   }
   return html + `<div class=note-dim style="font-size:11px">
-    <span style="color:#1D6A96">■</span> W structure &nbsp;
-    <span style="color:#B4452A">■</span> P choices &nbsp;
+    <span style="color:#1D6A96">■</span> structure-rich &nbsp;
+    <span style="color:#B4452A">■</span> choice-rich &nbsp;
     <span style="color:#7A5FA8">■</span> interleaved &nbsp;
-    <span style="color:#8a8574">■</span> shared tail — same deck,
-    different deal</div>`;
+    <span style="color:#8a8574">■</span> shared tail</div>`;
 }
 
-async function corpus(slice){
+function annotate(line, world){
+  const verbs = world.coop_verbs.concat(world.self_verbs);
+  let html = line.replace(/</g,"&lt;");
+  for(const v of verbs)
+    html = html.split(v).join(`<span style="color:#B4452A;border-bottom:1.5px solid #B4452A" title="wording — the planted route lives here">${v}</span>`);
+  for(const s of world.scenes)
+    html = html.replace(new RegExp("\\b"+s+"\\b"),
+      `<span style="border-bottom:1.5px dotted #B4452A" title="scene — conditions the wording rule">${s}</span>`);
+  html = html.replace(/(gains|loses) (\d+) (\w+)/g,
+    `<span style="color:#1D6A96" title="outcomes — the authored route lives here">$1 $2 $3</span>`);
+  html = html.replace(/A: (Option \d)/,
+    `A: <span style="border:1px solid var(--green);padding:0 4px;border-radius:2px" title="the observed answer — the only supervision">$1</span>`);
+  return html;
+}
+
+async function corpus(slice, showN){
   const st = S.A;
-  const [meta, lines] = await Promise.all([
+  const [world, lines] = await Promise.all([
     j("/api/corpus?data=" + encodeURIComponent(st.data)),
     j("/api/corpus_lines?data=" + encodeURIComponent(st.data) +
-      (slice ? "&slice=" + encodeURIComponent(slice) : ""))]);
-  const counts = meta.generation_stats || {};
-  let html = `<div class=trace><div class=cap>THE SYNTHETIC CORPUS &middot;
-    ${st.data} &middot; level ${meta.level} &middot; seed ${meta.seed}</div>
-    <div class=note-dim>${Object.keys(meta.agents).length} agents with
-    authored preferences · every line rendered by the generator from the
-    world spec · three curricula are permutations of ONE line multiset</div>
-    <div style="margin:10px 0">${segBars(S.segments)}</div>`;
+      (slice ? "&slice=" + encodeURIComponent(slice) + "&n=" +
+       (showN || 5) : ""))]);
+  // one real choice line for the annotated exhibit
+  let exhibit = null;
+  try{
+    const h = await j("/api/corpus_lines?data=" +
+      encodeURIComponent(st.data) + "&slice=" +
+      (lines.slices.includes("C2_head") ? "C2_head" : lines.slices[0]) +
+      "&n=10");
+    exhibit = (h.lines.find(l => l.type === "P") || h.lines[0]);
+  }catch(e){}
+
+  let html = `<div class=trace><div class=cap>WHAT THE LEARNER SAW</div>
+    <div class=scene style="font-size:17px">This is the learner&rsquo;s
+      entire world.</div>
+    <div class=note-dim>It was never shown our graph, any agent&rsquo;s
+      hidden preference, the utility rule, or an explanation of the task.
+      It received only text like this — hover the annotations:</div>`;
+  if(exhibit){
+    html += `<div class=scene style="border:1px solid var(--rule);
+      border-radius:3px;padding:10px;margin:10px 0;font-size:14px">${
+      annotate(exhibit.text, world)}</div>
+    <div class=note-dim>
+      <span style="color:#1D6A96">■ outcomes</span> — the authored route
+      lives here &nbsp;·&nbsp;
+      <span style="color:#B4452A">■ wording &amp; place</span> — the
+      planted route lives here &nbsp;·&nbsp; the boxed answer is the only
+      supervision. There is more than one way to become good at
+      predicting it.</div>`;
+  }
+  html += `</div>
+
+  <div class=trace><div class=cap>SAME EXPERIENCES &middot; DIFFERENT
+    CHILDHOODS</div>
+    <div style="margin:8px 0">${segBars(S.segments)}</div>
+    <div class=note-dim>Every learner receives the same multiset of
+      training lines and the identical final stretch. Nothing added,
+      nothing removed — only the order changed.</div>
+    <details style="margin-top:8px"><summary style="font-size:12px;
+      color:var(--inst);cursor:pointer">what exactly is a
+      &ldquo;structure-rich&rdquo; line? (from the generator, not a
+      paraphrase)</summary>
+      <div class=note-dim style="margin-top:6px">Four kinds, all with
+      NEUTRAL verbs, none involving anyone&rsquo;s preference:<br>
+      &nbsp;&nbsp;W1 counting — &ldquo;A has 12 stones. Q: How many
+      stones does A have?&rdquo;<br>
+      &nbsp;&nbsp;W2 consequences — &ldquo;If A selects the red marker,
+      A gains 3 and B loses 2. Q: What happens to B?&rdquo;<br>
+      &nbsp;&nbsp;W3 arithmetic — &ldquo;Q: What is the total
+      change?&rdquo;<br>
+      &nbsp;&nbsp;W4 objective comparison — &ldquo;Q: Which option
+      leaves B better off?&rdquo; (argmax practice with no preference
+      involved)<br>
+      A <b>choice-rich</b> line is the only kind where anyone
+      <em>chooses</em>: agent, partner, two framed options with payoffs,
+      and &ldquo;Q: Which option does A choose?&rdquo; — preference
+      evidence and the planted wording exist ONLY here.</div></details>
+  </div>
+
+  <div class=trace><div class=cap>INSPECT THE ACTUAL CORPUS</div>`;
   if(!lines.slices.length){
     html += `<div class=note-dim>no corpus slices fetched to this bench —
-      the full corpus lives with the training runs; slices land under
-      ${st.data}/slices/</div></div>`;
-    canvas(html); return;
-  }
-  const label = s => s.replace("_head", " · first pages")
-    .replace("_tail", " · shared tail").replace("_sample", " · mid-corpus");
-  html += `<div style="margin:6px 0">` + lines.slices.map(s =>
-    `<button style="padding:3px 9px;font-size:11px" class="${s===lines.slice?"primary":""}"
-      onclick="corpus('${s}')">${label(s)}</button>`).join(" ") + `</div>`;
-  if(lines.lines){
-    html += `<div class=note-dim>actual training lines, in the exact order
-      this curriculum presented them — a first-pages slice is literally
-      the organism&rsquo;s earliest experience</div>
-      <div style="margin-top:8px;max-height:420px;overflow-y:auto">` +
-      lines.lines.map(l =>
-        `<div style="display:flex;gap:8px;padding:3px 0;border-top:1px solid var(--rule)">
-          <span class=reading style="color:${l.type==="P"?"#B4452A":"#1D6A96"};width:14px">${l.type}</span>
-          <span style="font-size:13px;font-family:Georgia,serif">${l.text}</span></div>`).join("") +
-      `</div>`;
+      the full corpus lives with the training runs</div></div>`;
   } else {
-    html += `<div class=note-dim>choose a slice to read</div>`;
+    const label = s => s.replace("_head", " · beginning")
+      .replace("_tail", " · shared tail").replace("_sample", " · middle");
+    html += `<div style="margin:6px 0">` + lines.slices.map(s =>
+      `<button style="padding:3px 9px;font-size:11px" class="${s===lines.slice?"primary":""}"
+        onclick="corpus('${s}')">${label(s)}</button>`).join(" ") + `</div>`;
+    if(lines.lines){
+      html += `<div class=note-dim>actual training lines, in the exact
+        order this curriculum presented them</div>
+        <div style="margin-top:8px">` +
+        lines.lines.map(l =>
+          `<div style="display:flex;gap:8px;padding:3px 0;border-top:1px solid var(--rule)">
+            <span class=reading title="${l.type==="P"?"choice-rich":"structure-rich"}"
+              style="color:${l.type==="P"?"#B4452A":"#1D6A96"};width:14px">${l.type}</span>
+            <span style="font-size:13px;font-family:Georgia,serif">${l.text}</span></div>`).join("") +
+        `</div>
+        <button class=quiet style="margin-top:6px"
+          onclick="corpus('${lines.slice}', ${(showN||5)+20})">show more
+          training lines</button>`;
+    } else {
+      html += `<div class=note-dim>choose a slice — 5 lines shown by
+        default</div>`;
+    }
   }
-  html += "</div>";
+  html += `</div>
+  <div class=trace><div class=scene style="font-size:16px">You know more
+    than the learner does.</div>
+    <div class=note-dim>You know the graph that generated these lines.
+    You know λ exists. You know which correlations were planted. The
+    learner receives only the corpus above — and in Act II, when the
+    corpus is real, so will we.</div></div>`;
   canvas(html);
 }
 window.corpus = corpus;
 
-/* ---- development -------------------------------------------------------- */
+/* ---- development/* ---- development -------------------------------------------------------- */
 
 async function trajectory(){
   const subs = S.B ? [S.A, S.B] : [S.A];
@@ -770,6 +848,134 @@ async function emergence(target, pos){
   $("devemergence").innerHTML = html;
 }
 window.probes = probes;
+
+/* ---- constellation: L2 exploratory geometry (stored artifacts) --------- */
+
+const GEO_COLORS = {
+  lambda_class: {SELF:"#B4452A", COOP:"#1D6A96"},
+  cue_class: {SELF:"#B4452A", COOP:"#1D6A96", NEUT:"#8a8574"},
+  scene: {market:"#7A5FA8", river:"#1e4d38"},
+};
+
+function scatterSVG(geo, layer, pos, colorBy, title){
+  const cell = geo.positions[pos][layer];
+  if(!cell) return "<div class=note-dim>no artifact for this view</div>";
+  const xs = cell.xy.map(p=>p[0]), ys = cell.xy.map(p=>p[1]);
+  const xmin=Math.min(...xs), xmax=Math.max(...xs),
+        ymin=Math.min(...ys), ymax=Math.max(...ys);
+  const W=300, H=240, pad=14;
+  const sx = x => pad + (W-2*pad)*(x-xmin)/((xmax-xmin)||1);
+  const sy = y => H-pad - (H-2*pad)*(y-ymin)/((ymax-ymin)||1);
+  const labels = geo.labels[colorBy];
+  let pts = "";
+  cell.xy.forEach((p,i)=>{
+    const c = (GEO_COLORS[colorBy]||{})[labels[i]] || "#26241d";
+    pts += `<circle cx=${sx(p[0]).toFixed(1)} cy=${sy(p[1]).toFixed(1)}
+      r=2.4 fill="${c}" fill-opacity=.65><title>${labels[i]}</title></circle>`;
+  });
+  return `<div><div class=reading style="font-size:11px">${title} ·
+    2-D PCA (${Math.round(cell.var2*100)}% var)</div>
+    <svg width=${W} height=${H} viewBox="0 0 ${W} ${H}"
+      style="border:1px solid var(--rule);border-radius:3px;background:#fff">
+      ${pts}</svg></div>`;
+}
+
+async function constellation(opts){
+  opts = opts || S.geoOpts ||
+    {layer:"L3", pos:"agent", colorBy:"lambda_class"};
+  S.geoOpts = opts;
+  const subs = S.B ? [S.A, S.B] : [S.A];
+  const geos = [];
+  for(const st of subs){
+    try{
+      geos.push(await j("/api/geometry?run=" +
+        encodeURIComponent(st.run.run) + "&ckpt=" +
+        encodeURIComponent(ckptOf(st))));
+    }catch(e){ geos.push(null); }
+  }
+  const btn = (key, val, label) => `<button style="padding:3px 9px;
+    font-size:11px" class="${opts[key]===val?"primary":""}"
+    onclick='constellation(Object.assign({},window.LABSTATE.geoOpts,
+      {${key}:"${val}"}))'>${label||val}</button>`;
+  let html = `<div class=trace><div class=cap>REPRESENTATION MAP &middot;
+    EXPLORATORY VIEW — geometry can suggest structure; it does not
+    establish semantic or causal identity</div>
+    <div style="margin:6px 0;font-size:11px">
+      layer ${["L0","L1","L2","L3","L4","L5"].map(l=>btn("layer",l)).join("")}
+      &nbsp; read from ${btn("pos","agent")} ${btn("pos","decision")}
+      &nbsp; color by ${btn("colorBy","lambda_class","hidden preference")}
+      ${btn("colorBy","cue_class","wording class")}
+      ${btn("colorBy","scene","place")}</div>
+    <div class=note-dim>each point is one held-out scenario&rsquo;s
+      residual-stream state; a pattern here is a HYPOTHESIS — the probe
+      and (locked) causal instruments decide what it means</div>
+    <div class=duo style="margin-top:8px">`;
+  subs.forEach((st,i)=>{
+    html += `<div class=half>` + (geos[i]
+      ? scatterSVG(geos[i], opts.layer, opts.pos, opts.colorBy, chip(st))
+      : `<div class=who>${chip(st)}</div><div class=note-dim>no geometry
+        artifact at this age — run geometry.py for this specimen</div>`) +
+      `</div>`;
+  });
+  html += `</div></div>`;
+
+  // twin convergence (CKA) + weight-space trajectories, from artifacts
+  try{
+    const comp = await j("/api/geometry_compare");
+    html += `<div class=trace><div class=cap>TWIN SIMILARITY THROUGH
+      DEVELOPMENT &middot; linear CKA, ${opts.layer} &middot; 1.0 =
+      identical geometry</div><div class=scroller><table class=mtx>
+      <tr><th></th>` + comp.matched_ages.map(r=>`<th>${
+        r.ckpt.replace("ckpt_","").replace(".pt","")}%</th>`).join("") +
+      `</tr><tr><td class=name style="cursor:default">agent state</td>` +
+      comp.matched_ages.map(r=>`<td>${r.layers[opts.layer].agent
+        .toFixed(2)}</td>`).join("") + `</tr>
+      <tr><td class=name style="cursor:default">decision state</td>` +
+      comp.matched_ages.map(r=>`<td>${r.layers[opts.layer].decision
+        .toFixed(2)}</td>`).join("") + `</tr></table></div>
+      <div class=note-dim>same-age geometry similarity between the
+      differently-raised twins — where it dips, their internal worlds
+      differ most</div></div>`;
+  }catch(e){}
+  try{
+    const ws = await j("/api/weightspace");
+    const runsIn = [...new Set(ws.points.map(p=>p.run))];
+    const colors = ["#1e4d38","#B4452A"];
+    const xs = ws.xy.map(p=>p[0]), ys = ws.xy.map(p=>p[1]);
+    const xmin=Math.min(...xs), xmax=Math.max(...xs),
+          ymin=Math.min(...ys), ymax=Math.max(...ys);
+    const W=460, H=200, pad=18;
+    const sx = x => pad + (W-2*pad)*(x-xmin)/((xmax-xmin)||1);
+    const sy = y => H-pad - (H-2*pad)*(y-ymin)/((ymax-ymin)||1);
+    let svg = "";
+    runsIn.forEach((r,ri)=>{
+      const idx = ws.points.map((p,i)=>p.run===r?i:-1).filter(i=>i>=0);
+      svg += `<path fill=none stroke="${colors[ri]}" stroke-width=1.3
+        d="${idx.map((i,k)=>(k?"L":"M")+sx(ws.xy[i][0]).toFixed(1)+" "+
+        sy(ws.xy[i][1]).toFixed(1)).join(" ")}"></path>`;
+      idx.forEach(i=>{
+        const age = ws.points[i].ckpt.replace("ckpt_","").replace(".pt","");
+        svg += `<circle cx=${sx(ws.xy[i][0]).toFixed(1)}
+          cy=${sy(ws.xy[i][1]).toFixed(1)} r=3 fill="${colors[ri]}">
+          <title>${r} · age ${age}%</title></circle>`;
+      });
+      svg += `<text x=${W-150} y=${16+ri*13}
+        fill="${colors[ri]}">${r.replace("runs/","")}</text>`;
+    });
+    html += `<div class=trace><div class=cap>DEVELOPMENTAL TRAJECTORIES
+      IN WEIGHT SPACE &middot; classical MDS of pairwise cosine
+      distances</div>
+      <svg width=${W} height=${H} viewBox="0 0 ${W} ${H}"
+        style="border:1px solid var(--rule);border-radius:3px;
+        background:#fff">${svg}</svg>
+      <div class=note-dim>each dot is a preserved checkpoint; hover for
+      identity. Both organisms depart from the SAME initialization —
+      whether their paths converge during the shared tail is the
+      developmental question, stated in parameter space</div></div>`;
+  }catch(e){}
+  canvas(html);
+}
+window.constellation = constellation;
 
 /* ---- pending instruments ------------------------------------------------ */
 
@@ -976,7 +1182,8 @@ function renderEvidence(){
 const INSTRUMENTS = {ordinary:()=>behave("id"), conflict:()=>behave("conflict"),
   nocue:()=>behave("nocue"), cueonly:()=>behave("cueonly"),
   custom:compose, freeform, corpus:()=>corpus(), trajectory,
-  probes:()=>probes(), causal, transplant, formal};
+  probes:()=>probes(), constellation:()=>constellation(), causal,
+  transplant, formal};
 
 async function init(){
   const [runs, ds] = await Promise.all([j("/api/runs"), j("/api/datasets")]);

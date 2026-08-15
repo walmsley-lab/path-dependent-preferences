@@ -834,6 +834,19 @@ class H(BaseHTTPRequestHandler):
                 self._send(200, api_corpus_lines(
                     qs["data"][0], qs.get("slice", [None])[0],
                     int(qs.get("n", ["60"])[0])))
+            elif u.path == "/api/geometry":
+                p = (Path(qs["run"][0]) /
+                     f"geometry_{qs['ckpt'][0].replace('.pt','')}.json")
+                self._send(200, json.loads(p.read_text())) if p.exists() \
+                    else self._send(404, {"error": "no geometry artifact"})
+            elif u.path == "/api/geometry_compare":
+                p = Path("runs/geometry_compare.json")
+                self._send(200, json.loads(p.read_text())) if p.exists() \
+                    else self._send(404, {"error": "no compare artifact"})
+            elif u.path == "/api/weightspace":
+                p = Path("runs/weightspace.json")
+                self._send(200, json.loads(p.read_text())) if p.exists() \
+                    else self._send(404, {"error": "no weightspace artifact"})
             elif u.path == "/api/score":
                 self._send(200, json.loads(
                     (Path(qs["run"][0]) /
