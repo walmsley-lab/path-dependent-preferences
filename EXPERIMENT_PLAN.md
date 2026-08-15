@@ -265,18 +265,30 @@ The persona-dissociation result (5.3) does **not depend on** the ordering effect
 
 **Novelty sentence (final wording, tightened after the Sonar/ChatGPT literature round):** "To our knowledge, prior work has shown that example order can alter optimization, capability emergence, and even mechanism selection in controlled mathematical settings, but has not tested whether permutation of identical training evidence selects between deliberately loss-equivalent preference mechanisms in a natural-language-like decision environment with causal ground truth."
 
-**Sprint-scope vs. follow-up-scope (Sonar's suggestion list, classified):** in-sprint — generator identity-balance audit (now invariant test #17), βU/βC as likely headline figure (already implemented), related-work tightening (audit running). Follow-up paper — Bayesian hierarchical stats, LR/batch sweeps, adaptive stopping, extra pilot variants, SAEs/VPD, 10+ seeds, multiple model sizes, pretrained models, richer persona manipulations. The preregistered 80% binary gates stay binary: a conservative preregistered gate's job is to prevent goalpost-moving, not to be statistically fashionable; continuous diagnostics inform interpretation only. The concern that conflict accuracy alone could hide mixed mechanism use is already covered by preregistered secondary analyses: Δlogp retained everywhere, conflict accuracy stratified by exact utility margin, per-checkpoint βU/βC regression, and the cue-only/no-cue sets giving route-specific readouts.
+**Phasing (revised after discussion — sequencing, not restraint):** the preregistered batch is **Phase A: the causal existence proof**, kept untouched and never mixed with extensions. Everything else is **Phase B**, run as soon as Phase A lands and labeled robustness/mechanistic follow-up. In-sprint immediates: generator identity-balance audit (invariant test #17), βU/βC as likely headline figure, related-work tightening. The preregistered 80% binary gates stay binary — a conservative preregistered gate's job is to prevent goalpost-moving; continuous diagnostics inform interpretation only. Mixed-mechanism-use concern is already covered by preregistered secondaries (Δlogp everywhere, margin stratification, βU/βC regression, cue-only/no-cue route readouts). The full Phase B program is §10.
 
 **Title:** working title stays *Path-Dependent Preferences*; the bare phrase collides with an established behavioral-economics literature (see §11), so the submission title disambiguates. Leading candidate: *"Developmental Path Dependence in Language Models: Can Training Order Select the Mechanism Behind a Model's Preferences?"* (question form, safe under any outcome). *"Same Preferences, Different Reasons"* only if the mechanism-selection result lands.
 
 **Scope rule for the rest of the sprint:** add nothing unless it strengthens impact, execution, or presentation. The 5/5 stretch remains the differential-steering result (§5.3): steering along v_λ shifting conflict choices in C1 but not C2 would show order changed *causal reliance*, not just decodability — implemented in `score.py --steer`.
 
-## 10. Extensions (post-sprint, ranked)
+## 10. Phase B: the robustness and mechanism program (post-Phase-A, prioritized)
 
-1. **Timing sweep / critical period, done right:** introduce P at τ ∈ {0.2, 0.4, 0.6, 0.8}·T with *equal P counts and equal post-introduction steps* (extend training so late conditions aren't step-starved). Nonlinearity in final learnability = evidence of a developmental window, in the spirit of Achille et al.'s deficit experiments. Until those controls exist, we say "late introduction," never "critical period."
-2. **VPD as microscope:** run Goodfire-style parameter decomposition on checkpoints bracketing the probe transition (e.g., the window where λ-decodability jumps) and ask whether a parameter component's emergence tracks it. Data ordering → parameter mechanism → representation → behavior would be the provenance chain the program is after.
-3. **Downstream sample efficiency:** fine-tune Route-A vs. Route-B models on a new social-reasoning task; if the utility-mechanism model needs 5× fewer samples, that's the bridge to the pretraining-efficiency thesis.
-4. **Formalization:** define dependency graph G_D and curriculum-compatibility K(π, G_D); later connect to a mechanistic graph G_C (Abbott-style compositional descriptions). Language for the program, not sprint work.
+Phase A earns the effect; Phase B attacks it from every angle. Ranked by (1) ability to falsify alternative explanations, (2) contribution to the mechanism claim, (3) relevance to real pretraining/fine-tuning, (4) compute cost. Each top item answers a specific reviewer attack:
+
+| Priority | Extension | Kills the attack |
+|---|---|---|
+| 1 | Additional paired seeds | "seed fluke" |
+| 2 | Second model size (e.g., ~30M) | "tiny-model artifact" |
+| 3 | βU/βC + probe-emergence trajectories (already implemented; deepen) | "behavior only, not mechanism" |
+| 4 | Causal λ-direction steering, differential by condition (implemented, `--steer`) | "probe is merely correlational" |
+| 5 | Pretrained small open-weight model, same ordered fine-tuning corpus | "from-scratch synthetic toy only" |
+| 6 | Alternative cue construction (non-lexical marker) | "cue-family artifact" |
+| 7 | Modest LR/batch sensitivity (small factorial, sign-stability only) | "hyperparameter accident" |
+| 8 | SAE/VPD around the divergence checkpoints | localizes the provenance chain |
+
+**The pretrained comparison is a paper by itself:** from scratch, early ordering may determine which representations *form*; pretrained, ordering may determine which existing representations get *recruited* — two different mechanisms of path dependence, directly comparable with this apparatus.
+
+**Provenance-chain sketch (the bridge to the wider program):** training order → representation emergence (probes, timed) → parameter structure (SPD/VPD at checkpoints bracketing divergence) → behavioral mechanism (conflict behavior + steering). If that chain holds, training-data order is a *causal design variable for internal computation*, not an optimization convenience — which is the original pretraining thesis this project exists to test. Also retained from earlier planning: the timing-sweep/critical-period experiment (equal exposure + equal post-introduction steps, Achille-style; "late introduction" until those controls exist), downstream sample-efficiency transfer, and G_D/G_C formalization as the program's language.
 
 ## 11. Related work and positioning
 
