@@ -232,3 +232,91 @@ def test_progress_survives_reload(server, page):
     page.click("#startover")
     page.wait_for_selector("#setup-ready", timeout=30000)
     assert "Resume" not in page.locator("#begin").inner_text()
+
+
+FIND_FAILING_COMMIT = """
+() => {
+  const P = window.STATE.obs.map(o => o.record);
+  const pred = (l, r) => {
+    const a = l*r.d_self_1 + (1-l)*r.d_other_1;
+    const b = l*r.d_self_2 + (1-l)*r.d_other_2;
+    return a >= b ? 1 : 2;
+  };
+  for(let s = 0; s <= 100; s += 5){
+    const l = 1 - s/100;
+    const fit2 = [0,1].every(i => pred(l, P[i]) === P[i].utility_answer);
+    const fit4 = [0,1,2,3].every(i => pred(l, P[i]) === P[i].utility_answer);
+    if(fit2 && !fit4) return s;
+  }
+  return null;
+}
+"""
+
+
+def test_revision_loop_is_reachable_and_guided(server, page):
+    """A hypothesis that honestly fits the two seen notes can FAIL the
+    withheld tests — and revision names the dissenters and the direction."""
+    ready(page, server)
+    page.click("#begin")
+    page.wait_for_selector("#guess0 button")
+    page.click("#guess0 [data-g='1']")
+    page.wait_for_selector("#guess1 button")
+    page.click("#guess1 [data-g='1']")
+    page.wait_for_selector("#hypbox:not(.hidden)")
+    v = page.evaluate(FIND_FAILING_COMMIT)
+    assert v is not None, \
+        "note set must allow a committable-but-wrong hypothesis"
+    set_slider(page, "#lamslider", v)
+    page.click("#commit")
+    page.wait_for_selector("#hyppred2 button")
+    page.click("#hyppred2 button")
+    page.wait_for_selector("#hyppred3 button")
+    page.click("#hyppred3 button")
+    page.wait_for_selector("#revisebox:not(.hidden)")
+    text = page.locator("#revisebox").inner_text()
+    assert "Revise it" in text
+    # directional guidance appears once the reader moves
+    lam = page.evaluate("window.STATE.lam")
+    set_slider(page, "#lamslider2", 100 - round((1 - lam) * 100))
+    report = page.locator("#fitreport2").inner_text()
+    assert ("move toward" in report or "balance point" in report
+            or "agree" in report)
+    set_slider(page, "#lamslider2", round((1 - lam) * 100))
+    page.wait_for_selector("#survived:not(.hidden)")
+
+
+def test_every_button_and_walkback(server, page):
+    """Full-flow audit: every control on the main path works, technique
+    links resolve, and the reader can walk back where it is meaningful."""
+    import urllib.request
+    ready(page, server)
+    walk_to_ch3(page)
+    # ch2 walk-back: after a CORRECT answer another situation is offered
+    assert page.locator("#retry:visible").count() == 1
+    page.click("#searchbtn")
+    page.click("#toch4")
+    page.click("#buildcf")
+    page.wait_for_selector("#cfresult:not(.hidden)", timeout=60000)
+    # derivations are present, not bare assertions
+    assert "The numbers did not move" in page.locator("#uwhy").inner_text()
+    assert "wording rule" in page.locator("#cwhy").inner_text()
+    page.click("#askcf")
+    page.click("#aggbtn")
+    page.wait_for_selector("#aggafter:not(.hidden)", timeout=30000)
+    page.click("#toch5")
+    page.click("#devbtn")
+    page.wait_for_selector("#tooutro:not(.hidden)", timeout=120000)
+    page.click("#tooutro")
+    # every technique link on the page resolves
+    hrefs = page.eval_on_selector_all(
+        "a.tech", "els => els.map(e => e.getAttribute('href'))")
+    assert hrefs, "technique callouts must exist"
+    for href in set(hrefs):
+        code = urllib.request.urlopen(server + href).getcode()
+        assert code == 200, f"technique link broken: {href}"
+    # raw-record drawers open
+    page.click("#fieldnotes details summary >> nth=0")
+    assert "Q:" in page.locator("#fieldnotes details >> nth=0").inner_text()
+    # the enigma is present but unexplained
+    assert page.locator("#embod").get_attribute("title")
+    assert "neuromorphic" not in page.locator("body").inner_text().lower()

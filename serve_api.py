@@ -122,22 +122,55 @@ def api_observe(data, agent=None, n=4):
         u2 = lam_hat*rec["d_self_2"] + (1-lam_hat)*rec["d_other_2"]
         return 1 if u1 >= u2 else 2
 
-    # every field note must be INFORMATIVE: its prediction flips somewhere
-    # on the reader's slider. Otherwise "your setting fits" is vacuously
-    # true everywhere, the committed hypothesis is unconstrained, and the
-    # withheld tests feel like a wall instead of a clue (2026-08-15 UX
-    # incident: two dominated-option notes -> apparent dead end).
-    obs = []
-    for _ in range(2000):
-        if len(obs) >= n:
+    # Field-note requirements (2026-08-15 UX incidents):
+    # 1. every note INFORMATIVE — its prediction flips somewhere on the
+    #    reader's slider (dominated options made the fit check vacuous);
+    # 2. the WITHHELD pair must genuinely narrow the seen pair's band —
+    #    otherwise any committable hypothesis auto-passes 4/4 and the
+    #    revise loop (the failure->revision beat, the point of chapter 1)
+    #    is unreachable.
+    grid = [v / 100 for v in range(0, 101, 5)]
+
+    def band(records):
+        return {v for v in grid
+                if all(pred(v, r) == r["utility_answer"] for r in records)}
+
+    cands = []
+    for _ in range(4000):
+        if len(cands) >= 60:
             break
         cfg = gw.sample_p_config(rng, {agent: lam}, gw.TRAIN_NOUNS, "T1")
         _, rec = gw.render_p(cfg, man["level"], "train")
         if pred(0.001, rec) == pred(0.999, rec):
             continue
-        obs.append({"record": rec,
-                    "cfg": {**cfg, "options": [list(o) for o in
-                                               cfg["options"]]}})
+        cands.append((cfg, rec))
+
+    chosen = None
+    for i in range(len(cands)):
+        for k in range(i + 1, len(cands)):
+            seen = band([cands[i][1], cands[k][1]])
+            if len(seen) < 8:
+                continue          # seen pair must leave room to be wrong
+            for m in range(len(cands)):
+                for q in range(m + 1, len(cands)):
+                    if m in (i, k) or q in (i, k):
+                        continue
+                    full = band([cands[j][1] for j in (i, k, m, q)])
+                    if full and len(seen) - len(full) >= 4:
+                        chosen = [cands[j] for j in (i, k, m, q)]
+                        break
+                if chosen:
+                    break
+            if chosen:
+                break
+        if chosen:
+            break
+    if not chosen:                # fallback: informative but unnarrowed
+        chosen = cands[:n]
+
+    obs = [{"record": rec,
+            "cfg": {**cfg, "options": [list(o) for o in cfg["options"]]}}
+           for cfg, rec in chosen[:n]]
     return {"agent": agent, "lam": lam, "level": man["level"],
             "observations": obs}
 

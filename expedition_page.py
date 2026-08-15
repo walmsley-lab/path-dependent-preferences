@@ -495,7 +495,9 @@ INTERVENE             does that difference cause the behavior?
   </div>
   <p class=prose>The first of those instruments is already running in the
     laboratory; the rest arrive as the twins finish growing.</p>
-  <button onclick="location.href='/lab'">Open the laboratory &rarr;</button>
+  <p class=prose>Your specimen and your open questions come with you.</p>
+  <button onclick="try{localStorage.setItem('pdp-crossing','1')}catch(e){};location.href='/lab'">
+    Cross to the research annex &rarr;</button>
   <div style="margin-top:60px;text-align:center">
     <span id=embod title="Where does a sufficiently explicit learned computation go next?"
       style="font-size:22px;color:var(--faded);cursor:help">&#9671;</span>
@@ -891,7 +893,8 @@ async function presentSituation(){
     if(correct){
       $("itlearned").classList.remove("hidden");
       $("toch3").classList.remove("hidden");
-      $("retry").classList.add("hidden");
+      $("retry").classList.remove("hidden");
+      $("newsit").disabled = false;
       nbAdd("obs", "the learner predicts " + S.agent +
         "’s held‑out choice correctly");
     } else {
@@ -1339,7 +1342,7 @@ ul{{margin:6px 0 6px 20px}}
 .back{{font-size:12px;color:#6f6a5c;text-decoration:none}}
 </style></head><body><main>
 <a class=back href="/"
-  onclick="if(window.opener||history.length<=1){window.close();return false}return true">
+  onclick="if(window.opener||history.length<=1){{window.close();return false}}return true">
   &larr; back to the expedition (your progress is preserved)</a>
 <div class=kind>&#9673; TECHNICAL NOTE</div>
 <h1>{title}</h1>

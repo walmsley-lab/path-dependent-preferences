@@ -514,7 +514,43 @@ async function init(){
   $("newscen").onclick = ()=>{ S.cfg = null;
     if(S.lastMode) behave(S.lastMode); };
   renderEvidence();
+  arrival();
   document.body.dataset.ready = "1";
+}
+
+/* the crossing: arriving from the expedition is a handoff, not a dump */
+function arrival(){
+  let fromExp = false, stage = 0;
+  try{
+    fromExp = localStorage.getItem("pdp-crossing") === "1";
+    if(fromExp) localStorage.removeItem("pdp-crossing");
+    const p = JSON.parse(localStorage.getItem("pdp-expedition-v1") || "{}");
+    stage = p.stage || 0;
+  }catch(e){}
+  if(!fromExp) return;
+  const qs = [];
+  if(stage >= 13) qs.push("its behavior sides with the outcome rule when " +
+    "the rules disagree — but HOW does the network compute that?");
+  if(stage >= 5) qs.push("does it represent the hidden preference you " +
+    "inferred in chapter 1, anywhere inside?");
+  qs.push("what did developmental order change — and where does the " +
+    "history live?");
+  canvas(`<div class=trace><div class=cap>YOU HAVE CROSSED FROM THE FIELD
+      STATION</div>
+    <div class=scene>The learner you have been questioning is already on
+      the bench — SUBJECT A, at full developmental age. Your open
+      questions came with you:</div>
+    <div class=reading style="white-space:pre-wrap">${qs.map(q=>"?  "+q).join("\n")}</div>
+    <div style="margin-top:12px">
+      <button class=primary id=arr-conflict>Run the instrument you already
+        know — the conflict test &rarr;</button>
+      <button id=arr-probes>Lower the first new instrument — the probes &rarr;</button>
+    </div>
+    <div class=note-dim style="margin-top:8px">or choose any specimen and
+      instrument from the bench — this room does not mind what order you
+      work in</div></div>`);
+  $("arr-conflict").onclick = ()=>behave("conflict");
+  $("arr-probes").onclick = probes;
 }
 init();
 </script>
