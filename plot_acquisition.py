@@ -56,6 +56,33 @@ def main():
         ev_acc.append(float((np.where(d_ev > 0, 1, 2) == ev_ans).mean()))
         print(f"ckpt {pct:3d}%  train {tr_acc[-1]:.3f}  heldout {ev_acc[-1]:.3f}")
 
+    # Acquisition-shape statistics (definitions fixed here, applied
+    # identically to every route): onset = first checkpoint with held-out
+    # >= 0.6; crossing80/95 analogous; width = crossing95 - onset;
+    # gap_duration = # checkpoints with (train - heldout) >= 0.25.
+    def first_at(vals, thr):
+        return next((p for p, v in zip(pcts, vals) if v >= thr), None)
+    gaps = [t - e for t, e in zip(tr_acc, ev_acc)]
+    stats = {
+        "eval_set": args.eval_set,
+        "onset_pct": first_at(ev_acc, 0.6),
+        "crossing80_pct": first_at(ev_acc, 0.8),
+        "crossing95_pct": first_at(ev_acc, 0.95),
+        "width_pct": (first_at(ev_acc, 0.95) - first_at(ev_acc, 0.6))
+                     if first_at(ev_acc, 0.95) and first_at(ev_acc, 0.6)
+                     else None,
+        "gap_duration_ckpts": int(sum(g >= 0.25 for g in gaps)),
+        "max_gap": round(max(gaps), 4),
+        "final_train": tr_acc[-1], "final_heldout": ev_acc[-1],
+        "pcts": pcts, "train_acc": tr_acc, "heldout_acc": ev_acc,
+    }
+    import json
+    stats_path = Path(args.out or f"{args.run}/acquisition.png"
+                      ).with_suffix(".stats.json")
+    stats_path.write_text(json.dumps(stats, indent=1))
+    print("ACQ_STATS", json.dumps({k: v for k, v in stats.items()
+                                   if not isinstance(v, list)}))
+
     fig, ax = plt.subplots(figsize=(5.6, 3.4))
     ax.plot(pcts, tr_acc, color="#1D6A96", linewidth=2, marker="o",
             markersize=3, label="training lines (answers stripped)")
