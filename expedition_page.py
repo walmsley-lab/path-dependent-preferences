@@ -461,7 +461,7 @@ same final stretch</div></div>
   <div id=devout class="modelcard hidden"></div>
   <p class="prose hidden" id=devnote style="font-size:15px;color:var(--faded)">
     Snapshots at 20%, 60% and 100% of its training. Same question, same
-    weights family &mdash; different developmental age. Whatever changed
+    developing learner &mdash; different developmental age. Whatever changed
     between those ages is what the full experiment watches in high
     resolution, across fifteen organisms.</p>
   <button id=tooutro class=hidden>Where does the expedition go from
@@ -471,11 +471,24 @@ same final stretch</div></div>
 <section id=outro class="chapter locked">
   <h2><span class=chno>THE EXPEDITION CONTINUES</span>Behavior has taken us
     as far as it can</h2>
-  <p class=prose>You inferred a hidden rule; a learner grew up and behaved
-    as though it uses the same one &mdash; and you now know exactly why
-    &ldquo;as though&rdquo; is the strongest thing behavior can ever say.
-    The next instruments answer questions behavior cannot. They are waiting
-    in the laboratory.</p>
+  <p class=prose>We can watch the twins disagree. We can watch <em>when</em>
+    they begin to disagree. But behavior alone cannot tell us what changed
+    inside them.</p>
+  <p class=prose><em>So the expedition changes instruments.</em></p>
+  <div class=graphdock style="text-align:center">
+    <div class=payoff style="font-size:13px;line-height:2;text-align:left;display:inline-block">
+OBSERVE DEVELOPMENT   when does the difference appear?
+        ↓
+PROBE REPRESENTATION  what became different inside?
+        ↓
+INTERVENE             does that difference cause the behavior?
+        ↓
+<span style="opacity:.45">FORMALIZE             can we describe what they learned?</span>
+        ↓
+<span style="opacity:.45">???</span></div>
+  </div>
+  <p class=prose>The first of those instruments is already running in the
+    laboratory; the rest arrive as the twins finish growing.</p>
   <button onclick="location.href='/lab'">Open the laboratory &rarr;</button>
   <div style="margin-top:60px;text-align:center">
     <span id=embod title="Where does a sufficiently explicit learned computation go next?"

@@ -200,3 +200,33 @@ encoding.
 4. Notebook object (persistent, append-only, exportable).
 5. Chapter 6 (layer signal-strength view from stored probe suites) and
    the perturbation chapter as Phase B instruments land.
+
+## Act II staging and the badge vocabulary (2026-08-15 addendum)
+
+The full three-environment architecture (Laboratory → Observatory →
+Foundry) and the three-graph rule (G_C corpus / G_D development / G_M
+mechanism — never collapsed; G_authored a privileged synthetic-world
+object) live in [observatory_foundry.md](observatory_foundry.md).
+
+**Staging discipline:** the Expedition does NOT reveal the Observatory or
+the neuromorphic endpoint yet. Chapter 5's outro reveals only the next
+stations (observe development → probe representation → intervene) with
+FORMALIZE and `???` faded below — a mountain ahead, not the far side. The
+frozen Act I → Act II transition copy — *"Everything you have discovered
+had one enormous advantage. We knew the answer. … Real training data
+gives us none of those things. THE OBSERVATORY — what happens when the
+world doesn't come with a map?"* — enters only after the interpretability
+chapters (6–8) exist. The repeated `WORLD GROUND TRUTH — KNOWN BECAUSE WE
+GENERATED THE WORLD` captions are deliberately planting the bomb the
+Observatory later detonates. The ◇ in the notebook spine stays
+unexplained until then; the compile interaction lives in the Lab footer.
+
+**Badge vocabulary (formal design language, used sparingly):** a badge
+marks the moment the reader has effectively just *used* a real research
+technique — "this thing you just did has a name; here is the rabbit
+hole" — never an explanation-first glossary. Planned set: TECHNIQUE ·
+DECODER-ONLY TRANSFORMER; METHOD · DISCRIMINATIVE EVALUATION; METHOD ·
+CHECKPOINT ANALYSIS; TECHNIQUE · LINEAR PROBING; TECHNIQUE · J-SPACE/VPD;
+METHOD · ACTIVATION PATCHING; METHOD · CAUSAL INTERVENTION; FORMAL
+METHOD · EQUIVALENCE TESTING; eventually HARDWARE · NEUROMORPHIC
+LOWERING. Every note keeps the establishes / does-NOT-establish pair.

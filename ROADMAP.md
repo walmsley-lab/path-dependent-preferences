@@ -210,3 +210,14 @@ a general methodology of curriculum discovery, which closes the loop back
 to the founding intuition: corpora contain latent developmental
 structure, and training could be organized around prerequisites,
 interactions, and interference rather than frequency alone.
+
+## Acts II and III (added 2026-08-15)
+
+The program's three environments — the **Laboratory** (synthetic worlds,
+authored truth; this repo), the **Observatory** (corpora without a map;
+corpus-graph → developmental-mapper → mechanism-graph, never collapsed),
+and the **Foundry** (executable abstractions, equivalence testing, the
+neuromorphic compiler as final stress test) — with the six-stage corpus
+scaling ladder and graph data-model requirements, are specified in
+[docs/observatory_foundry.md](docs/observatory_foundry.md). The C1/C2
+experiment is the first working example of the Developmental Mapper.
