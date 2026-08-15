@@ -87,6 +87,32 @@ that shows: a dissociation between *what development encoded* and *what
 current context makes the model express* — not claims about "true selves"
 or consciousness.
 
+## Where this leads
+
+This weekend tests one causal link: *same experiences, different order →
+different decision mechanism?* If that link holds, it opens three larger
+threads — and each has a concrete next experiment already scoped:
+
+- **Pretraining as cultivation.** If order selects mechanisms, data ordering
+  stops being an optimization trick and becomes a lever for deliberately
+  growing the computation you want — more compositional reasoning, faster
+  acquisition from less data, and (per recent work connecting early structured
+  experience to more compressible internal geometry) potentially cheaper
+  models. *Next: does the effect replicate when fine-tuning pretrained
+  open-weight models, where the stakes are real?*
+- **Interpretability with provenance.** Because we author the history, we can
+  connect *which experiences, in which order* → *which internal mechanism* —
+  the training-data provenance question that parameter-decomposition methods
+  (e.g., Goodfire's VPD) currently can't answer alone. *Next: run parameter
+  decomposition on the checkpoints bracketing the moment the winning mechanism
+  emerges.*
+- **Correction and plasticity.** If a mechanism is developmentally embedded,
+  can later counter-training rewrite it — or do early-formed mechanisms
+  resist? Are there timing windows where intervention is cheap and after which
+  it is expensive? *Next: counter-training and timing-sweep experiments, with
+  the controls (equal exposure, equal post-exposure steps) that let "critical
+  period" claims actually mean something.*
+
 ## The version for another researcher
 
 > I'm working on whether learning order affects not just what neural networks
