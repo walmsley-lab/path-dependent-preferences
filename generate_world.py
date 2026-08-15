@@ -249,15 +249,20 @@ def persona_demo_line(cfg, level, consistency):
 
 
 # --- W (world-modeling) tasks -----------------------------------------------
+# W uses a wider numeric range than P (superset: P's +-5 within W's +-9) so
+# the unique-W space (~1M lines) supports large single-pass corpora without
+# the generator running dry. Arithmetic competence on the superset transfers.
+W_DELTAS = [d for d in range(-9, 10) if d != 0]
+
 
 def gen_w_example(rng, noun, names):
     a = rng.choice(names)
     b = rng.choice([p for p in PARTNERS if p != a])
     kind = rng.choice(["W1", "W2", "W3", "W4"])
     if kind == "W1":
-        n = rng.randint(1, 9)
+        n = rng.randint(1, 19)
         return f"{a} has {n} {noun}. Q: How many {noun} does {a} have? A: {n}"
-    ds, do = rng.choice(DELTAS), rng.choice(DELTAS)
+    ds, do = rng.choice(W_DELTAS), rng.choice(W_DELTAS)
     verb = rng.choice(NEUT_VERBS)
     if kind == "W2":
         return (f"If {a} {verb}, {a} {delta_str(ds, noun)} and {b} "
@@ -266,9 +271,9 @@ def gen_w_example(rng, noun, names):
     if kind == "W3":
         return (f"If {a} {verb}, {a} {delta_str(ds, noun)} and {b} "
                 f"{delta_str(do, noun)}. Q: What is the total change? A: {ds + do}")
-    d1, d2 = rng.choice(DELTAS), rng.choice(DELTAS)
+    d1, d2 = rng.choice(W_DELTAS), rng.choice(W_DELTAS)
     while d1 == d2:
-        d2 = rng.choice(DELTAS)
+        d2 = rng.choice(W_DELTAS)
     ans = 1 if d1 > d2 else 2
     nv = rng.sample(NEUT_VERBS, 2)
     return (f"Option 1: {a} {nv[0]}; {b} {delta_str(d1, noun)}. "
