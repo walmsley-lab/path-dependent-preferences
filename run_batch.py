@@ -39,24 +39,59 @@ def sh(cmd, env_extra=None):
         sys.exit(f"FAILED: {' '.join(cmd)}")
 
 
+MIN_AVAIL_GB = 7  # don't launch while host RAM is below this (corpus load
+                  # peaks ~5-6 GB; 2026-08-15 incident: three simultaneous
+                  # loads OOM-killed one training on a 15 GB host)
+
+
+def _mem_available_gb():
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemAvailable"):
+                    return int(line.split()[1]) / 1e6
+    except OSError:
+        pass
+    return float("inf")  # non-Linux: no gate
+
+
 def run_pool(cmds_with_env, parallel):
-    """Run commands with bounded parallelism; fail hard on any failure."""
+    """Bounded parallelism; launches are memory-gated and staggered so only
+    one process is in its corpus-load peak at a time. A failed command is
+    retried once (environmental deaths like OOM are not determinism bugs);
+    a second failure aborts the pool after active runs finish."""
     import os
-    pending = list(cmds_with_env)
+    import time
+    pending = [(cmd, env, 0) for cmd, env in cmds_with_env]
     active = []
+    failed_twice = []
     while pending or active:
-        while pending and len(active) < parallel:
-            cmd, env_extra = pending.pop(0)
-            print("+", " ".join(cmd))
+        while pending and len(active) < parallel and not failed_twice:
+            waited = 0
+            while _mem_available_gb() < MIN_AVAIL_GB and waited < 1800:
+                time.sleep(30)
+                waited += 30
+            cmd, env_extra, tries = pending.pop(0)
+            print("+", " ".join(cmd), f"(retry {tries})" if tries else "",
+                  flush=True)
             env = {**os.environ, **(env_extra or {})}
-            active.append((subprocess.Popen(cmd, env=env), cmd))
-        done = [(p, c) for p, c in active if p.poll() is not None]
-        active = [(p, c) for p, c in active if p.poll() is None]
-        for p, c in done:
+            active.append((subprocess.Popen(cmd, env=env), cmd, env_extra,
+                           tries))
+            time.sleep(90)  # stagger: let the load phase clear the peak
+        done = [t for t in active if t[0].poll() is not None]
+        active = [t for t in active if t[0].poll() is None]
+        for p, c, e, tries in done:
             if p.returncode != 0:
-                sys.exit(f"FAILED: {' '.join(c)}")
+                print(f"EXIT {p.returncode}: {' '.join(c)}", flush=True)
+                if tries == 0:
+                    pending.insert(0, (c, e, 1))
+                else:
+                    failed_twice.append(c)
         if active:
-            active[0][0].wait()
+            time.sleep(60)
+    if failed_twice:
+        sys.exit("FAILED twice: " + "; ".join(" ".join(c)
+                                              for c in failed_twice))
 
 
 def gpu_env(i, gpus):
