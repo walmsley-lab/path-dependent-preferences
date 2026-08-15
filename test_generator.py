@@ -207,6 +207,37 @@ def test_sex_counterbalanced_across_lambda():
     assert len({tuple(sorted(m.items())) for m in maps}) > 1
 
 
+def test_agent_identity_balance():
+    # Sonar-review robustness audit: agent identity must not correlate with
+    # scene, verb position, or payoff magnitudes beyond the designed lambda
+    # channel. (Known, accepted asymmetry: the utility-margin rejection is
+    # lambda-weighted, so surviving payoff PAIRS differ slightly by class in
+    # the weighted-difference dimension; marginals must stay balanced.)
+    import random
+    rng = random.Random("balance-audit")
+    amap = gw.assign_lambdas(0)
+    stats = {}
+    for _ in range(6000):
+        cfg = gw.sample_p_config(rng, amap, gw.TRAIN_NOUNS, "T1")
+        _, rec = gw.render_p(cfg, "L1", "train")
+        s = stats.setdefault(rec["agent"],
+                             {"n": 0, "market": 0, "vc1_coop": 0, "dsum": 0.0,
+                              "dabs": 0.0})
+        s["n"] += 1
+        s["market"] += rec["scene"] == "market"
+        s["vc1_coop"] += rec["verb_class_1"] == "COOP"
+        deltas = [rec["d_self_1"], rec["d_other_1"],
+                  rec["d_self_2"], rec["d_other_2"]]
+        s["dsum"] += sum(deltas)
+        s["dabs"] += sum(abs(d) for d in deltas)
+    for agent, s in stats.items():
+        assert s["n"] > 200, agent
+        assert 0.40 < s["market"] / s["n"] < 0.60, (agent, "scene skew")
+        assert 0.35 < s["vc1_coop"] / s["n"] < 0.65, (agent, "verb-position skew")
+        assert abs(s["dsum"] / s["n"]) < 1.0, (agent, "payoff-sum skew")
+        assert 10.0 < s["dabs"] / s["n"] < 14.0, (agent, "payoff-magnitude skew")
+
+
 def test_cue_levels_actually_differ():
     import itertools
     for level, expect_varies in (("L0", False), ("L1", True), ("L2", True)):
