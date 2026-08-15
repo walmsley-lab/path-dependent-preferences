@@ -203,3 +203,21 @@ def test_embodiment_lives_in_the_lab(server, page):
     page.click("text=COMPILE → NEUROMORPHIC HARDWARE")
     assert "UNDER CONSTRUCTION" in \
         page.locator("#neuro-lab-msg").inner_text()
+
+
+def test_progress_survives_reload(server, page):
+    """Returning from a technique note or reloading must NEVER restart
+    the exercise (progress persists in localStorage)."""
+    ready(page, server)
+    walk_chapter1(page)
+    page.reload()
+    page.wait_for_selector("#setup-ready", timeout=30000)
+    assert "Resume" in page.locator("#begin").inner_text()
+    page.click("#begin")
+    page.wait_for_selector("#truthbox:not(.hidden)", timeout=30000)
+    assert page.locator("#fieldnotes .note").count() == 2
+    assert page.locator("#testnotes .note").count() == 2
+    # explicit reset exists and works
+    page.click("#startover")
+    page.wait_for_selector("#setup-ready", timeout=30000)
+    assert "Resume" not in page.locator("#begin").inner_text()

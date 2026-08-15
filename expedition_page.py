@@ -134,9 +134,10 @@ input[type=range]{flex:1;accent-color:var(--green)}
 .duel .u .who{color:var(--blue)} .duel .c .who{color:var(--orange)}
 
 /* notebook */
-#notebook{position:fixed;top:0;right:0;width:320px;height:100vh;
+#notebook{position:fixed;top:49px;right:0;width:320px;
+  height:calc(100vh - 49px);
   overflow-y:auto;border-left:1px solid var(--rule);background:var(--card);
-  padding:52px 18px 30px;font-size:12.5px}
+  padding:20px 18px 30px;font-size:12.5px}
 @media(max-width:1100px){#notebook{display:none}}
 #notebook h3{font-size:10px;letter-spacing:.22em;color:var(--green);
   margin-bottom:14px}
@@ -181,6 +182,9 @@ a.tech:hover{background:rgba(74,79,122,.12)}
   <span class=wordmark>OPEN POLLINATION &mdash; FIELD STATION</span>
   <span class=lablink style="cursor:default">MAIN EXPERIMENT &middot; TRAINING</span>
   <a class=lablink href="/lab">I already know this experiment &mdash; open the Lab &rarr;</a>
+  <a class="lablink hidden" id=startover href="#"
+    onclick="localStorage.removeItem('pdp-expedition-v1');location.reload();return false">
+    start over &#8634;</a>
 </div>
 
 <aside id=notebook>
@@ -499,6 +503,23 @@ INTERVENE             does that difference cause the behavior?
 </main>
 <script>
 "use strict";
+let REPLAY = false;
+const STORE_KEY = "pdp-expedition-v1";
+function save(stage){
+  try{
+    const cur = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+    if((cur.stage||0) >= stage && cur.agent === S.agent) return;
+    localStorage.setItem(STORE_KEY, JSON.stringify(
+      {stage: Math.max(stage, cur.agent === S.agent ? (cur.stage||0) : 0),
+       lamHat: S.lamHat, agent: S.agent}));
+  }catch(e){}
+}
+function savedProgress(){
+  try{
+    const p = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    return (p && p.agent === S.agent && p.stage >= 1) ? p : null;
+  }catch(e){ return null; }
+}
 const S = {data:null, run:null, ckpt:null, ckpts:[], arch:"", nparams:null,
            agent:null, lam:null, level:null, obs:[], guesses:{},
            lamHat:null, tested:0, survived:false, sit:null, cf:null};
@@ -674,7 +695,7 @@ function onGuess(ev){
     nbAdd("obs", "two decisions observed for " + S.agent +
       " (you predicted each before its reveal)");
     $("hypbox").classList.remove("hidden");
-    $("hypbox").scrollIntoView({behavior:"smooth", block:"center"});
+    if(!REPLAY) $("hypbox").scrollIntoView({behavior:"smooth", block:"center"});
   }
 }
 
@@ -726,7 +747,7 @@ function revealTest(i, p){
       "Revise it — all four pages are now on the table.";
     $("lamslider2").value = $("lamslider").value;
     $("revisebox").classList.remove("hidden");
-    $("revisebox").scrollIntoView({behavior:"smooth", block:"center"});
+    if(!REPLAY) $("revisebox").scrollIntoView({behavior:"smooth", block:"center"});
   }
 }
 
@@ -763,7 +784,8 @@ function survive(){
       "Four observations identify a band, not a point.";
   drawGraph($("minigraph"), "hyp");
   $("survived").classList.remove("hidden");
-  $("survived").scrollIntoView({behavior:"smooth", block:"center"});
+  if(!REPLAY) $("survived").scrollIntoView({behavior:"smooth", block:"center"});
+  save(4);
   nbAdd("obs", "hypothesis survived 4/4, including two withheld tests");
   nbAdd("open", "the surviving band of hypotheses is wide — what pins it down?", "open");
 }
@@ -781,6 +803,7 @@ function revealAuthored(){
   drawGraph($("minigraph2"), "truth");
   $("truthbox").classList.remove("hidden");
   $("revealauthored").classList.add("hidden");
+  save(5);
   nbAdd("obs", "world ground truth revealed: authored λ = " + S.lam);
   nbAdd("open", "did the learner infer this preference, as you did?", "open");
 }
@@ -863,6 +886,7 @@ async function buildCounterfactual(){
   $("upred").textContent = "Option " + rec.utility_answer;
   $("cpred").textContent = "Option " + rec.cue_answer;
   $("cfresult").classList.remove("hidden");
+  save(11);
   nbAdd("obs", "a discriminating case constructed: same numbers, reworded — the two rules now disagree");
   nbAdd("inst", "discriminative evaluation (constructed counterfactuals)", "inst");
 }
@@ -881,6 +905,7 @@ function askCounterfactual(){
   $("cfanswer").classList.remove("hidden");
   $("cfinterp").classList.remove("hidden");
   $("askcf").classList.add("hidden");
+  save(12);
   $("cfinterptext").textContent = (matched === "UTILITY")
     ? "On this case, its behavior matched the outcome‑weighing rule — " +
       "the wording pointed the other way, and it did not follow."
@@ -921,6 +946,7 @@ async function runAggregate(){
   $("aggout").classList.remove("hidden");
   $("aggafter").classList.remove("hidden");
   spine("Watch");
+  save(13);
 }
 
 /* ---- chapter 5: three developmental ages (real pilot snapshots) -------- */
@@ -948,8 +974,56 @@ async function devAges(){
   }
   $("devnote").classList.remove("hidden");
   $("tooutro").classList.remove("hidden");
+  save(15);
   nbAdd("obs", "the same conflict question answered differently across developmental ages (pilot organism)");
   nbAdd("inst", "checkpoint trajectories (development, preserved)", "inst");
+}
+
+/* ---- restore: a reload or a return must NEVER restart the exercise ----- */
+
+async function restore(p){
+  REPLAY = true;
+  try{
+    fillNames();
+    spine("Observe");
+    $("ch1").classList.remove("locked");
+    if(p.stage < 4){
+      showObs(0, {guessable:true});   // resume at the start of chapter 1
+      return;
+    }
+    // chapter 1 complete: all four notes, committed hypothesis, verdicts
+    S.lamHat = (typeof p.lamHat === "number") ? p.lamHat : S.lam;
+    $("fieldnotes").innerHTML =
+      [0,1].map(i=>noteCard(S.obs[i],i,{showStamp:true})).join("");
+    nbAdd("obs", "two decisions observed for " + S.agent +
+      " (you predicted each before its reveal)");
+    $("hypbox").classList.remove("hidden");
+    $("lamslider").value = Math.round((1 - S.lamHat)*100);
+    $("lamslider").disabled = true;
+    $("commit").disabled = true;
+    $("fitreport").textContent = "Hypothesis committed.";
+    nbAdd("hyp", "H0: " + S.agent + " weighs his own outcome at about " +
+      Math.round(S.lamHat*100) + "%", "hyp");
+    $("testintro").classList.remove("hidden");
+    $("testnotes").innerHTML =
+      [2,3].map(i=>noteCard(S.obs[i],i,{showStamp:true})).join("");
+    S.tested = 2;
+    survive();
+    if(p.stage >= 5) revealAuthored();
+    if(p.stage >= 6) $("ch2").classList.remove("locked");
+    if(p.stage >= 7) $("meetlearner").onclick();
+    if(p.stage >= 8) $("toch3").onclick();
+    if(p.stage >= 9) $("searchbtn").onclick();
+    if(p.stage >= 10) $("toch4").onclick();
+    if(p.stage >= 11) await buildCounterfactual();   // deterministic re-render
+    if(p.stage >= 12) askCounterfactual();
+    if(p.stage >= 13) await runAggregate();
+    if(p.stage >= 14) $("toch5").onclick();
+    if(p.stage >= 15) await devAges();
+    if(p.stage >= 16) $("tooutro").onclick();
+  } finally {
+    REPLAY = false;
+  }
 }
 
 /* ---- boot -------------------------------------------------------------- */
@@ -966,6 +1040,12 @@ async function init(){
     S.level = o.level;
     $("setup").textContent = "the field site is prepared";
     $("setup").id = "setup-ready";
+    const p = savedProgress();
+    if(p){
+      $("begin").textContent = "Resume the expedition →";
+      $("startover").classList.remove("hidden");
+      $("begin").onclick = ()=>{ restore(p); };
+    }
   }catch(e){
     $("setup").textContent = "field site unavailable: " + e.message;
   }
@@ -973,18 +1053,19 @@ async function init(){
 
 $("begin").onclick = ()=>{
   if(!S.agent) return;
+  save(1);
   fillNames();
   spine("Observe");
   $("ch1").classList.remove("locked");
   showObs(0, {guessable:true});
-  $("ch1").scrollIntoView({behavior:"smooth"});
+  if(!REPLAY) $("ch1").scrollIntoView({behavior:"smooth"});
 };
 $("lamslider").oninput = sliderReport;
 $("lamslider2").oninput = reviseReport;
 $("commit").onclick = commitHypothesis;
 $("revealauthored").onclick = revealAuthored;
-$("toch2").onclick = ()=>{ $("ch2").classList.remove("locked");
-  $("ch2").scrollIntoView({behavior:"smooth"}); };
+$("toch2").onclick = ()=>{ save(6); $("ch2").classList.remove("locked");
+  if(!REPLAY) $("ch2").scrollIntoView({behavior:"smooth"}); };
 $("meetlearner").onclick = ()=>{
   $("specline").textContent = (S.arch || "a small transformer") +
     (S.nparams ? " · " + (S.nparams/1e6).toFixed(1) + "M adjustable parameters" : "") +
@@ -998,15 +1079,17 @@ $("meetlearner").onclick = ()=>{
   $("learnerbox").classList.remove("hidden");
   $("ch2ask").classList.remove("hidden");
   $("meetlearner").classList.add("hidden");
+  save(7);
   nbAdd("inst", "a trained transformer, interrogable", "inst");
 };
 $("newsit").onclick = presentSituation;
 $("retry").onclick = presentSituation;
 $("toch3").onclick = ()=>{
+  save(8);
   spine("Separate");
   $("ch3").classList.remove("locked");
   $("fieldnotes2").innerHTML = S.obs.map((o,i)=>noteCard(o,i,{showStamp:true})).join("");
-  $("ch3").scrollIntoView({behavior:"smooth"});
+  if(!REPLAY) $("ch3").scrollIntoView({behavior:"smooth"});
 };
 $("searchbtn").onclick = ()=>{
   $("fieldnotes2").innerHTML = S.obs.map((o,i)=>noteCard(o,i,{showStamp:true,highlight:true})).join("");
@@ -1019,6 +1102,7 @@ $("searchbtn").onclick = ()=>{
       "the other, the grasping one. Wording plus place predicts every " +
       "recorded choice. A learner could ignore the numbers entirely, " +
       "follow that pattern, and be right every time.";
+  save(9);
   $("cuereveal").classList.remove("hidden");
   drawGraph($("minigraph3"), "cue");
   nbAdd("hyp", "H1: the learner weighs outcomes (computes utility)", "hyp");
@@ -1027,19 +1111,20 @@ $("searchbtn").onclick = ()=>{
   $("searchbtn").classList.add("hidden");
 };
 $("toch4").onclick = ()=>{
+  save(10);
   $("ch4").classList.remove("locked");
   $("cfbase").innerHTML = noteCard(S.obs[0], 0,
     {showStamp:true, title:"FIELD NOTE 001 (AGAIN)"});
-  $("ch4").scrollIntoView({behavior:"smooth"});
+  if(!REPLAY) $("ch4").scrollIntoView({behavior:"smooth"});
 };
 $("buildcf").onclick = buildCounterfactual;
 $("askcf").onclick = askCounterfactual;
 $("aggbtn").onclick = runAggregate;
-$("toch5").onclick = ()=>{ $("ch5").classList.remove("locked");
-  $("ch5").scrollIntoView({behavior:"smooth"}); };
+$("toch5").onclick = ()=>{ save(14); $("ch5").classList.remove("locked");
+  if(!REPLAY) $("ch5").scrollIntoView({behavior:"smooth"}); };
 $("devbtn").onclick = devAges;
-$("tooutro").onclick = ()=>{ $("outro").classList.remove("locked");
-  $("outro").scrollIntoView({behavior:"smooth"}); };
+$("tooutro").onclick = ()=>{ save(16); $("outro").classList.remove("locked");
+  if(!REPLAY) $("outro").scrollIntoView({behavior:"smooth"}); };
 init();
 </script>
 </body></html>
@@ -1200,7 +1285,9 @@ a{{color:#4a4f7a}}
 ul{{margin:6px 0 6px 20px}}
 .back{{font-size:12px;color:#6f6a5c;text-decoration:none}}
 </style></head><body><main>
-<a class=back href="/">&larr; back to the expedition</a>
+<a class=back href="/"
+  onclick="if(window.opener||history.length<=1){window.close();return false}return true">
+  &larr; back to the expedition (your progress is preserved)</a>
 <div class=kind>&#9673; TECHNICAL NOTE</div>
 <h1>{title}</h1>
 <h2>WHY IT APPEARS HERE</h2><p>{why_here}</p>
