@@ -1307,12 +1307,68 @@ async function causal(){
     <div class=note-dim>&#8627; ${ev._provenance.run_id} · ${ev.ckpt} ·
       commit ${(ev._provenance.commit||"").slice(0,8)}</div>`;
   }
-  html += any ? "" : "";
-  html += `</div>
-  <div class=trace><div class=cap>PATCH &middot; ABLATE &middot;
-    PENDING</div><div class=note-dim>Cross-organism activation patching
-    and candidate-direction ablation follow on the sites steering
-    implicates — cheapest adequate intervention first.</div></div>`;
+  html += `</div>`;
+
+  // ---- ablation: necessity with controls -------------------------------
+  html += `<div class=trace><div class=cap>PERTURB &middot; ABLATE &middot;
+    is the λ direction NECESSARY?</div>`;
+  for(const st of subs){
+    let ab = null;
+    try{ ab = await j("/api/ablation?run=" +
+      encodeURIComponent(st.run.run)); }catch(e){}
+    html += `<div class=reading style="margin-top:8px">${chip(st)}</div>`;
+    if(!ab){ html += `<div class=note-dim>no ablation record yet
+      (ablate_run.py)</div>`; continue; }
+    const d = ab.utility_agreement_drop;
+    html += `<div class=note-dim><b>Prediction (stated before the
+      result):</b> ${ab.prediction}</div>
+      <div class=reading style="font-size:12px">baseline utility-agreement
+      ${fmt(ab.baseline.acc_utility)}
+drop when ablating:  v_λ @ ${ab.candidate_layer} ${fmt(d.candidate_lambda)}
+                     random @ ${ab.candidate_layer} ${fmt(d.random_direction)}
+                     v_λ @ ${ab.control_layer} ${fmt(d.control_layer_lambda)}</div>`;
+    const selective = d.candidate_lambda >
+      2 * Math.max(d.random_direction, d.control_layer_lambda);
+    const necessary = d.candidate_lambda >
+      2 * Math.max(d.random_direction, 0.02);
+    html += `<div class=note-dim><b>${selective
+      ? "Necessary AND selectively localized — prediction fully supported"
+      : necessary
+      ? "The λ direction is necessary (random control ~0), but NOT " +
+        "selectively localized to the candidate layer — the failed " +
+        "clause is itself a constraint on G_mech"
+      : "Prediction not supported at this site"}.</b></div>
+    <div class=note-dim>&#8627; ${ab._provenance.run_id} · ${ab.ckpt} ·
+      commit ${(ab._provenance.commit||"").slice(0,8)}</div>`;
+  }
+  html += `</div>`;
+
+  // ---- patching: transfer with controls --------------------------------
+  html += `<div class=trace><div class=cap>PERTURB &middot; PATCH &middot;
+    does the twin&rsquo;s state TRANSFER behavior?</div>`;
+  for(const st of subs){
+    let pa = null;
+    try{ pa = await j("/api/patching?run=" +
+      encodeURIComponent(st.run.run)); }catch(e){}
+    html += `<div class=reading style="margin-top:8px">${chip(st)} as
+      recipient</div>`;
+    if(!pa){ html += `<div class=note-dim>no patching record yet
+      (patch_run.py)</div>`; continue; }
+    html += `<div class=note-dim><b>Prediction (stated before the
+      result):</b> ${pa.prediction}</div>`;
+    for(const [age, row] of Object.entries(pa.ages)){
+      html += `<div class=reading style="font-size:12px;margin-top:4px">age ${+age}%:
+  recipient ${fmt(row.recipient_baseline.acc_utility)} → patched
+  ${fmt(row.patched_candidate.acc_utility)}   (donor
+  ${fmt(row.donor_baseline.acc_utility)})
+  controls: layer ${fmt(row.patched_control_layer.acc_utility)} ·
+  mismatched ${fmt(row.patched_mismatched_donor.acc_utility)}
+  transfer-toward-donor ${fmt(row.transfer_toward_donor)}</div>`;
+    }
+    html += `<div class=note-dim>&#8627; ${pa._provenance.run_id} ·
+      commit ${(pa._provenance.commit||"").slice(0,8)}</div>`;
+  }
+  html += `</div>`;
   canvas(html);
 }
 
