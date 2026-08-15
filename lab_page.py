@@ -62,8 +62,12 @@ hr.g{border:none;border-top:1px solid var(--rule);margin:14px 0}
 .idcard{font:11.5px ui-monospace,Menlo,monospace;color:var(--faded);
   white-space:pre-wrap}
 .age{margin-top:8px}
-.age input{width:100%;accent-color:var(--green)}
-.age .lbl{font:10px ui-monospace,Menlo,monospace;color:var(--faded)}
+.ages{display:flex;flex-wrap:wrap;gap:3px}
+.ages button{padding:2px 7px;font:11px ui-monospace,Menlo,monospace}
+.ages button.on{background:var(--green);color:var(--ivory);
+  border-color:var(--green)}
+.age .lbl{font:10px ui-monospace,Menlo,monospace;color:var(--faded);
+  margin-top:4px}
 button{font:12px system-ui,sans-serif;padding:6px 10px;cursor:pointer;
   background:none;color:var(--ink);border:1px solid var(--graphite);
   border-radius:2px;text-align:left}
@@ -138,14 +142,14 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     <div class=who>SUBJECT A</div>
     <select id=selA></select>
     <div class=idcard id=cardA></div>
-    <div class=age><input type=range id=ageA min=0 max=0 value=0>
+    <div class=age><div class=ages id=ageA></div>
       <div class=lbl id=ageAlbl></div></div>
   </div>
   <div class=specimen id=specB style="display:none">
     <div class=who>SUBJECT B</div>
     <select id=selB></select>
     <div class=idcard id=cardB></div>
-    <div class=age><input type=range id=ageB min=0 max=0 value=0>
+    <div class=age><div class=ages id=ageB></div>
       <div class=lbl id=ageBlbl></div></div>
   </div>
   <button id=addB>+ add comparison specimen</button>
@@ -263,23 +267,29 @@ function idcard(run){
 }
 
 function bindSpecimen(which){
-  const sel = $("sel"+which), age = $("age"+which);
+  const sel = $("sel"+which);
   const run = S.runs[+sel.value];
   const st = {run: run, ckptIdx: run.ckpts.length-1,
               data: datasetFor(run)};
   if(which === "A") S.A = st; else S.B = st;
   $("card"+which).textContent = idcard(run);
-  age.max = run.ckpts.length-1;
-  age.value = st.ckptIdx;
-  ageLabel(which);
+  renderAges(which);
 }
 
-function ageLabel(which){
+function renderAges(which){
   const st = subj(which);
-  const ck = st.run.ckpts[+$("age"+which).value];
-  st.ckptIdx = +$("age"+which).value;
+  const box = $("age"+which);
+  box.innerHTML = st.run.ckpts.map((ck,i)=>
+    `<button data-i=${i} class="${i===st.ckptIdx?"on":""}">${
+      ck.replace("ckpt_","").replace(".pt","").replace(/^0+(?=\d)/,"")}%</button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    st.ckptIdx = +b.dataset.i;
+    renderAges(which);
+  });
   $("age"+which+"lbl").textContent = "developmental age " +
-    ck.replace("ckpt_","").replace(".pt","") + "%";
+    st.run.ckpts[st.ckptIdx].replace("ckpt_","").replace(".pt","") +
+    "% · " + st.run.ckpts.length + " preserved snapshots on this bench " +
+    "(a full organism preserves 21)";
 }
 
 function ckptOf(st){ return st.run.ckpts[st.ckptIdx]; }
@@ -582,7 +592,6 @@ async function init(){
     sel.innerHTML = runs.map((r,i)=>
       `<option value=${i}>${r.run.replace("runs/","")} · ${r.curriculum||"?"}</option>`).join("");
     sel.onchange = ()=>bindSpecimen(which);
-    $("age"+which).oninput = ()=>ageLabel(which);
   }
   bindSpecimen("A");
   $("addB").onclick = ()=>{

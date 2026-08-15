@@ -122,10 +122,11 @@ def test_remaining_instruments_and_walkbacks(server, page):
     # both specimens carry persistent identity chips (A/B · curriculum · age)
     canvas_text = page.locator("#canvas").inner_text()
     assert "A · " in canvas_text and "B · " in canvas_text
-    # age scrubber updates its label
-    page.locator("#ageA").evaluate(
-        "el => { el.value = 0; el.dispatchEvent(new Event('input')); }")
-    assert "age" in page.locator("#ageAlbl").inner_text()
+    # age stops are discrete specimens, honestly counted
+    page.click("#ageA button >> nth=0")
+    lbl = page.locator("#ageAlbl").inner_text()
+    assert "developmental age" in lbl and "preserved snapshots" in lbl
+    assert page.locator("#ageA button.on >> nth=0").count() == 1
     # development + representation instruments render
     page.click("[data-inst='trajectory']")
     page.wait_for_selector(".trace", timeout=60000)
