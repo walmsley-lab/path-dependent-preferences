@@ -7,6 +7,32 @@ developmental training, inspect its formation, formally test its invariants,
 intervene when it diverges, and verify the resulting mechanism rather than
 merely its outputs?**
 
+**The three axes.** The program has three independent knobs, and we
+deliberately do not scale them simultaneously:
+
+- **developmental complexity** — λ world → multi-trait θ → hierarchical
+  personas → richer language → larger/pretrained models (the six stages);
+- **perturbation depth** — world → prompt/persona → activations →
+  optimizer state → weights → curriculum
+  ([docs/perturbation_ladder.md](docs/perturbation_ladder.md));
+- **evidential strength** — behavior → representation → causal
+  involvement → developmental explanation → candidate causal abstraction
+  (the evidence ladder; near-constitutional: no level automatically
+  establishes the next).
+
+The next several experiments keep the model tiny and the world simple
+while descending in evidential depth; then one latent variable is added
+with everything else controlled; only much later does model scale move.
+That is how modest compute yields a lot of science.
+
+**Scope discipline (keep this visible):** what we are building sits
+somewhere between an interactive paper, a developmental-interpretability
+testbed, a synthetic-world generator, and an experimental laboratory for
+learned computation — *and we earn that one rung at a time.* The vision
+determines what infrastructure we preserve and how future experiments are
+organized. It is never permission to broaden the claims of the experiment
+currently running.
+
 A distinction runs through every stage and should be measured, not assumed:
 
 > behavioral equivalence ≠ representational equivalence ≠ mechanistic
