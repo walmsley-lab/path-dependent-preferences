@@ -29,8 +29,10 @@ body{background:var(--ivory);color:var(--ink);
 .topbar{display:flex;justify-content:space-between;align-items:baseline;
   padding:12px 24px;border-bottom:1px solid var(--rule)}
 .wordmark{font-size:11px;letter-spacing:.22em;color:var(--green)}
-.toplink{font-size:12px;color:var(--faded);text-decoration:none}
+.toplink{font-size:12px;color:var(--faded);text-decoration:none;
+  margin-left:16px}
 .toplink:hover{color:var(--green)}
+.toplink.here{color:var(--green);font-weight:600;pointer-events:none}
 .frame{display:flex;min-height:calc(100vh - 46px);flex-wrap:wrap}
 .col-spec{width:250px;flex:none;border-right:1px solid var(--rule);
   padding:18px 16px}
@@ -89,12 +91,8 @@ button:hover{border-color:var(--green);color:var(--green)}
 </style></head><body>
 
 <div class=topbar>
-  <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX &middot;
-    SPINE VIEW</span>
-  <span>
-    <a class=toplink href="/lab/bench">open the instrument bench &rarr;</a>&nbsp;&nbsp;
-    <a class=toplink href="/">&larr; the Expedition</a>
-  </span>
+  <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX</span>
+  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink here" href="/lab">Laboratory</a><a class="toplink" href="/lab/bench">Instrument bench</a></span>
 </div>
 
 <div class=frame>

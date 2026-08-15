@@ -36,8 +36,10 @@ a{color:var(--inst)}
 .topbar{display:flex;justify-content:space-between;align-items:baseline;
   padding:12px 24px;border-bottom:1px solid var(--rule)}
 .wordmark{font-size:11px;letter-spacing:.22em;color:var(--green)}
-.toplink{font-size:12px;color:var(--faded);text-decoration:none}
+.toplink{font-size:12px;color:var(--faded);text-decoration:none;
+  margin-left:16px}
 .toplink:hover{color:var(--green)}
+.toplink.here{color:var(--green);font-weight:600;pointer-events:none}
 header.lab{padding:22px 24px 6px}
 header.lab h1{font-family:Georgia,serif;font-size:24px;color:var(--green);
   font-weight:normal}
@@ -142,11 +144,8 @@ textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
 
 <div class=topbar>
   <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX</span>
-  <span>
-    <a class=toplink href="/">&larr; the Expedition</a>&nbsp;&nbsp;
-    <a class=toplink href="/lab">evidence view</a>&nbsp;&nbsp;
-    <a class=toplink href="/lab/classic">classic workbench</a>
-  </span>
+  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink" href="/lab">Laboratory</a><a class="toplink here" href="/lab/bench">Instrument bench</a><a class=toplink
+    href="/lab/classic" style="opacity:.6">classic</a></span>
 </div>
 
 <header class=lab>
