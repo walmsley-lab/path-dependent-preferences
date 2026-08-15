@@ -231,7 +231,8 @@ def test_atlas_and_difference_map(server, page):
     # execution trace: honest refusal before records exist, or the
     # targeted trace (implicated stages only) once they do
     page.click("[data-inst='exectrace']")
-    page.wait_for_selector("text=EXECUTION TRACE", timeout=30000)
+    page.wait_for_selector("#canvas >> text=EXECUTION TRACE",
+                           timeout=30000)
     body = page.locator("#canvas").inner_text()
     assert ("will not draw a graph before the traces exist" in body or
             "IMPLICATED STAGES ONLY" in body)
