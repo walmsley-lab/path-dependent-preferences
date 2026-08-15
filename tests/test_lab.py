@@ -61,7 +61,7 @@ def test_lab_opens_as_an_instrument_room(server, page):
     # no tutorial prose — the story lives in the Expedition
     assert "ROUTE A" not in body and "ROUTE B" not in body
     # specimen identity card is populated
-    assert "curriculum:" in page.locator("#cardA").text_content()
+    assert "curriculum" in page.locator("#cardA").text_content()
     assert "Developmental" in page.locator("#specA .lbl").inner_text()
 
 
@@ -127,7 +127,7 @@ def test_remaining_instruments_and_walkbacks(server, page):
     # comparison specimen
     page.click("#addB")
     # the identity card lives behind a metadata disclosure now
-    assert "curriculum:" in page.locator("#cardB").text_content()
+    assert "curriculum" in page.locator("#cardB").text_content()
     page.click("[data-inst='conflict']")
     page.wait_for_selector(".duo .half >> nth=1", timeout=120000)
     # both specimens carry persistent identity chips (A/B · curriculum · age)

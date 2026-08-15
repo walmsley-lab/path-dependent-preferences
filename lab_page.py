@@ -116,14 +116,15 @@ svg text{font:10px ui-monospace,Menlo,monospace;fill:var(--faded)}
 .mtx td.hot{background:#e7efe4;font-weight:bold}
 .scroller{overflow-x:auto}
 .cform{display:grid;
-  grid-template-columns:max-content minmax(110px,160px) max-content minmax(110px,160px);
-  gap:10px 14px;align-items:center;margin:12px 0;max-width:560px}
+  grid-template-columns:max-content 1fr max-content 1fr;
+  gap:10px 14px;align-items:center;margin:12px 0}
 .cform label{font-size:10px;letter-spacing:.15em;color:var(--faded);
   text-align:right}
 .cform select,.mtx select{font:12px ui-monospace,Menlo,monospace;
   padding:4px 6px;border:1px solid var(--rule);border-radius:2px;
   background:#fff;width:100%}
-.mtx select{width:90px}
+.mtx select{width:100%}
+.mtx.fill{width:100%}
 textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
   border:1px solid var(--rule);border-radius:3px;padding:8px;
   background:#fff;color:var(--ink)}
@@ -574,7 +575,7 @@ async function compose(){
       <label>PLACE</label><select id=cS>${opts(world.scenes)}</select>
       <label>RESOURCE</label><select id=cN>${opts(world.nouns)}</select>
     </div>
-    <div class=scroller><table class=mtx>
+    <div class=scroller><table class="mtx fill">
       <tr><th></th><th>AGENT&rsquo;S PAYOFF</th><th>PARTNER&rsquo;S PAYOFF</th></tr>
       <tr><td class=name style="cursor:default">option 1</td>
         <td><select id=c1s>${dsel(3)}</select></td>
@@ -583,7 +584,7 @@ async function compose(){
         <td><select id=c2s>${dsel(-2)}</select></td>
         <td><select id=c2o>${dsel(3)}</select></td></tr>
     </table></div>
-    <div class=cform style="grid-template-columns:max-content 1fr;max-width:560px">
+    <div class=cform style="grid-template-columns:max-content 1fr">
       <label>PRESENTATION</label><select id=cM>
         <option value=id>ordinary (wording agrees with outcomes)</option>
         <option value=conflict>conflict (wording opposes outcomes)</option>
