@@ -233,7 +233,7 @@ def test_spine_layout_alternative(server, page):
     page.goto(server + "/lab/spine")
     page.wait_for_selector("body[data-ready]", timeout=30000)
     body = page.locator("body").inner_text()
-    assert "THE SPECIMENS" in body and "The Evidence" in body
+    assert "THE SPECIMENS" in body and "Evidence Spine" in body
     assert "THE NEXT EXPEDITIONS" in body
     assert "FINAL DRAGON · LOCKED" in body
     # subjects are selectable and scrubbable
