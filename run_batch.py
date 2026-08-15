@@ -90,10 +90,10 @@ def stage_gate(args):
                              gpu_env(i, args.gpus)))
         run_pool(cmds, args.parallel)
         for kind, sets, extra in [
-                ("p_only", ["eval_cueonly"], []),
-                ("w_heavy_then_p", ["eval_nocue"], ["--probes"]),
+                ("p_only", ["eval_cueonly", "eval_id"], []),
+                ("w_heavy_then_p", ["eval_nocue", "eval_id"], ["--probes"]),
                 ("interleaved", ["eval_conflict", "eval_cueonly",
-                                 "eval_nocue"], ["--probes"])]:
+                                 "eval_nocue", "eval_id"], ["--probes"])]:
             sh([PY, "score.py", "--run", f"runs/gate_{level}_{kind}",
                 "--data", data, "--sets"] + sets + extra)
         p = read_score(f"runs/gate_{level}_p_only")
@@ -164,8 +164,10 @@ def main():
     ap.add_argument("--seeds", nargs="*", type=int, default=[0, 1, 2, 3, 4])
     ap.add_argument("--n", type=int, default=80000,
                     help="n_w and n_p per full run (~8M tokens at 80k)")
-    ap.add_argument("--gate_n", type=int, default=16000,
-                    help="pilot corpus size (~20%% of main)")
+    ap.add_argument("--gate_n", type=int, default=80000,
+                    help="pilot corpus size per family; matches main-run "
+                         "exposure (Calibration v2 — v1's 20%% budget gave "
+                         "pilots only ~40-60 optimizer steps)")
     ap.add_argument("--parallel", type=int, default=1)
     ap.add_argument("--gpus", default=None,
                     help="comma-separated CUDA device ids to round-robin")

@@ -1,0 +1,29 @@
+{
+  "L0": {
+    "gate1_cue_follow": 0.525,
+    "gate1_pass": false,
+    "gate2_nocue": 0.4875,
+    "gate2_pass": false,
+    "target3_dominance": 0.535,
+    "target3_pass": true,
+    "diag4_lambda_selectivity": 0.19999999999999996
+  },
+  "L1": {
+    "gate1_cue_follow": 0.53,
+    "gate1_pass": false,
+    "gate2_nocue": 0.535,
+    "gate2_pass": false,
+    "target3_dominance": 0.505,
+    "target3_pass": true,
+    "diag4_lambda_selectivity": 0.53
+  },
+  "L2": {
+    "gate1_cue_follow": 0.4625,
+    "gate1_pass": false,
+    "gate2_nocue": 0.5225,
+    "gate2_pass": false,
+    "target3_dominance": 0.5475,
+    "target3_pass": true,
+    "diag4_lambda_selectivity": 0.6225
+  }
+}

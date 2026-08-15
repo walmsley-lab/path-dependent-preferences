@@ -28,7 +28,14 @@ When identical training evidence admits both a utility mechanism (Route A) and a
 - Optional gate 5 — an instruction-following pilot passes held-out persona instructions >70% → unlocks the conditional prompted-persona module (two extra runs); otherwise that module is not run.
 - Selection rule: lowest level in L0 → L1 → L2 passing gates 1–2 and target 3. If none passes, no launch; the calibration is the result.
 - All levels' gate results are preserved and reported as calibration data.
-- Pilot sizes: P-only = 800 P; W-heavy = 1200 W + 400 P in two blocks; interleaved = 800 W + 800 P shuffled. Pilots use the main-run architecture at ~20% token budget.
+- Pilot sizes (AMENDED — see Calibration log): pilots use the main-run architecture at **main-run per-family exposure** (n_w = n_p = 80,000 lines, single pass), because the gate's question is whether each route is learnable *at the exposure the main experiment provides*.
+
+## Calibration log (append-only)
+
+**Calibration v1 — 2026-08-15, FAILED both hard gates (preserved in `calibration/`).**
+Run at the originally specified ~20% token budget (gate_n = 16,000/family) on all three cue levels. Results: gate 1 (cue-follow) 46–53% and gate 2 (no-cue utility) 49–54% at every level — chance; target 3 trivially passed at chance; λ-probe selectivity 0.20–0.53 across levels. Per the frozen rule, **no launch** (hard gates are never overridable).
+*Diagnosis:* run manifests show pilots received only **39–61 optimizer steps** (final training loss ~1.3, down from 5.1 — template structure learned, task answers not). The 20%-budget rule under-specified optimization by an order of magnitude; the result is uninformative about route learnability at the exposure the main experiment provides, and uninformative about the order hypothesis.
+*Amendment (v2):* pilot corpus raised to main-run per-family exposure (80,000 lines/family, single pass; P-only ≈ 175 steps, W-heavy ≈ 350). Conflict construction, gate thresholds, selection rule, and all main-experiment constants are untouched. `eval_id` added to every pilot's scored sets as a learned-anything diagnostic. If v2 also fails the hard gates with converged training losses, the finding is that a route is not learnable at main-run exposure, and the next amendment must raise the *main* token budget itself (not just the pilots').
 
 ## Evaluation and scoring (frozen)
 

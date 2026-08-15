@@ -1,0 +1,47 @@
+{
+ "runs/gate_L0_interleaved/": {
+  "n_steps": 57,
+  "final_loss": 1.3863866329193115,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L0_p_only/": {
+  "n_steps": 36,
+  "final_loss": 1.3707383871078491,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L0_w_heavy_then_p/": {
+  "n_steps": 57,
+  "final_loss": 1.336714744567871,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L1_interleaved/": {
+  "n_steps": 59,
+  "final_loss": 1.3737674951553345,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L1_p_only/": {
+  "n_steps": 39,
+  "final_loss": 1.3050756454467773,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L1_w_heavy_then_p/": {
+  "n_steps": 59,
+  "final_loss": 1.3095015287399292,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L2_interleaved/": {
+  "n_steps": 61,
+  "final_loss": 1.3486021757125854,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L2_p_only/": {
+  "n_steps": 40,
+  "final_loss": 1.2774326801300049,
+  "git": "1279e9e3"
+ },
+ "runs/gate_L2_w_heavy_then_p/": {
+  "n_steps": 61,
+  "final_loss": 1.2727197408676147,
+  "git": "1279e9e3"
+ }
+}
