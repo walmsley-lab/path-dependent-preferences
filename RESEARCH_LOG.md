@@ -154,3 +154,22 @@ developmental phenotype. The failure clause is the finding. Standing
 rule reinforced: normalized ratios with small denominators do not enter
 evidence records; per-example transitions are the ground truth for
 transfer claims.
+
+## 2026-08-16 — Phase A lands: criterion not met; a reversal appears
+
+The 15-organism battery completed and auto-shut its own GPU. The
+preregistered primary criterion is mechanically NOT MET (mixed Δ signs
+across seeds). The honest headline is better than a pass: 14/15
+organisms converged utility-side regardless of curriculum, and the one
+exception — C1_L1_s3 — mastered the utility route (0.98 at
+mid-development) and then REVERSED onto the planted route during the
+second half of training, finishing at 0.215 utility-agreement while its
+paired-init twins finished 0.96/0.99. An endpoint-only design would
+have logged one anomalous seed; the 21-checkpoint record shows a
+developmental event: commitment, collapse, transient recovery, and
+re-collapse. Whether curriculum order modulates the PROBABILITY of such
+reversals (1/5 under W-first; 0/10 elsewhere; C3 visibly most stable)
+is now the sharpest open question the apparatus has produced — and the
+natural target for the closed-loop Milestone A: can a graph-derived
+curriculum intervention change the reversal rate, preregistered, versus
+baseline?

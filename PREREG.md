@@ -132,3 +132,39 @@ Seed 0: C1 = 0.710, C2 = 0.965 (Δ = −0.255). Seed 1: C1 = 0.435, C2 = 0.955 (
 - No "critical period" language without the timing-sweep controls (equal exposure counts and equal post-introduction steps).
 - No "the model knows/believes/hides" phrasing; probe results are linear decodability with selectivity.
 - Novelty phrased as "to our knowledge," never "first ever / nobody has."
+
+## Phase A batch outcome (recorded 2026-08-16; mechanical evaluation)
+
+RESULT STATUS: VERIFIED · runs C{1,2,3}_L1_s{0..4} · commit 8de3c010 ·
+calibration v3 · single-pass n=1.2M/family · scored 21 ckpts/run on VM ·
+artifacts batch_results/runs/*/score_ckpt_*.json (fetched 2026-08-16).
+
+Final-checkpoint conflict utility-agreement:
+
+| seed | C1     | C2     | C3     | Δ(C1−C2) |
+|------|--------|--------|--------|----------|
+| 0    | 0.7825 | 0.8150 | 0.7825 | −0.0325  |
+| 1    | 0.9900 | 0.9400 | 0.9550 | +0.0500  |
+| 2    | 0.9775 | 0.9525 | 0.7350 | +0.0250  |
+| 3    | 0.2150 | 0.9600 | 0.9925 | −0.7450  |
+| 4    | 0.9800 | 0.9825 | 0.9925 | −0.0025  |
+
+Preregistered primary criterion (direction-agnostic: all Δᵢ same sign
+AND mean |Δ| ≥ 10pp): signs are (−,+,+,−,−) → **NOT MET**. mean |Δ| =
+0.171 is above threshold but driven entirely by seed 3; the sign
+condition fails. Formal verdict to be recorded jointly per prereg
+discipline; the mechanical evaluation is as stated.
+
+Observed phenomenon (exploratory, outside the primary criterion):
+14 of 15 organisms finalized utility-side (0.735–0.993). The sole
+exception, C1_L1_s3, is a **late developmental route reversal**: its
+conflict trajectory reaches 0.98 utility-agreement at mid-development,
+then collapses through the second half (0.98 → 0.73 → 0.61 → 0.52 →
+0.45 → 0.84 transient recovery → 0.23 → 0.21), finalizing cue-side
+(conflict acc_cue 0.785, cue-only 1.0, ID 1.0, no-cue 0.6675) while its
+paired-init C2/C3 twins finalized utility-side (0.96 / 0.99). C2_s3
+also dipped mid-tail (to ~0.69) and recovered; C3 trajectories are the
+most stable of the three conditions. Interpretation is NOT settled by
+this batch: candidate framings (route-stability / stochastic basin
+selection modulated by curriculum; late-phase interference) are
+hypotheses requiring more seeds, and are recorded here as such.
