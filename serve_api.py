@@ -42,9 +42,14 @@ def api_runs():
     out = []
     for m in sorted(Path("runs").glob("*/run_manifest.json")):
         j = json.loads(m.read_text())
+        cfg = j.get("config", {})
         out.append({"run": str(m.parent), "run_id": j.get("run_id"),
                     "commit": j.get("git_commit", "")[:8],
                     "curriculum": j.get("curriculum"),
+                    "n_params": j.get("n_params"),
+                    "arch": f"{cfg.get('layers','?')}-layer decoder-only, "
+                            f"d={cfg.get('d_model','?')}, "
+                            f"{cfg.get('heads','?')} heads",
                     "ckpts": sorted(p.name for p in
                                     m.parent.glob("ckpt_*.pt"))})
     return out
@@ -62,6 +67,32 @@ def api_datasets():
         except Exception:
             continue
     return out
+
+
+def api_worldspec(data):
+    man = json.loads((Path(data) / "manifest.json").read_text())
+    return gw.build_world_spec(man["level"])
+
+
+def api_curricula(data):
+    man = json.loads((Path(data) / "manifest.json").read_text())
+    return {"segments": man.get("segments", {})}
+
+
+def api_series(run):
+    series = []
+    for f in sorted(Path(run).glob("score_ckpt_*.json")):
+        r = json.loads(f.read_text())
+        s = r.get("sets", {})
+        row = {"pct": int(f.stem.split("_")[-1])}
+        for k, key, m in [("conflict", "eval_conflict", "acc_utility"),
+                          ("id", "eval_id", "acc_utility"),
+                          ("nocue", "eval_nocue", "acc_utility"),
+                          ("cueonly", "eval_cueonly", "acc_cue")]:
+            if key in s and m in s[key]:
+                row[k] = s[key][m]
+        series.append(row)
+    return {"run": run, "series": series}
 
 
 def api_corpus(data):
@@ -163,6 +194,18 @@ border:1px solid var(--rule);margin:.4rem 0}
 .lam .self{background:var(--cue)}.lam .other{background:var(--utility)}
 .lam div{display:flex;align-items:center;font-size:.7rem;color:#fff;
 justify-content:center}
+.math{margin:.5rem 0 .1rem;font-size:.82rem;color:var(--soft)}
+.math summary{cursor:pointer;color:var(--sage)}
+.child-row{display:flex;align-items:center;gap:.6rem;margin:.3rem 0}
+.child-bar{display:flex;height:26px;flex:1;border-radius:4px;overflow:hidden;border:1px solid var(--rule)}
+.child-bar div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem}
+.seg-W{background:var(--sage)}.seg-P{background:var(--cue)}
+.seg-mixed{background:repeating-linear-gradient(45deg,var(--sage),var(--sage) 8px,var(--cue) 8px,var(--cue) 16px)}
+.seg-tail{background:#9a958a}
+#devchart svg{max-width:100%}
+#world-svg svg{max-width:100%}
+.evid{font-size:.8rem;color:var(--soft);background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:.5rem .9rem;margin-bottom:1rem}
+.evid b{color:var(--ink)}
 .note{font-size:.78rem;color:var(--soft);margin-top:1rem;max-width:70ch}
 .grid2{display:flex;gap:1rem;flex-wrap:wrap}.grid2>div{flex:1;min-width:300px}
 </style></head><body><main>
@@ -186,16 +229,41 @@ every training answer can be reached two ways, then asks whether the
 This workbench walks you through how we force them to disagree.</p>
 </div>
 
+<div class="panel"><h2>The world, as a graph</h2>
+<p class="explain">Everything below is authored — we drew this graph, then
+compiled it into a corpus. Solid ink edges are causal; dashed sage are
+derived computations; dotted orange are the deliberately planted spurious
+route. Dashed-border nodes are latent (never stated in text). Click a node.</p>
+<div id="world-svg"></div><div id="world-info" class="explain"></div></div>
+
 <div class="setup" id="setup">
  <b>Organism:</b>
  dataset <select id="data"></select>
  model A <select id="runA"></select>
  model B <select id="runB"></select>
  <span id="setup-status" style="color:var(--sage)">loading…</span>
+ <details id="about" style="width:100%"><summary style="cursor:pointer;color:var(--sage)">About this organism</summary>
+ <div id="about-body" style="font-size:.82rem;margin-top:.4rem;color:var(--soft)"></div></details>
 </div>
 
 <div class="stepper" id="stepper"></div>
+<div class="evid" id="evidence"></div>
 <div id="content"></div>
+
+<div class="panel"><h2>Different childhoods</h2>
+<p class="explain">Same experiences. Same starting weights. Same training
+budget. <b>Only the order differs.</b></p>
+<div id="childhood"></div></div>
+
+<div class="panel"><h2>When did they begin to differ?</h2>
+<p class="explain">Drag the developmental-age slider: the current scenario
+(from the guided steps) is re-asked at that checkpoint — for both models
+when two are loaded. Trajectory lines appear as stored batch scores
+accumulate.</p>
+<input type="range" id="devslider" min="0" max="0" value="0" style="width:60%">
+<span id="devlabel"></span>
+<div id="devresult"></div>
+<div id="devchart"></div></div>
 
 <p class="note"><b>Reading the labels:</b> "behavior matches: X" is the
 <i>evaluator's</i> label — the model's choice agreed with that route's
@@ -229,7 +297,130 @@ async function init(){
   await loadCorpus();render()};
  await loadCorpus();
  $('setup-status').textContent='ready';
+ S.registry=rs;
+ renderAbout(rs); worldGraph(); childhood(); devInit(); evidence();
  render();
+}
+function renderAbout(rs){
+ const r=rs.find(x=>x.run===S.runA)||rs[0];
+ const mp=r.n_params?(r.n_params/1e6).toFixed(1)+'M parameters':'';
+ $('about-body').innerHTML=`Architecture: ${r.arch} · ${mp} · trained
+  <b>from random initialization</b> on a fully synthetic, authored corpus ·
+  curriculum <b>${r.curriculum}</b> · run id ${r.run_id} · commit ${r.commit}
+  · checkpoints: ${r.ckpts.length}<br>Inspect:
+  <a href="/api/manifest?run=${encodeURIComponent(r.run)}" target=_blank>run manifest</a> ·
+  <a href="/api/worldspec?data=${encodeURIComponent(S.data)}" target=_blank>world spec</a> ·
+  <a href="/api/corpus?data=${encodeURIComponent(S.data)}" target=_blank>corpus &amp; agents</a>`;
+}
+const WPOS={agent:[70,50],lambda:[70,150],d_self:[230,30],d_other:[230,90],
+ utility:[250,150],choice:[420,110],framing_verb:[420,210],
+ scene:[560,190],narrator:[560,240]};
+async function worldGraph(){
+ const spec=await jget('/api/worldspec?data='+encodeURIComponent(S.data));
+ const W=660,H=270;let s='';
+ const stroke={causal:'var(--ink)',derived:'var(--sage)',
+  predictive_spurious:'var(--cue)'};
+ const dash={causal:'',derived:'6,4',predictive_spurious:'2,4'};
+ for(const e of spec.edges){
+  const a=WPOS[e.src],b=WPOS[e.dst];if(!a||!b)continue;
+  s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"
+   stroke="${stroke[e.type]||'#999'}" stroke-width="2"
+   stroke-dasharray="${dash[e.type]||''}" opacity=".8"></line>`;
+ }
+ for(const n of spec.nodes){
+  const p=WPOS[n.name];if(!p)continue;
+  const latent=n.kind==='latent';
+  s+=`<g class="wnode" data-name="${n.name}" style="cursor:pointer">
+   <rect x="${p[0]-46}" y="${p[1]-16}" width="92" height="32" rx="7"
+    fill="${latent?'#f2eee1':'#fff'}" stroke="var(--ink)"
+    stroke-dasharray="${latent?'5,3':''}"></rect>
+   <text x="${p[0]}" y="${p[1]+4}" text-anchor="middle"
+    font-size="12" fill="var(--ink)">${n.name}</text></g>`;
+ }
+ $('world-svg').innerHTML=`<svg viewBox="0 0 ${W} ${H}">${s}</svg>
+  <div style="font-size:.75rem;color:var(--soft)">
+  ── causal &nbsp; ╌╌ derived &nbsp; ···· spurious route &nbsp;
+  dashed box = latent</div>`;
+ document.querySelectorAll('.wnode').forEach(el=>el.onclick=()=>{
+  const n=spec.nodes.find(x=>x.name===el.dataset.name);
+  const rel=spec.edges.filter(e=>e.src===n.name||e.dst===n.name)
+   .map(e=>`${e.src} → ${e.dst} <i>(${e.type})</i>: ${esc(e.mechanism||'')}`);
+  $('world-info').innerHTML=`<b>${n.name}</b> [${n.kind}] — ${esc(n.desc)}
+   <br>${rel.join('<br>')}`});
+}
+async function childhood(){
+ const c=await jget('/api/curricula?data='+encodeURIComponent(S.data));
+ let html='';
+ for(const cond of ['C1','C2','C3']){
+  const segs=c.segments[cond];if(!segs)continue;
+  const total=segs.reduce((a,s)=>a+s[1],0);
+  html+=`<div class="child-row"><b style="width:2.2rem">${cond}</b>
+   <div class="child-bar">`+segs.map(([name,n])=>
+    `<div class="seg-${name}" style="width:${(100*n/total).toFixed(1)}%">
+     ${n/total>0.12?name:''}</div>`).join('')+`</div></div>`;
+ }
+ $('childhood').innerHTML=html||'<span class="explain">no curriculum manifest</span>';
+}
+function devInit(){
+ const r=(S.registry||[]).find(x=>x.run===S.runA);
+ if(!r||!r.ckpts.length)return;
+ S.ckpts=r.ckpts;
+ const sl=$('devslider');sl.max=S.ckpts.length-1;sl.value=S.ckpts.length-1;
+ sl.oninput=()=>{$('devlabel').textContent=S.ckpts[sl.value];};
+ sl.onchange=async()=>{
+  const ck=S.ckpts[sl.value];$('devlabel').textContent=ck;
+  if(!S.cfg){$('devresult').innerHTML=
+   '<span class="explain">run guided step 2 first to fix a scenario</span>';return}
+  const out=[];
+  const a=await jpost('/api/query',{run:S.runA,data:S.data,ckpt:ck,
+   mode:S.lastMode||'conflict',cfg:S.cfg});out.push(['A',a]);
+  if(S.runB){out.push(['B',await jpost('/api/query',{run:S.runB,
+   data:S.data,ckpt:ck,mode:S.lastMode||'conflict',cfg:S.cfg})])}
+  $('devresult').innerHTML=scenarioCard(out[0][1].record)+
+   out.map(([n,q])=>resultCard(n+' @ '+ck,S.runA,q)).join('');
+  evidence();
+ };
+ $('devlabel').textContent=S.ckpts[sl.value];
+ devChart();
+}
+async function devChart(){
+ const runs=[[S.runA,'A'],[S.runB,'B']].filter(x=>x[0]);
+ const colors={conflict:'var(--utility)',cueonly:'var(--cue)',
+  id:'#7d8b96',nocue:'var(--sage)'};
+ let out='';
+ for(const [run,label] of runs){
+  const d=await jget('/api/series?run='+encodeURIComponent(run));
+  if(!d.series.length){out+=`<p class="explain">[${label}] no stored
+   trajectory scores yet — they accumulate as the batch scores checkpoints.</p>`;continue}
+  const W=620,H=150,x=p=>30+(p/100)*(W-40),y=v=>H-15-(v*(H-30));
+  let svg=`<line x1="30" y1="${y(0.5)}" x2="${W-10}" y2="${y(0.5)}"
+   stroke="#ccc" stroke-dasharray="3,3"></line>`;
+  for(const key of ['conflict','cueonly','nocue','id']){
+   const pts=d.series.filter(r=>key in r);
+   if(!pts.length)continue;
+   svg+=`<polyline fill="none" stroke="${colors[key]}" stroke-width="2"
+    points="${pts.map(r=>x(r.pct)+','+y(r[key])).join(' ')}"></polyline>
+    <text x="${x(pts[pts.length-1].pct)+4}" y="${y(pts[pts.length-1][key])}"
+    font-size="10" fill="${colors[key]}">${key}</text>`;
+  }
+  out+=`<div class="explain">[${label}] ${esc(run)}</div>
+   <svg viewBox="0 0 ${W} ${H}">${svg}
+   <text x="30" y="${H-2}" font-size="9" fill="#999">0%</text>
+   <text x="${W-30}" y="${H-2}" font-size="9" fill="#999">100%</text></svg>`;
+ }
+ $('devchart').innerHTML=out;
+}
+function evidence(){
+ const items=[
+  [S.done.has(1),'Ordinary competence observed (ID)'],
+  [S.done.has(2),'Routes separated behaviorally (conflict)'],
+  [S.done.has(3),'Utility route carries behavior without the cue'],
+  [false,'λ information represented (probes — lab CLI / batch artifacts)'],
+  [false,'Representation causally used (steering/patching — Phase B)'],
+  [false,'Carrier of history identified (transplant — Phase B)'],
+ ];
+ $('evidence').innerHTML='<b>WHAT DO WE KNOW?</b> '+items.map(([ok,t])=>
+  `${ok?'✓':'?'} ${t}`).join(' &nbsp;·&nbsp; ');
 }
 async function loadCorpus(){
  S.agents=(await jget('/api/corpus?data='+encodeURIComponent(S.data))).agents;
@@ -262,8 +453,19 @@ function resultCard(name,run,q){
    · behavior matches <span class="pill ${cls}">${q.follows}</span></div></div>`;
 }
 
+function utilityMath(r){
+ const L=r['lambda'],f=x=>x>=0?'+'+x:''+x;
+ const u1=(L*r.d_self_1+(1-L)*r.d_other_1).toFixed(1);
+ const u2=(L*r.d_self_2+(1-L)*r.d_other_2).toFixed(1);
+ return `<details class="math"><summary>show the Route-A arithmetic for this scenario</summary>
+  U = λ·(${r.agent}'s change) + (1−λ)·(partner's change), λ=${L}<br>
+  U(1) = ${L}·(${f(r.d_self_1)}) + ${(1-L).toFixed(1)}·(${f(r.d_other_1)}) = <b>${u1}</b><br>
+  U(2) = ${L}·(${f(r.d_self_2)}) + ${(1-L).toFixed(1)}·(${f(r.d_other_2)}) = <b>${u2}</b>
+  → Route A predicts option <b>${+u1>+u2?1:2}</b></details>`;
+}
 function scenarioCard(r){
  return `<div class="scenario"><div class="prompt">${esc(r.prompt)}</div>
+ ${r.utility_answer?utilityMath(r):''}
  <div class="saysrow">routes predict:
   <span class="pill u">UTILITY → ${r.utility_answer??'—'}</span>
   <span class="pill c">CUE → ${r.cue_answer??'no cue present'}</span>
@@ -272,6 +474,7 @@ function scenarioCard(r){
 }
 
 async function ask(mode,reuse){
+ S.lastMode=mode;
  const out=[];const body={run:S.runA,data:S.data,mode,
   agent:reuse?null:S.agent,cfg:reuse?S.cfg:null};
  const a=await jpost('/api/query',body);S.cfg=a.cfg;out.push(['A',S.runA,a]);
@@ -287,12 +490,15 @@ function interpret(mode,results){
   That's the identification problem. Next step: force the routes to disagree.`;
  if(mode==='conflict'){
   const t=tags[0];
-  const base=t.includes('UTILITY')?`The routes disagreed — and behavior
-   followed <span class="pill u">UTILITY</span>: the model chose against the
-   framing verb, consistent with computing the agent's λ-weighted payoffs.`:
-   t.includes('CUE')?`The routes disagreed — and behavior followed
-   <span class="pill c">CUE</span>: the model went with the framing verb
-   against the payoff math.`:
+  const base=t.includes('UTILITY')?`The model's behavior matched the
+   <span class="pill u">UTILITY</span> prediction. Because the cue predicted
+   the opposite choice, this datapoint distinguishes the two behavioral
+   predictions. It does <b>not</b> establish that the model internally
+   computed λ-weighted utility — probes and interventions address that.`:
+   t.includes('CUE')?`The model's behavior matched the
+   <span class="pill c">CUE</span> prediction against the payoff math. It
+   does <b>not</b> establish an internal cue detector — probes and
+   interventions address that.`:
    `Behavior matched <b>neither</b> route cleanly — margins matter here;
    check Δlogp.`;
   const both=tags.length>1&&tags[0]!==tags[1]?` <b>And your two models
@@ -333,9 +539,13 @@ function render(){
    lastResult[0]||'',lastResult['i0']||'');
   $('agentsel').onchange=e=>{S.agent=e.target.value;render()};
   $('btn-meet').onclick=()=>{
-   lastResult[0]=`<div class="scenario"><b>${S.agent}</b> — authored
-    λ = ${lam} ${lamBar(lam)} ${lam<0.5?'Weights the partner outcome over their own: <b>cooperative</b>.':'Weights their own outcome over the partner outcome: <b>selfish</b>.'} Ground truth known by construction —
-    that is what makes this organism a laboratory.</div>`;
+   lastResult[0]=`<div class="scenario"><b>${S.agent}</b><br>
+    <b>Ground truth supplied by the experimenter:</b> ${S.agent} was
+    assigned λ = ${lam}. ${lamBar(lam)}
+    ${lam<0.5?'Weights the partner outcome over their own: <b>cooperative</b>.':'Weights their own outcome over the partner outcome: <b>selfish</b>.'}<br>
+    <b>The model is never directly given λ.</b> It must infer whatever agent
+    information is useful from ${S.agent}'s observed choices alone — the
+    authored/learned split is what makes this organism a laboratory.</div>`;
    lastResult['i0']=`You now know something the model was never told. The
     question is whether the model <i>learned</i> it — and whether it
     <i>uses</i> it. Continue to step 2.`;
@@ -352,7 +562,7 @@ function render(){
    const rs=await ask('id',false);
    lastResult[1]=scenarioCard(rs[0][2].record)+
     rs.map(([n,r,q])=>resultCard(n,r,q)).join('');
-   lastResult['i1']=interpret('id',rs);S.done.add(1);render()};
+   lastResult['i1']=interpret('id',rs);S.done.add(1);render();evidence()};
  }
  else if(S.step===2){
   c.innerHTML=panel('3 · Force the routes apart (the conflict)',
@@ -367,7 +577,7 @@ function render(){
    const rs=await ask('conflict',true);
    lastResult[2]=scenarioCard(rs[0][2].record)+
     rs.map(([n,r,q])=>resultCard(n,r,q)).join('');
-   lastResult['i2']=interpret('conflict',rs);S.done.add(2);render()};
+   lastResult['i2']=interpret('conflict',rs);S.done.add(2);render();evidence()};
  }
  else if(S.step===3){
   c.innerHTML=panel('4 · Remove the shortcut entirely',
@@ -380,7 +590,7 @@ function render(){
    const rs=await ask('nocue',true);
    lastResult[3]=scenarioCard(rs[0][2].record)+
     rs.map(([n,r,q])=>resultCard(n,r,q)).join('');
-   lastResult['i3']=interpret('nocue',rs);S.done.add(3);render()};
+   lastResult['i3']=interpret('nocue',rs);S.done.add(3);render();evidence()};
  }
  else{
   c.innerHTML=panel('5 · Explore freely',
@@ -433,6 +643,15 @@ class H(BaseHTTPRequestHandler):
                 self._send(200, api_runs())
             elif u.path == "/api/datasets":
                 self._send(200, api_datasets())
+            elif u.path == "/api/worldspec":
+                self._send(200, api_worldspec(qs["data"][0]))
+            elif u.path == "/api/curricula":
+                self._send(200, api_curricula(qs["data"][0]))
+            elif u.path == "/api/series":
+                self._send(200, api_series(qs["run"][0]))
+            elif u.path == "/api/manifest":
+                self._send(200, json.loads(
+                    (Path(qs["run"][0]) / "run_manifest.json").read_text()))
             elif u.path == "/api/corpus":
                 self._send(200, api_corpus(qs["data"][0]))
             else:

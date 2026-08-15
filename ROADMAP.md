@@ -23,8 +23,12 @@ isolates the last two; later stages give each inequality its own instrument
 1. **Scalar ground truth (now).** Fixed λ per agent; validate whether order
    selects utility-vs-cue mechanism. Status: apparatus built, calibration in
    progress.
-2. **Multidimensional persona.** Replace λ with a small authored trait vector;
-   dimensions interact. Design below.
+2. **Multidimensional persona.** Entry point (per 2026-08-15 discussion):
+   TWO traits first — θ = (λ, ρ) with ρ = risk preference over stated
+   stochastic payoffs — some situations identify λ, some ρ, some both,
+   keeping ground truth visualizable and counterfactuals exhaustive before
+   scaling to the full vector. Question upgrade: does developmental history
+   change how the model *factorizes* a person? Full design below.
 3. **Hierarchical persona.** Traits become *derived*: a latent utility whose
    expression varies systematically with relationship, uncertainty, prior
    cooperation. Question: do different curricula produce different
