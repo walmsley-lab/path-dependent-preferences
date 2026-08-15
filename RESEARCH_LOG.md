@@ -115,3 +115,19 @@ competition/interference; neither learns → route-capacity/task-design
 problem; both learn but later than B → acquisition-timescale asymmetry.
 Phase A remains frozen; the decision tree executes mechanically on the
 curves.
+
+## 2026-08-15 — Incident: OOM kill + a second pgrep self-match
+
+The batch's first trio launched three corpus loads simultaneously; the
+kernel OOM-killed C1_L1_s0 (anon-rss 5.2 GB on a 15 GB host) and the
+fail-hard `run_pool` then killed the orchestrator while C2/C3 survived as
+orphans. Fix: launches are now memory-gated (MemAvailable ≥ 7 GB) and
+staggered 90 s, with one retry per command. The resume waiter then
+deadlocked on the *same self-match trap as the earlier pkill incident*:
+the SSH session that installed it carried the literal string
+"train.py --data" in its own command line, so `pgrep -f` matched it
+forever. Killing the stale shell released the waiter. Rule reinforced:
+any process-matching pattern used over SSH must use the bracket idiom
+([t]rain.py) — in the watcher AND in anything the watcher might match.
+Seed-0 C2/C3 completed normally; no artifacts lost; orchestrator resumed
+with the remaining 13 runs.
