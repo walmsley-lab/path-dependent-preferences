@@ -16,7 +16,7 @@ invocation anywhere on this surface — for instruments, cross to /lab.
 
 LAB_SPINE = r"""<!doctype html><html><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
-<title>Path-Dependent Preferences — Laboratory (spine)</title>
+<title>Path-Dependent Preferences — Evidence</title>
 <style>
 :root{
   --ivory:#f6f1e5; --card:#fdfaf2; --ink:#26241d; --faded:#6f6a5c;
@@ -92,7 +92,7 @@ button:hover{border-color:var(--green);color:var(--green)}
 
 <div class=topbar>
   <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX</span>
-  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink here" href="/lab">Laboratory</a><a class="toplink" href="/lab/bench">Instrument bench</a></span>
+  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink here" href="/lab">Evidence</a><a class="toplink" href="/lab/bench">Laboratory</a></span>
 </div>
 
 <div class=frame>
@@ -321,14 +321,23 @@ function renderSpecs(){
   document.querySelectorAll(".spec input").forEach(inp =>
     inp.oninput = () => {
       S.subs[+inp.dataset.si].idx = +inp.value;
-      renderSpecs(); renderSpine();
+      saveBench(); renderSpecs(); renderSpine();
     });
   document.querySelectorAll(".spec select").forEach(sel =>
     sel.onchange = () => {
       const run = S.runs[+sel.value];
       S.subs[+sel.dataset.sel] = {run, idx: run.ckpts.length-1};
-      renderSpecs(); renderSpine();
+      saveBench(); renderSpecs(); renderSpine();
     });
+}
+
+const BENCH_KEY = "pdp-bench-specimens";
+function saveBench(){
+  try{
+    localStorage.setItem(BENCH_KEY, JSON.stringify({
+      A: S.subs[0] ? {run:S.subs[0].run.run, idx:S.subs[0].idx} : null,
+      B: S.subs[1] ? {run:S.subs[1].run.run, idx:S.subs[1].idx} : null}));
+  }catch(e){}
 }
 
 async function init(){
@@ -339,6 +348,19 @@ async function init(){
   const pick = eligible.length >= 2 ? eligible.slice(0,2)
               : runs.slice(0,2);
   S.subs = pick.map(r => ({run: r, idx: r.ckpts.length-1}));
+  // shared bench selection: honor what the Laboratory has on the bench
+  try{
+    const saved = JSON.parse(localStorage.getItem(BENCH_KEY) || "null");
+    if(saved){
+      const bySaved = s => {
+        if(!s) return null;
+        const r = runs.find(x => x.run === s.run);
+        return r ? {run: r, idx: Math.min(s.idx, r.ckpts.length-1)} : null;
+      };
+      const a = bySaved(saved.A), b = bySaved(saved.B);
+      if(a) S.subs = b ? [a, b] : [a];
+    }
+  }catch(e){}
   renderSpecs(); renderEdges();
   await renderSpine();
   document.body.dataset.ready = "1";

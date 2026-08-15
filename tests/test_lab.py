@@ -293,3 +293,33 @@ def test_comparison_specimen_add_and_remove(server, page):
     page.click("#removeB")
     assert not page.locator("#specB").is_visible()
     assert page.locator("#addB").is_visible()
+
+
+def test_api_contract(server):
+    import json
+    import urllib.request
+    runs = json.load(urllib.request.urlopen(f"{server}/api/runs"))
+    assert runs and {"run", "run_id", "commit", "ckpts"} <= set(runs[0])
+    ds = json.load(urllib.request.urlopen(f"{server}/api/datasets"))
+    assert ds and "data" in ds[0]
+    corpus = json.load(urllib.request.urlopen(
+        f"{server}/api/corpus?data={ds[0]['data']}"))
+    assert corpus["agents"], "agent lambda map must be exposed"
+
+
+
+def test_specimen_selection_carries_between_pages(server, page):
+    """The bench selection is shared: pick a specimen on the Laboratory,
+    the Evidence page opens with the same subjects and ages."""
+    page.goto(server + "/lab/bench")
+    page.wait_for_selector("body[data-ready]", timeout=30000)
+    n = page.locator("#selA option").count()
+    assert n >= 2
+    page.select_option("#selA", "1")
+    picked = page.locator("#selA option >> nth=1").inner_text()
+    page.click("#ageA button >> nth=0")
+    page.goto(server + "/lab")
+    page.wait_for_selector("body[data-ready]", timeout=30000)
+    spec = page.locator(".spec >> nth=0").inner_text()
+    assert picked.split(" ")[0].split("_")[0] in spec
+    assert "age 0%" in spec

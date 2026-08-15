@@ -162,8 +162,7 @@ textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
 
 <div class=topbar>
   <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX</span>
-  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink" href="/lab">Laboratory</a><a class="toplink here" href="/lab/bench">Instrument bench</a><a class=toplink
-    href="/lab/classic" style="opacity:.6">classic</a></span>
+  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink" href="/lab">Evidence</a><a class="toplink here" href="/lab/bench">Laboratory</a></span>
 </div>
 
 <header class=lab>
@@ -466,6 +465,19 @@ function idcard(run){
   return rows.map(([k, v]) => k.padEnd(13) + v).join("\n");
 }
 
+const BENCH_KEY = "pdp-bench-specimens";
+function saveBench(){
+  try{
+    localStorage.setItem(BENCH_KEY, JSON.stringify({
+      A: S.A ? {run:S.A.run.run, idx:S.A.ckptIdx} : null,
+      B: S.B ? {run:S.B.run.run, idx:S.B.ckptIdx} : null}));
+  }catch(e){}
+}
+function loadBench(){
+  try{ return JSON.parse(localStorage.getItem(BENCH_KEY) || "null"); }
+  catch(e){ return null; }
+}
+
 function refreshActive(){
   if(S.activeInst && INSTRUMENTS[S.activeInst])
     INSTRUMENTS[S.activeInst]();
@@ -483,6 +495,7 @@ function bindSpecimen(which, silent){
     S.cfg = null;   // the reused scenario belongs to the old world
   $("card"+which).textContent = idcard(run);
   renderAges(which);
+  saveBench();
   if(!silent) refreshActive();
 }
 
@@ -495,6 +508,7 @@ function renderAges(which){
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
     st.ckptIdx = +b.dataset.i;
     renderAges(which);
+    saveBench();
     refreshActive();
   });
 }
@@ -1925,7 +1939,28 @@ async function init(){
       `<option value=${i}>${r.run.replace("runs/","")} · ${r.curriculum||"?"}</option>`).join("");
     sel.onchange = ()=>bindSpecimen(which);   // re-fires active instrument
   }
+  // restore the shared bench selection (Evidence and Laboratory share it)
+  const saved = loadBench();
+  if(saved && saved.A){
+    const i = S.runs.findIndex(r => r.run === saved.A.run);
+    if(i >= 0) $("selA").value = i;
+  }
   bindSpecimen("A", true);
+  if(saved && saved.A && saved.A.idx < S.A.run.ckpts.length){
+    S.A.ckptIdx = saved.A.idx; renderAges("A");
+  }
+  if(saved && saved.B){
+    const i = S.runs.findIndex(r => r.run === saved.B.run);
+    if(i >= 0){
+      $("specB").style.display = "block";
+      $("addB").style.display = "none";
+      $("selB").value = i;
+      bindSpecimen("B", true);
+      if(saved.B.idx < S.B.run.ckpts.length){
+        S.B.ckptIdx = saved.B.idx; renderAges("B");
+      }
+    }
+  }
   try{
     S.segments = (await j("/api/curricula?data=" +
       encodeURIComponent(S.A.data))).segments;
@@ -1939,6 +1974,7 @@ async function init(){
     S.B = null;
     $("specB").style.display = "none";
     $("addB").style.display = "block";
+    saveBench();
     refreshActive();
   };
   document.querySelectorAll("[data-inst]").forEach(b=>

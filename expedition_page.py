@@ -41,6 +41,7 @@ body{background:var(--ivory);color:var(--ink);
 .wordmark{font-size:11px;letter-spacing:.22em;color:var(--green)}
 .lablink{font-size:12px;color:var(--faded);text-decoration:none;
   margin-left:14px}
+.lablink.here{color:var(--green);font-weight:600;pointer-events:none}
 .lablink:hover{color:var(--green)}
 main{max-width:680px;margin:0 auto;padding:30px 20px 120px}
 .withbook main{margin-right:340px}
@@ -182,7 +183,7 @@ a.tech:hover{background:rgba(74,79,122,.12)}
 <div class=topbar>
   <span class=wordmark>OPEN POLLINATION &mdash; FIELD STATION</span>
   <span class=lablink style="cursor:default">MAIN EXPERIMENT &middot; TRAINING</span>
-  <span><a class="lablink" href="/">Expedition</a><a class="lablink" href="/lab">Laboratory</a><a class="lablink" href="/lab/bench">Instrument bench</a><a class="lablink hidden" id=startover
+  <span><a class="lablink here" href="/">Expedition</a><a class="lablink" href="/lab">Evidence</a><a class="lablink" href="/lab/bench">Laboratory</a><a class="lablink hidden" id=startover
     href="#" style="margin-left:16px"
     onclick="localStorage.removeItem('pdp-expedition-v1');location.reload();return false">
     start over &#8634;</a></span>
