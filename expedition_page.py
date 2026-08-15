@@ -1330,6 +1330,38 @@ TECHNIQUES = {
             "re-implementation.",
         "reading": [],
     },
+    "closed-world": {
+        "title": "The closed linguistic world",
+        "why_here": "A prompt containing words the organism has never "
+            "seen was refused rather than answered. That refusal is "
+            "experimental discipline, not a tokenizer limitation.",
+        "idea": "The learner is raised inside a deliberately tiny "
+            "language: a word-level vocabulary built entirely from its "
+            "world's corpus. Words outside it were never in the model's "
+            "representational machinery at all — there is no embedding "
+            "for them — so 'interpreting' a response to them would not "
+            "be a valid test of anything.",
+        "establishes": "Exact knowledge of what world the organism was "
+            "raised in — which is the entire methodological advantage of "
+            "Act I. Within the closed world, variation is deliberate: "
+            "each cue class has four surface verbs, a held-out sentence "
+            "frame (T2) and held-out nouns/names test lexical and "
+            "structural generalization.",
+        "not_establishes": "That the organism 'understands language' in "
+            "any general sense, or that in-world competence transfers "
+            "beyond the world. Open-world generalization is explicitly "
+            "out of scope for this organism.",
+        "our_use": "The generalization ladder inside the closed world: "
+            "lexical (unseen recombinations of known words), paraphrase "
+            "(alternate known surface forms — e.g. the same conflict "
+            "case rendered under all 16 verb-pair realizations), "
+            "structural (held-out frame T2). Whether the planted "
+            "shortcut lives at the token level or the class level is an "
+            "experimental question these variations answer. Richer "
+            "controlled grammars are a designed follow-up world, never a "
+            "mid-experiment retrofit.",
+        "reading": [],
+    },
 }
 
 TECH_PAGE = r"""<!doctype html><html><head><meta charset=utf-8>

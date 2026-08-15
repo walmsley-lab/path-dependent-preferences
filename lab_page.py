@@ -457,10 +457,12 @@ async function freeform(){
     tmpl = o.observations[0].record.prompt.split("Q:")[0].trim();
   }catch(e){}
   canvas(`<div class=trace><div class=cap>FREEFORM PROMPT ${liveBadge()}</div>
-    <div class=note-dim>Off the diagnostic map — no authored answer exists
-    for arbitrary text; this is exploration, not evidence. The world&rsquo;s
-    vocabulary is closed: words the organism has never seen are refused,
-    never silently mangled. Edit the template or write your own.</div>
+    <div class=note-dim>EXPLORE FREELY — off the diagnostic map: no
+    authored answer exists for arbitrary text, so nothing here enters the
+    evidence ledger (compose-within-the-world is the evidence-capable
+    counterpart). The vocabulary is closed by design: unknown words are
+    refused, never silently mangled. Edit the template or write your
+    own.</div>
     <textarea id=fftext rows=4>${tmpl}</textarea>
     <div style="margin:8px 0;font-size:12px">
       <label><input type=radio name=ffm value=continue checked>
@@ -482,12 +484,19 @@ async function runFreeform(){
     body: JSON.stringify({run:S.A.run.run, ckpt:ckptOf(S.A),
       prompt: $("fftext").value, mode: mode})});
   if(r.oov){
-    $("ffout").innerHTML = `<div class=note-dim style="color:var(--orange)">
-      These words do not exist in this organism&rsquo;s world — it cannot
-      read them:</div>
+    $("ffout").innerHTML = `<div class=reading style="color:var(--orange);
+      font-size:11px;letter-spacing:.15em">OUTSIDE THIS ORGANISM&rsquo;S
+      EXPERIENCE</div>
+      <div class=note-dim>This learner was raised in a deliberately
+      closed linguistic world. These words never occurred in its training
+      vocabulary — there is no representation of them to interrogate —
+      so interpreting a response would not be a valid test:</div>
       <div class=reading style="color:var(--orange)">${r.oov.join("  ")}</div>
-      <div class=note-dim>replace them with words from the world (the
-      compose instrument lists the full vocabulary by category)</div>`;
+      <div class=note-dim style="margin-top:6px">Stay inside the world:
+      replace them with known vocabulary (the compose instrument lists it
+      by category). &nbsp;<a class=toplink
+      href="/technique/closed-world" target=_blank rel=noopener>Why is
+      the world closed? &nearr;</a></div>`;
     return;
   }
   if(mode === "choice"){
