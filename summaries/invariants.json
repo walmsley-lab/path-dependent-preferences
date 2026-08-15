@@ -1,0 +1,13 @@
+{
+  "EXPERIMENT": "invariants",
+  "STATUS": "PASS",
+  "CLAIM": "The synthetic world has the designed properties by construction (route equivalence, conflict disagreement, split disjointness, curriculum multiset/tail identity).",
+  "COMMIT": "b160086cc202239373e6b28811c450e33b2228f3",
+  "CREATED_AT": "2026-08-15T05:33:24.839248+00:00",
+  "RESULT": {
+    "tests": 17
+  },
+  "ARTIFACTS": [
+    "test_generator.py output"
+  ]
+}

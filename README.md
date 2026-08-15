@@ -60,18 +60,29 @@ how the design evolved (including preserved failed calibrations —
 see [PREREG.md](PREREG.md)'s Calibration log and
 [RESEARCH_LOG.md](RESEARCH_LOG.md)); the ladder is how you re-walk it.
 
-| Rung | Command | Hardware / time | Success looks like |
+One stable interface, `run_experiment.py`, drives every rung; each rung
+demonstrates a specific **claim** and emits a standardized provenance
+summary (`summaries/<stage>.json`).
+
+| Rung | Command | Hardware / time | The claim it demonstrates |
 |---|---|---|---|
-| 0 | `python test_generator.py` | CPU, seconds | `17 invariant tests passed` — the design guarantees hold by construction |
-| 1 | `bash smoke_test.sh` | CPU, ~3 min | `SMOKE PASS` — whole pipeline mechanically verified at toy scale (near-chance accuracy is *expected* here) |
-| 2 | `bash run_nocue_debug.sh` | GPU, ~15 min | Route A learns: no-cue accuracy climbs to ~0.84 (compare `figures/route_a_acquisition.png`); rung 2b: the same 8-epoch treatment on `pilot_p_only` shows Route B snap to 1.00 |
-| 3 | `python run_batch.py --stage gate --gate_n 1200000 --parallel 3` | GPU, ~1–2 hr | The balance-gate table: both routes independently learnable at main exposure; mechanical level selection per the frozen rule |
-| 4 | `python run_batch.py --stage batch --level <Lx> --seeds 0 1 2 3 4` then `python analyze.py --level <Lx>` | GPU, hours | Figures 1–4 + Table 1 + the preregistered paired-Δ report — the main experiment |
-| 5 | `train.py --resume_weights_from A --resume_opt_from B` (see [PHASE_B.md](PHASE_B.md)) | GPU | Crossed weight × optimizer-state transplant and the causal decomposition program |
+| 0 | `python run_experiment.py --stage invariants` | CPU, seconds | The world is constructed correctly (route equivalence, conflict disagreement, split hygiene) — logic, not ML |
+| 1 | `python run_experiment.py --stage smoke` | CPU, ~3 min | The pipeline composes correctly end to end (near-chance accuracy *expected*; learning is not this rung's claim) |
+| 2 | `python run_experiment.py --stage learnability --route cue` (and `--route utility`) | GPU, ~15 min each | Each proposed mechanism really is learnable by this architecture — with strikingly different acquisition characters (see `figures/route_*_acquisition.png`) |
+| 3 | `python run_experiment.py --stage calibration` | GPU, ~1–2 hr | Both routes viable at main-run exposure; cue level selected by the frozen rule. History of how this calibration was earned: [docs/calibration_history.md](docs/calibration_history.md) |
+| 4 | `python run_experiment.py --stage phase-a --level <Lx>` | GPU, hours | **The preregistered question:** does developmental order select the governing mechanism? |
+| 5 | `python run_experiment.py --stage phase-b --experiment transplant …` | GPU | *Why*: what carries the history — representations or optimizer memory ([PHASE_B.md](PHASE_B.md)) |
+
+Watch any running stage from the experiment machine with
+`python watch.py --log gate_v3.log` — liveness, current phase, latest
+step/loss, and provenance-checked results detection.
 
 Every run writes a manifest (run id, commit SHA, dataset/init hashes,
 timestamps); results without that provenance are treated as nonexistent —
-a rule this project learned the hard way (see the research log).
+a rule this project learned the hard way (see
+[RESEARCH_LOG.md](RESEARCH_LOG.md)). `smoke_test.sh`, `run_nocue_debug.sh`,
+`setup_vm.sh`, and `bootstrap_gcp.sh` remain thin infrastructure wrappers
+under the same Python tools.
 
 ### Local or existing GPU machine
 
