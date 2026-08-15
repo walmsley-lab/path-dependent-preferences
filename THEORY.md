@@ -143,18 +143,52 @@ et al. 2018 — see refs):
    arriving P-examples are *already satisfied* (margin w_a·a > 0), so w_b
    never receives appreciable gradient: gradient starvation of the cue.
 
-**Proposition 1 (finite-time lock-in; assumptions: separable phases,
-logistic tail, fixed η, γ > 1, no weight decay).** After phase-1 training
-achieves margin m on its family, the per-step movement of the unfit
-coordinate during any subsequent phase is bounded by η·C·e^{−m'} where m' is
-the current margin on the *presented* examples; consequently the sign of κ
-established in phase 1 persists for a number of steps growing exponentially
-in the achieved margins, while both orders realize identical training loss on
-D to within e^{−m}. *Status: derivable by the standard margin/gradient-decay
-computation; the exponential-persistence claim is the content, and it is a
-finite-time statement — asymptotically (t → ∞) the toy's unique max-margin
-limit erases path dependence.* **Same multiset, opposite-sign counterfactual
-commitment, exponentially long persistence: this is the requested minimal
+**Lemma (scalar reduction).** Within a phase, all presented examples share
+one input direction (x_W = (1,0) or x_P = (1,γ), taking a = 1 w.l.o.g.), so
+GD moves θ along a line and the phase dynamics reduce to the scalar margin
+recurrence m_{t+1} = m_t + η‖x‖² σ(−m_t), whose iterates grow as
+m_T = m₁ + Θ(log(1 + η‖x‖² T e^{−m₁})) — the standard logistic-tail slow-log
+growth (cf. Soudry et al. 2018).
+
+**Proposition 1 (finite-time lock-in with explicit flip times; assumptions:
+the two-family construction above, fixed η, γ > 1, no weight decay,
+single input direction per family).**
+*(i) W-first.* Phase 1 yields θ = (m₁, 0), κ = m₁ > 0. Phase-2 P-updates
+move θ along (1, γ), so after accumulated movement s: κ = m₁ − (γ²−1)s and
+the P-margin is m₁ + (1+γ²)s. By the Lemma, s grows only logarithmically
+from a gradient scale e^{−m₁}; κ crosses zero only when
+m_T − m₁ > m₁(1+γ²)/(γ²−1), giving flip time
+**T\* = Θ(exp{m₁·[(1+γ²)/(γ²−1) + 1]}/η).**
+*(ii) P-first.* Phase 1 to P-margin m₁ yields θ = (s, γs) with
+s = m₁/(1+γ²), κ = −(γ²−1)s < 0. Phase-2 W-examples arrive at margin
+s < m₁ — only *partially* suppressed (this is exactly the loophole the
+reviewer flagged, and it is where the asymmetry lives). w_a grows
+logarithmically from gradient scale e^{−s}; κ crosses zero when
+w_a > γ²s, giving **T\*\* = Θ(exp{m₁·γ²/(1+γ²)}/η).**
+Both flip times are exponential in the phase-1 margin, so the sign of κ —
+the selected route — persists for exponentially long under identical
+subsequent data, while training loss on D is identical across orders to
+within e^{−m₁}. Asymptotically (T → ∞) the unique max-margin limit erases
+path dependence: this is finite-time lock-in, not permanent divergence.
+
+**Corollary (persistence asymmetry).** For γ > 1 the exponents differ:
+T\* ≫ T\*\* (e.g., γ = 2: exponents 2.67·m₁ vs. 0.8·m₁) — in the toy,
+*structure-first commitments are substantially stickier than choices-first
+commitments*, because reversing W-first requires gradients through fully
+saturated margins while reversing P-first proceeds through only partially
+saturated ones. Toy-level only, but it yields a directional conjecture for
+the transformer: C1's utility commitment should resist the common tail (and
+later counter-evidence) more strongly than C2's cue commitment does.
+
+*Status: Proposition 1 is now backed by the scalar-recurrence argument
+above (each phase exactly rank-one), answering the review's demand for "an
+explicit recurrence solved/bounded for this exact two-dimensional
+construction" rather than a downgrade to conjecture. Robustness caveat: with
+sampled magnitudes a the phase directions vary slightly and the reduction is
+approximate; the log-growth and exponential-flip structure survive small
+directional noise, but that extension is asserted, not proved.*
+**Same multiset, opposite-sign counterfactual commitment, exponentially long
+persistence, with an ordering asymmetry: this is the requested minimal
 system.**
 
 **Disanalogies to keep us honest:** the toy has one readout shared by both
@@ -243,7 +277,14 @@ The developmental-path-dependence interpretation is **false or unsupported**
 in this construction if any of the following hold at adequate power:
 
 1. E[w | C1] ≈ E[w | C2] across paired seeds once both routes are
-   independently learnable at the calibrated exposure (Phase-A null).
+   independently learnable at the calibrated exposure — this renders **the
+   preregistered Phase-A mechanism-selection hypothesis unsupported**
+   (narrowed per review: a behavioral null does not by itself establish the
+   absence of path dependence *anywhere* in the system — C1/C2 could reach
+   different representations producing the same w, which is exactly the
+   behavioral/representational/mechanistic/developmental distinction this
+   project maintains; that branch is then an exploratory probe/geometry
+   question, not a rescue of the primary claim).
 2. Conflict differences vanish after conditioning on W/ID competence
    (differential acquisition, not selection).
 3. Modest tail extension (k ≤ 2) erases the difference (transient
