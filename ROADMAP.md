@@ -144,3 +144,17 @@ and 5 (a mechanism spec presupposes mechanism measurement) plus the formal
 layer; a minimal Stage-6 prototype on the *scalar* world (M* = "utility
 route wins") is feasible earlier and would be the first demonstration that
 interpretability-in-the-loop curriculum control works at all.
+
+## The perturbation axis (added 2026-08-15)
+
+Orthogonal to the six stages: every intervention on an organism sits on a
+six-rung **perturbation ladder** — environmental → contextual/persona →
+activation → optimizer-state → weight → developmental — ordered by depth
+and persistence, with a common diagnostic vector and operational divergence
+categories (expression override / representation shift / mechanism
+substitution / persistent rewrite / developmental redirection). Phase A is
+a rung-6 intervention; the eval suite is rung 1; the preregistered
+contextual-dissociation protocol is rung 2; B1's crossed transplant is
+rung 4. Full spec: [docs/perturbation_ladder.md](docs/perturbation_ladder.md).
+The Stage-6 controller inherits its failure-mode vocabulary from this
+ladder: perturb → classify divergence → corrective curriculum → re-perturb.
