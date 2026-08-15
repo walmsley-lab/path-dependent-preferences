@@ -471,20 +471,31 @@ async function freeform(){
         score as a choice (Option 1 vs 2)</label>
     </div>
     <button class=primary id=ffrun>Run against ${chip(S.A)} &rarr;</button>
-    <div id=ffout style="margin-top:10px"></div></div>`);
+    <div id=ffout style="margin-top:10px;min-height:170px"></div></div>`);
   $("ffrun").onclick = runFreeform;
+}
+
+function ffBlock(label, inner){
+  return `<div style="margin-top:8px">
+    <div class=reading style="font-size:10px;letter-spacing:.2em;
+      color:var(--inst)">${label}</div>${inner}</div>`;
 }
 
 async function runFreeform(){
   const mode = document.querySelector("input[name=ffm]:checked").value;
-  $("ffout").innerHTML = "<div class=note-dim>live inference — the model " +
-    "is reading your words now…</div>";
+  const promptText = $("fftext").value;
+  const promptEcho = ffBlock("PROMPT",
+    `<div class=scene style="margin:2px 0">${promptText
+      .replace(/</g,"&lt;")}</div>`);
+  $("ffout").innerHTML = promptEcho + ffBlock("RESPONSE",
+    "<div class=note-dim>live inference — the model is reading your " +
+    "words now…</div>");
   const r = await j("/api/freeform", {method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({run:S.A.run.run, ckpt:ckptOf(S.A),
-      prompt: $("fftext").value, mode: mode})});
+      prompt: promptText, mode: mode})});
   if(r.oov){
-    $("ffout").innerHTML = `<div class=reading style="color:var(--orange);
+    $("ffout").innerHTML = promptEcho + `<div class=reading style="color:var(--orange);
       font-size:11px;letter-spacing:.15em">OUTSIDE THIS ORGANISM&rsquo;S
       EXPERIENCE</div>
       <div class=note-dim>This learner was raised in a deliberately
@@ -501,17 +512,17 @@ async function runFreeform(){
   }
   if(mode === "choice"){
     const a = r.answer;
-    $("ffout").innerHTML =
+    $("ffout").innerHTML = promptEcho + ffBlock("RESPONSE",
       "<div class=meter>" + meterLine("Option 1", a.p1) + "</div>" +
       "<div class=meter>" + meterLine("Option 2", a.p2) + "</div>" +
       `<div class=note-dim>forced-choice log-probability of the two answer
        tokens after your text — meaningful only if your text poses the
-       world&rsquo;s kind of question</div>`;
+       world&rsquo;s kind of question</div>`);
   } else {
-    $("ffout").innerHTML =
-      `<div class=scene>&hellip;${r.continuation}</div>
+    $("ffout").innerHTML = promptEcho + ffBlock("RESPONSE",
+      `<div class=scene style="margin:2px 0">&hellip;${r.continuation}</div>
        <div class=note-dim>${r.n_tokens} tokens · ${r.decoding} — this is
-       what the organism expects the world to say next</div>`;
+       what the organism expects the world to say next</div>`);
   }
 }
 
