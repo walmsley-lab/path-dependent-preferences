@@ -159,20 +159,44 @@ PROBE_TARGETS = {
 }
 
 
+@torch.no_grad()
+def extract_hidden(model, stoi, records, device, block, layer, batch=64):
+    """Residual stream at two preregistered positions per record:
+    'decision' (final prompt token) and 'agent' (first agent-name token) —
+    is preference encoded locally at identity introduction, or only assembled
+    into a decision-relevant representation later?"""
+    H = {"decision": [], "agent": []}
+    for i in range(0, len(records), batch):
+        chunk = records[i:i + batch]
+        toks = [encode(f"{r['prompt']} {ANSWER_PREFIX}", stoi)[-block:]
+                for r in chunk]
+        lens = [len(t) for t in toks]
+        x = torch.zeros(len(chunk), max(lens), dtype=torch.long, device=device)
+        for j, t in enumerate(toks):
+            x[j, :len(t)] = torch.tensor(t)
+        _, hiddens = model(x, return_hidden=True)
+        h = hiddens[layer]
+        for j, r in enumerate(chunk):
+            H["decision"].append(h[j, lens[j] - 1].float().cpu().numpy())
+            H["agent"].append(
+                h[j, toks[j].index(stoi[r["agent"]])].float().cpu().numpy())
+    return {k: np.array(v) for k, v in H.items()}
+
+
 def probe_suite(model, stoi, data_dir, device, block, layers):
     tr = load_set(data_dir, "probe_train")
     te = load_set(data_dir, "probe_test")
     out = {}
     for layer in layers:
-        _, H_tr = forced_choice(model, stoi, [r["prompt"] for r in tr],
-                                device, block, return_hidden_layer=layer)
-        _, H_te = forced_choice(model, stoi, [r["prompt"] for r in te],
-                                device, block, return_hidden_layer=layer)
-        for name, fn in PROBE_TARGETS.items():
-            y_tr = np.array([fn(r) for r in tr])
-            y_te = np.array([fn(r) for r in te])
-            acc, sel = fit_probe(H_tr, y_tr, H_te, y_te)
-            out[f"L{layer}/{name}"] = {"acc": acc, "selectivity": sel}
+        H_tr = extract_hidden(model, stoi, tr, device, block, layer)
+        H_te = extract_hidden(model, stoi, te, device, block, layer)
+        for pos in ("decision", "agent"):
+            for name, fn in PROBE_TARGETS.items():
+                y_tr = np.array([fn(r) for r in tr])
+                y_te = np.array([fn(r) for r in te])
+                acc, sel = fit_probe(H_tr[pos], y_tr, H_te[pos], y_te)
+                out[f"L{layer}/{pos}/{name}"] = {"acc": acc,
+                                                 "selectivity": sel}
     return out
 
 

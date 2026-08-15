@@ -70,7 +70,7 @@ When identical training evidence admits both a utility mechanism (Route A) and a
 
 1. W-competence at final checkpoint, Acc_W(C1) vs. Acc_W(C2) — qualifies the primary result as mechanism-selection (equal W) vs. acquisition (unequal W).
 2. No-cue-set and paraphrase-set accuracy by condition.
-3. Probe trajectories (utility, λ, cue) with control-task selectivity; AULC comparisons.
+3. Probe trajectories (utility, λ, cue) with control-task selectivity, at TWO preregistered positions — the first agent-name token ("is preference encoded at identity introduction?") and the final decision token ("or only assembled at decision time?"); AULC comparisons. No other probe positions or pooling schemes without labeling them post hoc.
 4. Persona-dissociation: expressed choice vs. probe-recovered λ under conflicting personas.
 5. C3 (interleaved) positioning relative to C1/C2.
 6. If run: causal steering along the λ direction; plasticity under counter-training.
