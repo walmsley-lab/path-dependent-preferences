@@ -36,8 +36,8 @@ EXPEDITION = r"""<!doctype html><html><head><meta charset=utf-8>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--ivory);color:var(--ink);
   font:16px/1.6 system-ui,-apple-system,sans-serif}
-.topbar{display:flex;justify-content:space-between;align-items:baseline;
-  padding:14px 28px;border-bottom:1px solid var(--rule)}
+.topbar{display:flex;justify-content:space-between;align-items:center;
+  height:48px;padding:0 24px;border-bottom:1px solid var(--rule)}
 .wordmark{font-size:11px;letter-spacing:.22em;color:var(--green)}
 .lablink{font-size:12px;color:var(--faded);text-decoration:none;
   margin-left:14px}

@@ -26,8 +26,8 @@ LAB_SPINE = r"""<!doctype html><html><head><meta charset=utf-8>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--ivory);color:var(--ink);
   font:14px/1.55 system-ui,-apple-system,sans-serif}
-.topbar{display:flex;justify-content:space-between;align-items:baseline;
-  padding:12px 24px;border-bottom:1px solid var(--rule)}
+.topbar{display:flex;justify-content:space-between;align-items:center;
+  height:48px;padding:0 24px;border-bottom:1px solid var(--rule)}
 .wordmark{font-size:11px;letter-spacing:.22em;color:var(--green)}
 .toplink{font-size:12px;color:var(--faded);text-decoration:none;
   margin-left:16px}
