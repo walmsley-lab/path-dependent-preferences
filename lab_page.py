@@ -302,14 +302,23 @@ function idcard(run){
     "\ncommit: " + run.commit;
 }
 
-function bindSpecimen(which){
+function refreshActive(){
+  if(S.activeInst && INSTRUMENTS[S.activeInst])
+    INSTRUMENTS[S.activeInst]();
+}
+
+function bindSpecimen(which, silent){
   const sel = $("sel"+which);
   const run = S.runs[+sel.value];
   const st = {run: run, ckptIdx: run.ckpts.length-1,
               data: datasetFor(run)};
+  const prevData = which === "A" && S.A ? S.A.data : null;
   if(which === "A") S.A = st; else S.B = st;
+  if(which === "A" && prevData && prevData !== st.data)
+    S.cfg = null;   // the reused scenario belongs to the old world
   $("card"+which).textContent = idcard(run);
   renderAges(which);
+  if(!silent) refreshActive();
 }
 
 function renderAges(which){
@@ -321,6 +330,7 @@ function renderAges(which){
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>{
     st.ckptIdx = +b.dataset.i;
     renderAges(which);
+    refreshActive();
   });
   $("age"+which+"lbl").textContent = "developmental age " +
     st.run.ckpts[st.ckptIdx].replace("ckpt_","").replace(".pt","") +
@@ -1733,9 +1743,9 @@ async function init(){
     const sel = $("sel"+which);
     sel.innerHTML = runs.map((r,i)=>
       `<option value=${i}>${r.run.replace("runs/","")} · ${r.curriculum||"?"}</option>`).join("");
-    sel.onchange = ()=>bindSpecimen(which);
+    sel.onchange = ()=>bindSpecimen(which);   // re-fires active instrument
   }
-  bindSpecimen("A");
+  bindSpecimen("A", true);
   try{
     S.segments = (await j("/api/curricula?data=" +
       encodeURIComponent(S.A.data))).segments;
@@ -1743,10 +1753,11 @@ async function init(){
   $("addB").onclick = ()=>{
     $("specB").style.display = "block";
     $("addB").style.display = "none";
-    bindSpecimen("B");
+    bindSpecimen("B");   // re-fires the active instrument with B added
   };
   document.querySelectorAll("[data-inst]").forEach(b=>
-    b.onclick = ()=>INSTRUMENTS[b.dataset.inst]());
+    b.onclick = ()=>{ S.activeInst = b.dataset.inst;
+                      INSTRUMENTS[b.dataset.inst](); });
   $("beyond").onclick = doors;
   renderEvidence();
   arrival();
@@ -1754,6 +1765,7 @@ async function init(){
   if(want && INSTRUMENTS[want]){
     const btn = document.querySelector(`[data-inst='${want}']`);
     if(btn){ btn.closest("details").open = true; }
+    S.activeInst = want;
     INSTRUMENTS[want]();
   }
   document.body.dataset.ready = "1";
@@ -1790,8 +1802,9 @@ function arrival(){
     <div class=note-dim style="margin-top:8px">or choose any specimen and
       instrument from the bench — this room does not mind what order you
       work in</div></div>`);
-  $("arr-conflict").onclick = ()=>behave("conflict");
-  $("arr-probes").onclick = probes;
+  $("arr-conflict").onclick = ()=>{ S.activeInst = "conflict";
+    behave("conflict"); };
+  $("arr-probes").onclick = ()=>{ S.activeInst = "probes"; probes(); };
 }
 init();
 </script>

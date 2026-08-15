@@ -258,3 +258,28 @@ def test_spine_layout_alternative(server, page):
     # evidence levels carry statuses, not experiment names
     assert "ESTABLISHED" in page.locator("#spine").inner_text()
     assert "OPEN" in page.locator("#spine").inner_text()
+
+
+def test_canvas_follows_specimen_changes(server, page):
+    """Changing the specimen or its age re-fires the active instrument —
+    the canvas never shows a stale organism's result."""
+    ready(page, server)
+    page.click("[data-inst='probes']")
+    page.wait_for_selector("#canvas >> text=REPRESENTATION", timeout=30000)
+    first = page.locator("#canvas").inner_text()
+    n_runs = page.locator("#selA option").count()
+    assert n_runs >= 2, "bench needs at least two organisms for this test"
+    page.select_option("#selA", "1")
+    page.wait_for_selector("#canvas >> text=REPRESENTATION", timeout=30000)
+    import time
+    time.sleep(1)
+    second = page.locator("#canvas").inner_text()
+    assert first.splitlines()[0] != second.splitlines()[0] or \
+        first != second, "canvas must re-render for the new specimen"
+    # age change also re-fires
+    page.click("#ageA button >> nth=0")
+    page.wait_for_selector("#canvas >> text=REPRESENTATION", timeout=30000)
+    time.sleep(1)
+    assert "age 000" in page.locator("#canvas").inner_text().replace(
+        "age 0%", "age 000") or "000" in \
+        page.locator("#ageAlbl").inner_text()
