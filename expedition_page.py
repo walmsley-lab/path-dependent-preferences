@@ -392,9 +392,11 @@ a.tech:hover{background:rgba(74,79,122,.12)}
     <div id=cfnote></div>
     <div class=duel>
       <div class="side u"><div class=who>WEIGHING THE OUTCOMES predicts</div>
-        <div class=reading id=upred></div></div>
+        <div class=reading id=upred></div>
+        <div class=note-dim id=uwhy style="margin-top:6px"></div></div>
       <div class="side c"><div class=who>FOLLOWING THE WORDING predicts</div>
-        <div class=reading id=cpred></div></div>
+        <div class=reading id=cpred></div>
+        <div class=note-dim id=cwhy style="margin-top:6px"></div></div>
     </div>
     <div class=bigline style="margin:40px 0">For the first time,<br>the two
       explanations disagree.</div>
@@ -916,6 +918,26 @@ async function buildCounterfactual(){
     {noStamp:true, oldVerbs:oldVerbs, title:"THE SAME PAGE, REWORDED"});
   $("upred").textContent = "Option " + rec.utility_answer;
   $("cpred").textContent = "Option " + rec.cue_answer;
+  // show the work — never assert a prediction the reader cannot re-derive
+  const w = Math.round(S.lam*5), wo = 5 - w;
+  const u1 = w*rec.d_self_1 + wo*rec.d_other_1;
+  const u2 = w*rec.d_self_2 + wo*rec.d_other_2;
+  $("uwhy").textContent = "at his authored " + w + ":" + wo +
+    " weighting —  option 1: " + w + "×(" + rec.d_self_1 + ") + " + wo +
+    "×(" + rec.d_other_1 + ") = " + u1 + "   option 2: " + w + "×(" +
+    rec.d_self_2 + ") + " + wo + "×(" + rec.d_other_2 + ") = " + u2 +
+    ".  The numbers did not move, so this prediction did not either.";
+  const cueClass = rec["verb_class_" + rec.cue_answer];
+  const words = cueClass === "COOP" ? "the sharing words" :
+                "the grabbing words";
+  $("cwhy").textContent = (S.level === "L0"
+    ? "In every page of the notebook, the option " + S.agent +
+      " chose carried " + words + "."
+    : "In every " + rec.scene + " page of the notebook, the option " +
+      S.agent + " chose carried " + words + ". This is a " + rec.scene +
+      " page —") + " after the rewording, " + words +
+    " now sit on option " + rec.cue_answer + ", so the wording rule " +
+    "follows them there.";
   $("cfresult").classList.remove("hidden");
   save(11);
   nbAdd("obs", "a discriminating case constructed: same numbers, reworded — the two rules now disagree");
