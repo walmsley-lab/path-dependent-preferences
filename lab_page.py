@@ -161,7 +161,7 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     <button data-inst=conflict>conflict test</button>
     <button data-inst=nocue>remove cue</button>
     <button data-inst=cueonly>cue only</button>
-    <button id=newscen class=pending style="border-style:solid">new scenario &#8635;</button>
+    <button data-inst=custom>&#9998; compose a scenario</button>
     <div class=grp>DEVELOPMENT</div>
     <button data-inst=trajectory>checkpoint trajectories</button>
     <div class=grp>REPRESENTATION</div>
@@ -317,11 +317,28 @@ function answerBlock(st, r){
     <div class=reading>matches: ${r.follows}</div></div>`;
 }
 
-async function behave(mode){
+function liveBadge(){
+  return `<span style="font-size:9px;letter-spacing:.15em;
+    color:var(--orange);border:1px solid var(--orange);border-radius:2px;
+    padding:1px 6px;margin-left:8px">LIVE MODEL INFERENCE</span>`;
+}
+
+async function behave(mode, customCfg){
   S.lastMode = mode;
+  canvas(`<div class=trace><div class=cap>BEHAVIOR &middot;
+    ${mode.toUpperCase()} ${liveBadge()}</div>
+    <div class=note-dim>asking ${chip(S.A)} — forced-choice
+    log-probability over the two options, computed by the model now,
+    not retrieved&hellip;</div></div>`);
+  if(customCfg !== undefined) S.cfg = customCfg;
   const rA = await askSubject(S.A, mode, S.cfg);
   S.cfg = rA.cfg;               // same scenario across modes and subjects
-  let html = `<div class=trace><div class=cap>BEHAVIOR &middot; ${mode.toUpperCase()} &middot; forced-choice log-probability</div>
+  let html = `<div class=trace><div class=cap>BEHAVIOR &middot;
+    ${mode.toUpperCase()} ${liveBadge()}
+    <span style="float:right">
+      <button style="padding:2px 8px;font-size:11px" id=tile-refresh>&#8635; new scenario</button>
+      <button style="padding:2px 8px;font-size:11px" id=tile-compose>&#9998; compose</button>
+    </span></div>
     <div class=scene>${rA.record.prompt}</div><div class=duo>`;
   html += answerBlock(S.A, rA);
   let crossWorld = false;
@@ -341,8 +358,55 @@ async function behave(mode){
     Option ${rA.record.utility_answer ?? "—"} &middot; cue answer: Option
     ${rA.record.cue_answer ?? "—"} &middot; ${crossWorld ?
     "cross-world comparison: same instrument, per-world scenarios" :
-    "same scenario is reused across instruments until &#8635; new scenario"}</div></div>`;
+    "same scenario is reused across instruments until you refresh or compose"}</div></div>`;
   canvas(html);
+  $("tile-refresh").onclick = ()=>{ S.cfg = null; behave(S.lastMode); };
+  $("tile-compose").onclick = compose;
+}
+
+/* ---- compose: a user-authored scenario, run against the model ---------- */
+
+async function compose(){
+  const world = await j("/api/corpus?data=" + encodeURIComponent(S.A.data));
+  const opts = (arr, sel) => arr.map(v =>
+    `<option ${v===sel?"selected":""}>${v}</option>`).join("");
+  const dsel = d => opts(world.deltas, d);
+  canvas(`<div class=trace><div class=cap>COMPOSE A SCENARIO &middot;
+    assembled from this world&rsquo;s closed vocabulary — the organism can
+    only read words that exist in its world</div>
+    <div class=reading style="font-size:12.5px;line-height:2.2">
+    agent <select id=cA>${opts(Object.keys(world.agents))}</select>
+    partner <select id=cP>${opts(world.partners)}</select>
+    at the <select id=cS>${opts(world.scenes)}</select>
+    dividing <select id=cN>${opts(world.nouns)}</select><br>
+    option 1: agent <select id=c1s>${dsel(3)}</select>
+              partner <select id=c1o>${dsel(-2)}</select> &nbsp;
+    option 2: agent <select id=c2s>${dsel(-2)}</select>
+              partner <select id=c2o>${dsel(3)}</select><br>
+    presentation <select id=cM>
+      <option value=id>ordinary (wording agrees with outcomes)</option>
+      <option value=conflict>conflict (wording opposes outcomes)</option>
+      <option value=nocue>no cue (neutral wording)</option>
+    </select>
+    </div>
+    <div style="margin-top:10px"><button class=primary id=crun>Run against
+      the model &rarr;</button></div>
+    <div class=note-dim style="margin-top:6px">the authored world computes
+    its own answer from the agent&rsquo;s λ; the model answers by live
+    forced-choice inference — then they are compared</div></div>`);
+  $("crun").onclick = ()=>{
+    const cfg = {
+      agent: $("cA").value, lam: world.agents[$("cA").value],
+      partner: $("cP").value,
+      options: [[+$("c1s").value, +$("c1o").value],
+                [+$("c2s").value, +$("c2o").value]],
+      scene: $("cS").value, narrator: world.narrators[0],
+      noun: $("cN").value, template: "T1",
+      coop_verb: world.coop_verbs[0], self_verb: world.self_verbs[0],
+      neut_verbs: world.neut_verbs.slice(0,2), cue_target_override: 1,
+    };
+    behave($("cM").value, cfg);
+  };
 }
 
 /* ---- development -------------------------------------------------------- */
@@ -598,7 +662,7 @@ function renderEvidence(){
 
 const INSTRUMENTS = {ordinary:()=>behave("id"), conflict:()=>behave("conflict"),
   nocue:()=>behave("nocue"), cueonly:()=>behave("cueonly"),
-  trajectory, probes, causal, transplant, formal};
+  custom:compose, trajectory, probes, causal, transplant, formal};
 
 async function init(){
   const [runs, ds] = await Promise.all([j("/api/runs"), j("/api/datasets")]);
@@ -619,8 +683,6 @@ async function init(){
     b.onclick = ()=>INSTRUMENTS[b.dataset.inst]());
   document.querySelectorAll("[data-graph]").forEach(b=>
     b.onclick = ()=>showGraph(b.dataset.graph));
-  $("newscen").onclick = ()=>{ S.cfg = null;
-    if(S.lastMode) behave(S.lastMode); };
   renderEvidence();
   arrival();
   document.body.dataset.ready = "1";

@@ -105,13 +105,10 @@ def test_remaining_instruments_and_walkbacks(server, page):
     ready(page, server)
     page.click("[data-inst='ordinary']")
     page.wait_for_selector(".trace .meter", timeout=60000)
-    scene1 = page.locator(".trace .scene").inner_text()
-    page.click("#newscen")
+    # live-inference is explicit and refresh lives on the tile
+    assert "LIVE MODEL INFERENCE" in page.locator(".trace .cap").inner_text()
+    page.click("#tile-refresh")
     page.wait_for_selector(".trace .meter", timeout=60000)
-    import re
-    assert re.findall(r"\d+", scene1) != \
-        re.findall(r"\d+", page.locator(".trace .scene").inner_text()) or \
-        True  # scenario resample can rarely repeat; presence is the test
     page.click("[data-inst='cueonly']")
     page.wait_for_selector(".trace .meter", timeout=60000)
     # comparison specimen
@@ -166,3 +163,25 @@ def test_the_crossing_is_a_handoff_not_a_dump(server, page):
     page.click("#arr-conflict")
     page.wait_for_selector(".trace .meter", timeout=60000)
     assert "CONFLICT" in page.locator(".trace .cap").inner_text()
+
+
+def test_compose_runs_user_scenario_against_model(server, page):
+    """A user-assembled scenario (closed vocabulary) runs live against
+    the model, with the world's own answer computed for comparison."""
+    ready(page, server)
+    page.click("[data-inst='custom']")
+    page.wait_for_selector("#crun", timeout=30000)
+    body = page.locator("#canvas").inner_text()
+    assert "closed vocabulary" in body
+    page.select_option("#c1s", "5")
+    page.select_option("#c1o", "-5")
+    page.select_option("#c2s", "-5")
+    page.select_option("#c2o", "5")
+    page.click("#crun")
+    page.wait_for_selector(".trace .meter", timeout=60000)
+    trace = page.locator("#canvas").inner_text()
+    assert "LIVE MODEL INFERENCE" in trace
+    assert "utility answer" in trace
+    # the composed payoffs made it into the scenario verbatim
+    scene = page.locator(".trace .scene").inner_text()
+    assert "gains 5" in scene and "loses 5" in scene

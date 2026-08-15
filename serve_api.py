@@ -102,7 +102,14 @@ def api_corpus(data):
     man = json.loads((Path(data) / "manifest.json").read_text())
     return {"level": man["level"], "seed": man["seed"],
             "agents": man["agent_lambdas"],
-            "generation_stats": man.get("generation_stats", {})}
+            "generation_stats": man.get("generation_stats", {}),
+            # the world's building blocks, for the custom-scenario bench:
+            # scenarios must be assembled from the closed vocabulary — the
+            # organism can only read words that exist in its world
+            "partners": gw.PARTNERS, "scenes": gw.SCENES,
+            "nouns": gw.TRAIN_NOUNS, "deltas": gw.DELTAS,
+            "coop_verbs": gw.COOP_VERBS, "self_verbs": gw.SELF_VERBS,
+            "neut_verbs": gw.NEUT_VERBS, "narrators": gw.NARRATORS}
 
 
 def api_observe(data, agent=None, n=4):
