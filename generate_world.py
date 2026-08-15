@@ -283,6 +283,9 @@ def gen_w_example(rng, noun, names):
             f"Q: Which option leaves {b} better off? A: Option {ans}")
 
 
+_GEN_STATS = {}
+
+
 def gen_w_unique(rng, n, noun_pool, names, seen_strings, max_stall=500_000):
     """Unique W lines; hard failure (never a silent hang) if the space runs dry.
 
@@ -292,9 +295,11 @@ def gen_w_unique(rng, n, noun_pool, names, seen_strings, max_stall=500_000):
     out = []
     stall = 0
     while len(out) < n:
+        _GEN_STATS["w_attempts"] = _GEN_STATS.get("w_attempts", 0) + 1
         line = gen_w_example(rng, rng.choice(noun_pool), names)
         if line in seen_strings:
             stall += 1
+            _GEN_STATS["w_dup_rejects"] = _GEN_STATS.get("w_dup_rejects", 0) + 1
             if stall > max_stall:
                 raise RuntimeError(
                     f"W space exhausted at {len(out)}/{n} unique lines; "
@@ -372,6 +377,8 @@ def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
     rng = random.Random(f"{level}-{seed}")
     agent_map = assign_lambdas(seed)
     used_keys = set()
+    global _GEN_STATS
+    _GEN_STATS = {}
 
     def fresh_configs(n, noun_pool, template="T1"):
         out = []
@@ -379,6 +386,8 @@ def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
             cfg = sample_p_config(rng, agent_map, noun_pool, template)
             k = config_key(cfg)[:-1]   # dedup at scenario level, ACROSS templates
             if k in used_keys:
+                _GEN_STATS["p_dedup_rejects"] = \
+                    _GEN_STATS.get("p_dedup_rejects", 0) + 1
                 continue
             used_keys.add(k)
             out.append(cfg)
@@ -430,6 +439,7 @@ def write_datasets(data, level, seed, outdir):
     outdir.mkdir(parents=True, exist_ok=True)
     manifest = {"level": level, "seed": seed,
                 "agent_lambdas": assign_lambdas(seed),
+                "generation_stats": dict(_GEN_STATS),
                 "counts": {}, "approx_tokens": {}, "segments": {}}
     for name, items in data.items():
         manifest["counts"][name] = len(items)

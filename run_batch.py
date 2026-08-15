@@ -116,6 +116,16 @@ def stage_gate(args):
         }
         results[level] = verdict
         print(f"\n=== GATE {level}: {json.dumps(verdict, indent=2)}\n")
+    import datetime
+    results["_provenance"] = {
+        "stage": "gate", "calibration_version": 3,
+        "git_commit": subprocess.run(["git", "rev-parse", "HEAD"],
+                                     capture_output=True, text=True
+                                     ).stdout.strip(),
+        "created_at": datetime.datetime.now(
+            datetime.timezone.utc).isoformat(),
+        "gate_n": args.gate_n,
+    }
     Path("runs/gate_results.json").write_text(json.dumps(results, indent=2))
     chosen = next((lv for lv in ["L0", "L1", "L2"]
                    if results[lv]["gate1_pass"] and results[lv]["gate2_pass"]

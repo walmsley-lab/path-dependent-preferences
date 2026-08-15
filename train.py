@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import datetime
 import hashlib
 import json
 import math
@@ -215,8 +216,12 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr,
                             weight_decay=args.wd)
 
+    commit = git_commit()
     run_manifest = {
-        "git_commit": git_commit(), "dataset_dir": str(data_dir),
+        "run_id": f"{args.curriculum}-s{args.seed}-{commit[:8]}-{n_steps}st",
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "calibration_version": 3,
+        "git_commit": commit, "dataset_dir": str(data_dir),
         "curriculum": args.curriculum,
         "curriculum_sha256": sha256_file(cur_file),
         "vocab_sha256": hashlib.sha256(
@@ -234,6 +239,21 @@ def main():
     ckpt_steps = {max(1, round(n_steps * p / 100)): int(p)
                   for p in np.arange(args.ckpt_every_pct, 100.01,
                                      args.ckpt_every_pct)}
+    # Preserve FULL training state (Adam moments + RNG) at every segment
+    # boundary and at the end — the developmental history lives in
+    # (theta, m, v), and Phase B's crossed weight x optimizer-state
+    # transplant needs these states without retraining. ~90MB each.
+    boundary_steps = sorted({min(n_steps, math.ceil(r["block_end"] / args.batch))
+                             for r in seg_ranges} | {n_steps})
+
+    def save_train_state(step1):
+        torch.save({
+            "step": step1, "optimizer": opt.state_dict(),
+            "torch_rng": torch.get_rng_state(),
+            "cuda_rng": (torch.cuda.get_rng_state_all()
+                         if torch.cuda.is_available() else None),
+            "np_rng": np.random.get_state(), "py_rng": random.getstate(),
+        }, outdir / f"trainstate_{step1:06d}.pt")
 
     log = []
     model.train()
@@ -259,6 +279,8 @@ def main():
         if (step + 1) in ckpt_steps:
             pct = ckpt_steps[step + 1]
             torch.save(model.state_dict(), outdir / f"ckpt_{pct:03d}.pt")
+        if (step + 1) in boundary_steps:
+            save_train_state(step + 1)
     (outdir / "train_log.json").write_text(json.dumps(log))
     print(f"done: {n_steps} steps, {n_params/1e6:.1f}M params, "
           f"init {init_hash[:12]}")
