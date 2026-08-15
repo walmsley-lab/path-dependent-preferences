@@ -79,6 +79,10 @@ button:disabled{opacity:.4;cursor:default}
 
 /* instrument tray */
 .tray button{display:block;width:100%;margin:3px 0}
+.fam{margin:4px 0}
+.fam summary{font-size:10px;letter-spacing:.2em;color:var(--graphite);
+  cursor:pointer;padding:4px 0}
+.fam[open] summary{color:var(--inst)}
 .tray .grp{font-size:9px;letter-spacing:.2em;color:var(--graphite);
   margin:10px 0 3px}
 .tray button.pending{color:var(--graphite);border-style:dashed}
@@ -126,8 +130,7 @@ textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
 /* drawer */
 .drawer .tabbtn{display:inline-block;margin:2px 2px;padding:4px 8px;
   font-size:11px}
-.evrow{border-top:1px solid var(--rule);padding:6px 2px;font-size:12px;
-  cursor:pointer}
+.evrow{padding:3px 2px;font-size:11px;cursor:pointer;line-height:1.4}
 .evrow:hover{background:var(--card)}
 .evrow .st{font-family:ui-monospace,Menlo,monospace}
 .evrow .st.y{color:var(--green)} .evrow .st.o{color:var(--orange)}
@@ -159,49 +162,60 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 <div class=frame>
 
 <aside class=rail>
-  <h3 class=zone>SPECIMEN BENCH</h3>
+  <h3 class=zone>SPECIMEN</h3>
   <div class=specimen id=specA>
     <div class=who>SUBJECT A</div>
     <select id=selA></select>
-    <div class=idcard id=cardA></div>
     <div class=age><div class=ages id=ageA></div>
       <div class=lbl id=ageAlbl></div></div>
+    <details><summary style="font-size:11px;color:var(--inst);
+      cursor:pointer">metadata</summary>
+      <div class=idcard id=cardA></div></details>
   </div>
   <div class=specimen id=specB style="display:none">
     <div class=who>SUBJECT B</div>
     <select id=selB></select>
-    <div class=idcard id=cardB></div>
     <div class=age><div class=ages id=ageB></div>
       <div class=lbl id=ageBlbl></div></div>
+    <details><summary style="font-size:11px;color:var(--inst);
+      cursor:pointer">metadata</summary>
+      <div class=idcard id=cardB></div></details>
   </div>
   <button id=addB>+ add comparison specimen</button>
 
-  <h3 class=zone style="margin-top:20px">INSTRUMENTS</h3>
+  <h3 class=zone style="margin-top:18px">INSTRUMENTS</h3>
   <div class=tray>
-    <div class=grp>BEHAVIOR</div>
-    <button data-inst=ordinary>ordinary case</button>
-    <button data-inst=conflict>conflict test</button>
-    <button data-inst=nocue>remove cue</button>
-    <button data-inst=cueonly>cue only</button>
-    <button data-inst=custom>&#9998; compose a scenario</button>
-    <button data-inst=freeform>&#9000; freeform prompt</button>
-    <div class=grp>CORPUS</div>
-    <button data-inst=corpus>&#128065; what the learner saw</button>
-    <div class=grp>DEVELOPMENT</div>
-    <button data-inst=trajectory>checkpoint trajectories</button>
-    <div class=grp>REPRESENTATION</div>
-    <button data-inst=probes>&lambda; / cue probes</button>
-    <button data-inst=constellation>&#9737; representation map</button>
-    <button data-inst=atlas>&#128506; developmental atlas</button>
-    <button data-inst=diffmap>&#916; twin difference map</button>
-    <div class=grp>TRACE</div>
-    <button data-inst=exectrace class=pending>execution trace</button>
-    <div class=grp>CAUSAL</div>
-    <button data-inst=causal class=pending>steer &middot; patch &middot; ablate</button>
-    <button data-inst=transplant class=pending>developmental transplant</button>
-    <div class=grp>FORMALIZATION</div>
-    <button data-inst=formal>derive candidate graph</button>
+    <details class=fam open><summary>OBSERVE</summary>
+      <button data-inst=ordinary>ordinary case</button>
+      <button data-inst=conflict>conflict test</button>
+      <button data-inst=nocue>remove cue</button>
+      <button data-inst=cueonly>cue only</button>
+      <button data-inst=custom>&#9998; compose a scenario</button>
+      <button data-inst=freeform>&#9000; freeform prompt</button>
+      <button data-inst=corpus>&#128065; what the learner saw</button>
+    </details>
+    <details class=fam><summary>LOCATE</summary>
+      <button data-inst=trajectory>checkpoint trajectories</button>
+      <button data-inst=atlas>&#128506; developmental atlas</button>
+      <button data-inst=probes>&lambda; / cue probes</button>
+    </details>
+    <details class=fam><summary>COMPARE</summary>
+      <button data-inst=constellation>&#9737; representation map</button>
+      <button data-inst=diffmap>&#916; twin difference map</button>
+    </details>
+    <details class=fam><summary>PERTURB</summary>
+      <button data-inst=causal class=pending>steer &middot; patch &middot; ablate</button>
+      <button data-inst=transplant class=pending>developmental transplant</button>
+    </details>
+    <details class=fam><summary>TRACE</summary>
+      <button data-inst=exectrace class=pending>execution trace</button>
+    </details>
+    <details class=fam><summary>FORMALIZE</summary>
+      <button data-inst=formal>derive candidate graph</button>
+    </details>
   </div>
+  <button id=beyond class=quiet style="margin-top:22px;width:100%">
+    Beyond this experiment &rarr;</button>
 </aside>
 
 <main class=canvas id=canvas>
@@ -209,21 +223,19 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 </main>
 
 <aside class=drawer>
-  <h3 class=zone>MODELS OF THE WORLD</h3>
-  <div class=note-dim style="font-size:10.5px;margin-bottom:4px">
-    how the world was generated &rarr; what the corpus offers &rarr;
-    what developed &rarr; what the network computes. Their disagreements
-    are the point.</div>
-  <div>
-    <button class=tabbtn data-graph=generating>Generator</button>
-    <button class=tabbtn data-graph=observational>Observational</button>
-    <button class="tabbtn pending" data-graph=development>Development</button>
-    <button class="tabbtn pending" data-graph=mechanism>Mechanism</button>
-    <button class="tabbtn pending" data-graph=overlay>Overlay</button>
-  </div>
+  <h3 class=zone>WORLD MODEL</h3>
+  <select id=graphsel style="width:100%;font:12px ui-monospace,Menlo,monospace;
+    padding:4px;border:1px solid var(--rule);background:#fff">
+    <option value="">view a graph&hellip;</option>
+    <option value=generating>Generator (authored)</option>
+    <option value=observational>Observational</option>
+    <option value=development>Development</option>
+    <option value=mechanism>Mechanism</option>
+    <option value=overlay>Overlay</option>
+  </select>
   <hr class=g>
   <h3 class=zone>EVIDENCE</h3>
-  <div class=note-dim style="font-size:10.5px;margin-bottom:4px">
+  <div class=note-dim style="font-size:10px;margin-bottom:4px">
     Experiments don&rsquo;t unlock chapters. Evidence unlocks claims.</div>
   <div id=evidence></div>
 </aside>
@@ -1282,8 +1294,6 @@ weights C2         &middot;              &middot;            &middot;</div>
 /* ---- formalization ------------------------------------------------------ */
 
 async function formal(){
-  // derive candidate edges from STORED evidence only (artifact consumer:
-  // no model invocation here) — every element says why it exists
   const st = S.A;
   let probeRow = null, conf = null;
   try{
@@ -1293,68 +1303,77 @@ async function formal(){
     const pr = sc.probes || {};
     let best = null;
     for(const [k,v] of Object.entries(pr)){
-      if(k.endsWith("lambda_class") &&
-         (!best || v.selectivity > best.sel))
-        best = {loc: k, sel: v.selectivity, acc: v.probe_acc};
+      if(k.endsWith("lambda_class") && (!best || v.selectivity > best.sel))
+        best = {loc: k, sel: v.selectivity};
     }
     probeRow = best;
   }catch(e){}
-  // visual grammar (design law): association ⇢ dotted · represented
-  // candidate ⇠dashed⇢ · causally supported → solid · replicated ⇒ ·
-  // executable: categorically different. The arrow hardens as evidence
-  // accumulates; nothing here has earned a solid arrow yet.
-  const prov = "↳ " + (st.run.run_id || st.run.run) + " · " + ckptOf(st) +
-    " · " + st.data + " · commit " + st.run.commit;
-  const edge = (from,to,arrow,lines,status) => `<div class=half>
-    <div class=who>${from} ${arrow} ${to}</div>
-    <div class=reading style="white-space:pre-wrap;font-size:12px">${lines.join("\n")}</div>
-    <div class=note-dim style="margin-top:6px">STATUS: ${status}</div>
-    <details style="margin-top:4px"><summary style="font-size:11px;
-      color:var(--inst);cursor:pointer">why do you believe this?</summary>
-      <div class=note-dim style="font-size:11px">${prov}</div></details></div>`;
-  let html = `<div class=trace><div class=cap>CANDIDATE FORMALIZATION &middot;
-    DERIVED FROM STORED EVIDENCE &middot; ${chip(st)}</div>
-    <div class=note-dim>Edges carry evidence vectors, never one confidence
-    number. Statuses are promoted only by predicted-then-tested
-    interventions.</div><div class=duo style="margin-top:10px">`;
-  let genLine = "generalizes   untested (identity confound open)";
-  let genStatus = null;
+  let gen = null;
   try{
     const ev = await j("/api/evidence?run=" +
       encodeURIComponent(st.run.run));
-    const best = Object.entries(ev.layers).flatMap(([L,row]) =>
+    gen = Object.entries(ev.layers).flatMap(([L,row]) =>
       Object.entries(row).filter(([k])=>k.includes("lambda"))
         .map(([k,v])=>({loc:L+"/"+k, sel:v.heldout_agent_selectivity})))
-      .sort((a,b)=>b.sel-a.sel)[0];
-    if(best){
-      genLine = "generalizes   held-out agents sel " + fmt(best.sel) +
-        " @ " + best.loc;
-      genStatus = best.sel >= 0.25;
-    }
+      .sort((a,b)=>b.sel-a.sel)[0] || null;
   }catch(e){}
-  html += edge("hidden preference (λ)", "choice (candidate)", "⇢", [
-    conf ? "behavioral   conflict agreement " + conf.acc_utility : "behavioral   no stored conflict scores",
-    probeRow ? "recoverable  probe selectivity " + probeRow.sel + " @ " + probeRow.loc : "recoverable  no stored probe records",
-    genLine,
-    "causal       pending (steer / patch)",
-    "development  pending (batch trajectories)",
-  ], genStatus === true
-    ? "RECOVERABLE + GENERALIZES ACROSS AGENTS — not causally established"
-    : genStatus === false
-    ? "RECOVERABLE — but collapses on held-out agents (identity-confounded)"
-    : probeRow ? "RECOVERABLE — identity confound untested" : "ASSOCIATED");
-  html += edge("wording &amp; place", "choice (candidate)", "⇢", [
-    conf ? "behavioral   conflict agreement " + conf.acc_cue : "behavioral   no stored conflict scores",
-    "represented  cue probes stored where measured",
-    "causal       pending",
-    "development  pending",
-  ], "ASSOCIATED — behaviorally dominated in this specimen");
-  html += `</div>
-    <div style="margin-top:12px">
+  const prov = "↳ " + (st.run.run_id || st.run.run) + " · " + ckptOf(st) +
+    " · " + st.data + " · commit " + st.run.commit;
+  const chipRow = (items) => items.map(([label, val, ok]) =>
+    `<span style="border:1px solid var(--rule);border-radius:10px;
+      padding:1px 9px;font:11px ui-monospace,Menlo,monospace;
+      color:${ok===true?"var(--green)":ok===false?"var(--orange)":"var(--graphite)"}">${label} ${val}</span>`)
+    .join(" ");
+  const edgeCard = (line, chips, detail, id) => `
+    <div style="margin:14px 0">
+      <div class=reading style="font-size:15px;cursor:pointer"
+        onclick="const d=document.getElementById('${id}');
+          d.style.display=d.style.display==='none'?'block':'none'">${line}</div>
+      <div style="margin:6px 0">${chips}</div>
+      <div id=${id} style="display:none" class=note-dim>${detail}
+        <div style="margin-top:4px">${prov}</div></div>
+    </div>`;
+  let html = `<div class=trace><div class=cap>CANDIDATE FORMALIZATION
+    &middot; ${chip(st)} &middot; click an edge for its evidence</div>`;
+  html += edgeCard(
+    "agent identity ─── λ ──⇢ choice   (candidate)",
+    chipRow([
+      ["behavioral", conf ? fmt(conf.acc_utility) : "—", !!conf],
+      ["recoverable", probeRow ? fmt(probeRow.sel) : "—", !!probeRow],
+      ["generalizes", gen ? fmt(gen.sel) : "untested",
+       gen ? gen.sel >= 0.25 : null],
+      ["causal", "○", null], ["development", "○", null]]),
+    (probeRow ? "λ-class recoverable @ " + probeRow.loc + " (this probe, " +
+      "this evaluation). " : "") +
+    (gen ? "Held-out-agent selectivity " + fmt(gen.sel) + " @ " + gen.loc +
+      " — class information beyond name recognition. " :
+      "Identity confound untested. ") +
+    "Causal use and developmental localization pending — the arrow stays " +
+    "dotted until intervention hardens it.",
+    "edge-lam");
+  html += edgeCard(
+    "scene + wording ──⇢ choice   (candidate, behaviorally dominated)",
+    chipRow([
+      ["behavioral", conf ? fmt(conf.acc_cue) : "—", conf ? false : null],
+      ["recoverable", "stored where measured", null],
+      ["causal", "○", null]]),
+    "The planted route: present in the corpus by construction; this " +
+    "specimen's conflict behavior sides against it. Whether its " +
+    "representation exists but is unused is exactly the causal " +
+    "instrument's question.",
+    "edge-cue");
+  html += `<div style="margin-top:14px">
       <button onclick="exportGraph()">export evidence graph (JSON)</button>
       <button disabled>generate candidate formal spec &middot; pending</button>
-    </div></div>
-    <div class=trace><div class=cap>THREE LOCKED DOORS</div>
+    </div>
+    <div class=note-dim style="margin-top:8px">evidence vectors, never one
+    confidence number; solid arrows are earned by intervention only</div>
+    </div>`;
+  canvas(html);
+}
+
+function doors(){
+  canvas(`<div class=trace><div class=cap>BEYOND THIS EXPERIMENT</div>
     <div class=duo>
       <div class=half><div class=who>ABSORB A CORPUS</div>
         <div class=reading style="font-size:10px;color:var(--orange)">ACT II &middot; LOCKED</div>
@@ -1394,9 +1413,9 @@ async function formal(){
         formal representation is intended to make testable.
         <a href="/technique/neuromorphic-compilation" target=_blank
         rel=noopener>technical trail &nearr;</a></div></div>
-    </div></div>`;
-  canvas(html);
+    </div></div>`);
 }
+window.doors = doors;
 
 window.dragon = k => { const el = $("dragon-"+k);
   el.style.display = el.style.display === "none" ? "block" : "none"; };
@@ -1459,14 +1478,23 @@ async function showGraph(kind){
 /* ---- evidence ledger ----------------------------------------------------- */
 
 function renderEvidence(){
-  $("evidence").innerHTML = EVIDENCE.map((e,i)=>{
+  const row = (e,i) => {
     const mark = e.st === "y" ? "✓" : e.st === "o" ? "○" : "?";
     const cls = e.st === "y" ? "y" : "o";
     return `<div class=evrow data-ev=${i}><span class="st ${cls}">${mark}</span>
       ${e.label}<div class=evdetail id=evd${i} style="display:none">
       <b>supports:</b> ${e.sup}<br><b>does not establish:</b> ${e.not}<br>
       <b>next:</b> ${e.next}</div></div>`;
-  }).join("");
+  };
+  const done = EVIDENCE.map((e,i)=>[e,i]).filter(([e])=>e.st==="y");
+  const open = EVIDENCE.map((e,i)=>[e,i]).filter(([e])=>e.st!=="y");
+  $("evidence").innerHTML =
+    `<div class=note-dim style="font-size:9px;letter-spacing:.18em">ESTABLISHED</div>` +
+    (done.length ? done.map(([e,i])=>row(e,i)).join("")
+                 : `<div class=note-dim>nothing yet — evidence is earned</div>`) +
+    `<div class=note-dim style="font-size:9px;letter-spacing:.18em;
+      margin-top:8px">OPEN</div>` +
+    open.map(([e,i])=>row(e,i)).join("");
   document.querySelectorAll(".evrow").forEach(r=>r.onclick=()=>{
     const d = $("evd"+r.dataset.ev);
     d.style.display = d.style.display === "none" ? "block" : "none";
@@ -1503,8 +1531,9 @@ async function init(){
   };
   document.querySelectorAll("[data-inst]").forEach(b=>
     b.onclick = ()=>INSTRUMENTS[b.dataset.inst]());
-  document.querySelectorAll("[data-graph]").forEach(b=>
-    b.onclick = ()=>showGraph(b.dataset.graph));
+  $("graphsel").onchange = ()=>{ if($("graphsel").value)
+    showGraph($("graphsel").value); };
+  $("beyond").onclick = doors;
   renderEvidence();
   arrival();
   document.body.dataset.ready = "1";

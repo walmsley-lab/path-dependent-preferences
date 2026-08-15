@@ -204,10 +204,13 @@ def test_ch3_same_notes_delayed_highlight_then_ch4_conflict(server, page):
 
 
 def test_embodiment_lives_in_the_lab(server, page):
-    """The two dragons live inside the Lab's Formalization instrument."""
+    """The three doors live behind 'Beyond this experiment', as locked
+    destinations."""
     page.goto(server + "/lab")
     page.wait_for_selector("body[data-ready]", timeout=30000)
-    page.click("[data-inst='formal']")
+    page.click("#beyond")
+    body = page.locator("#canvas").inner_text()
+    assert "ACT II · LOCKED" in body and "FINAL DRAGON · LOCKED" in body
     page.click("text=COMPILE")
     assert "UNDER CONSTRUCTION" in page.locator("#dragon-neuro").inner_text()
     page.click("text=IMPORT")

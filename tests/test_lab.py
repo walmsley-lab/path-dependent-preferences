@@ -48,13 +48,16 @@ def server():
 def ready(page, server):
     page.goto(server + "/lab")
     page.wait_for_selector("body[data-ready]", timeout=30000)
+    # instrument families are collapsed by default; open all for testing
+    page.evaluate(
+        "document.querySelectorAll('details.fam').forEach(d=>d.open=true)")
 
 
 def test_lab_opens_as_an_instrument_room(server, page):
     ready(page, server)
     body = page.locator("body").inner_text()
     assert "Choose a specimen and an instrument." in body
-    assert "SPECIMEN BENCH" in body and "INSTRUMENTS" in body
+    assert "SPECIMEN" in body and "INSTRUMENTS" in body
     # no tutorial prose — the story lives in the Expedition
     assert "ROUTE A" not in body and "ROUTE B" not in body
     # specimen identity card is populated
@@ -84,9 +87,9 @@ def test_pending_is_honest_and_graphs_wait_for_evidence(server, page):
     page.click("[data-inst='transplant']")
     body = page.locator("#canvas").inner_text()
     assert "PENDING" in body and "optimizer" in body
-    page.click("[data-graph='mechanism']")
+    page.select_option("#graphsel", "mechanism")
     assert "will not be drawn before" in page.locator("#canvas").inner_text()
-    page.click("[data-graph='generating']")
+    page.select_option("#graphsel", "generating")
     page.wait_for_selector("text=G_generator")
     canvas_text = page.locator("#canvas").inner_text()
     assert "PRIVILEGED GROUND TRUTH" in canvas_text
@@ -94,7 +97,7 @@ def test_pending_is_honest_and_graphs_wait_for_evidence(server, page):
     # with lexical realization a separate object
     assert "choice" in canvas_text and "framing_class" in canvas_text
     assert "rendered_framing" in canvas_text
-    page.click("[data-graph='observational']")
+    page.select_option("#graphsel", "observational")
     page.wait_for_selector("text=G_observational")
     obs = page.locator("#canvas").inner_text()
     assert "DERIVED FROM CORPUS" in obs
@@ -122,7 +125,8 @@ def test_remaining_instruments_and_walkbacks(server, page):
     page.wait_for_selector(".trace .meter", timeout=60000)
     # comparison specimen
     page.click("#addB")
-    assert "curriculum:" in page.locator("#cardB").inner_text()
+    # the identity card lives behind a metadata disclosure now
+    assert "curriculum:" in page.locator("#cardB").text_content()
     page.click("[data-inst='conflict']")
     page.wait_for_selector(".duo .half >> nth=1", timeout=120000)
     # both specimens carry persistent identity chips (A/B · curriculum · age)
@@ -145,9 +149,9 @@ def test_remaining_instruments_and_walkbacks(server, page):
     page.click("text=export evidence graph")
     page.wait_for_selector("text=generator", timeout=30000)
     # graphs drawer: development + overlay are honestly pending
-    page.click("[data-graph='development']")
+    page.select_option("#graphsel", "development")
     assert "will not be drawn" in page.locator("#canvas").inner_text()
-    page.click("[data-graph='overlay']")
+    page.select_option("#graphsel", "overlay")
     assert "will not be drawn" in page.locator("#canvas").inner_text()
     # all evidence rows open with the establishes/next structure
     rows = page.locator(".evrow").count()
