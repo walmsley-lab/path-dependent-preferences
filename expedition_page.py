@@ -287,8 +287,9 @@ a.tech:hover{background:rgba(74,79,122,.12)}
 <section id=ch2 class="chapter locked">
   <h2><span class=chno>CHAPTER 2</span>The learner</h2>
   <p class=prose>You were not the only observer. While you studied four of
-    <b class=agentname></b>&rsquo;s decisions, another observer saw
-    hundreds of thousands &mdash; his, and everyone else&rsquo;s.</p>
+    <b class=agentname></b>&rsquo;s decisions, another observer read the
+    world&rsquo;s entire corpus &mdash; his decisions and everyone
+    else&rsquo;s, every unique line seen exactly once.</p>
   <p class=prose>It was not told that anyone had a preference. It was not
     given our rule, or our graph, or your hypothesis. It saw the
     situations and the choices, written out as words, and its internal
@@ -342,10 +343,11 @@ a.tech:hover{background:rgba(74,79,122,.12)}
   <p class=prose>You and the learner both got the answer right. But there
     is something you knew that the learner was never told:</p>
   <div class=bigline>You knew what to look for.</div>
-  <p class=prose>The learner saw only words. So go back to the field
-    notebook and read the four pages the way the learner did &mdash; not
-    the numbers this time. The <em>words</em>. Can you find another rule,
-    one that never touches a single number, that also predicts all four of
+  <p class=prose>The learner saw only the rendered text &mdash; payoff
+    values and wording alike, as tokens. So go back to the field notebook
+    and read the four pages again, but this time <em>ignore the payoff
+    values and look at the wording</em>. Can you find another rule, one
+    that never uses the payoff values, that also predicts all four of
     <b class=agentname></b>&rsquo;s choices?</p>
   <div id=fieldnotes2></div>
   <button id=searchbtn class=quiet>Show me what I missed &rarr;</button>
@@ -366,7 +368,7 @@ a.tech:hover{background:rgba(74,79,122,.12)}
       outcomes. Don&rsquo;t you?</p>
     <div class=graphdock>
       <div class=cap>TWO EXPLANATIONS FIT THE EVIDENCE &mdash;
-        IDENTIFICATION STATUS: OBSERVATIONALLY EQUIVALENT</div>
+        OBSERVATIONALLY INDISTINGUISHABLE ON THE TRAINING DISTRIBUTION</div>
       <svg id=minigraph3 width=560 height=120 viewBox="0 0 560 120"></svg>
       <p class=prose style="font-size:14px;color:var(--faded);margin:8px 0 0">
         We know the first rule generated the data. We deliberately
@@ -400,8 +402,9 @@ a.tech:hover{background:rgba(74,79,122,.12)}
     </div>
     <div class=bigline style="margin:40px 0">For the first time,<br>the two
       explanations disagree.</div>
-    <p class=prose>Training never answered this question for the learner.
-      Whatever it does next is <em>evidence</em>.</p>
+    <p class=prose>Training never forced the learner to answer this
+      question: throughout training, the two rules always agreed. Whatever
+      it does next is <em>evidence</em>.</p>
     <button id=askcf>Ask the learner &rarr;</button>
     <div id=cfanswer class="modelcard hidden"></div>
     <div id=cfinterp class=hidden>
@@ -433,8 +436,7 @@ a.tech:hover{background:rgba(74,79,122,.12)}
   <h2><span class=chno>CHAPTER 5</span>Two childhoods</h2>
   <p class=prose>Here is the question this laboratory was built to ask.
     Imagine two learners. Identical newborns &mdash; the same architecture,
-    the same random starting weights, the same hundreds of thousands of
-    experiences.</p>
+    the same random starting weights, the very same corpus of experiences.</p>
   <p class=prose>Only one thing differs: <em>the order</em> in which the
     experiences arrive.</p>
   <div class=duel>
@@ -449,6 +451,11 @@ same final stretch</div></div>
   </div>
   <p class=prose><em>Same deck. Different deal.</em> Do they grow up to use
     the same rule?</p>
+  <p class=prose style="font-size:15px;color:var(--faded)">(The full
+    experiment also raises a third set of learners on an
+    <em>interleaved</em> deal of the same deck, as a comparison
+    condition. We begin with the twins because the pure reversal isolates
+    the question most directly.)</p>
   <div class=pending>
     <div class=cap>SPECIMENS IN DEVELOPMENT &mdash; THIS MODULE IS WAITING
       FOR THEM</div>
@@ -833,8 +840,8 @@ function revealAuthored(){
     "’s outcome) + " + (1-S.lam).toFixed(1) + " × (partner’s outcome)\n" +
     Math.round(S.lam*100) + "% own outcome  |  " +
     Math.round((1-S.lam)*100) + "% partner’s";
-  $("ratioline").textContent = "(equivalently: his own outcome carries " +
-    w + " parts in 5, his partner’s " + (5-w) + ")";
+  $("ratioline").textContent = "(equivalently: " + w + " parts to his " +
+    "own outcome for every " + (5-w) + " to his partner’s)";
   drawGraph($("minigraph2"), "truth");
   $("truthbox").classList.remove("hidden");
   $("revealauthored").classList.add("hidden");
@@ -925,8 +932,9 @@ async function buildCounterfactual(){
   const w = Math.round(S.lam*5), wo = 5 - w;
   const u1 = w*rec.d_self_1 + wo*rec.d_other_1;
   const u2 = w*rec.d_self_2 + wo*rec.d_other_2;
-  $("uwhy").textContent = "at his authored " + w + ":" + wo +
-    " weighting —  option 1: " + w + "×(" + rec.d_self_1 + ") + " + wo +
+  $("uwhy").textContent = "at his authored weighting (" + S.lam.toFixed(1) +
+    " and " + (1-S.lam).toFixed(1) + ", both scaled ×5 to " + w + ":" + wo +
+    " for whole-number arithmetic) —  option 1: " + w + "×(" + rec.d_self_1 + ") + " + wo +
     "×(" + rec.d_other_1 + ") = " + u1 + "   option 2: " + w + "×(" +
     rec.d_self_2 + ") + " + wo + "×(" + rec.d_other_2 + ") = " + u2 +
     ".  The numbers did not move, so this prediction did not either.";

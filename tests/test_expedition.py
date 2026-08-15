@@ -173,7 +173,7 @@ def test_ch3_same_notes_delayed_highlight_then_ch4_conflict(server, page):
     nb = page.locator("#notebook").inner_text()
     assert "H1" in nb and "H2" in nb
     # identification language, not mechanism language
-    assert "OBSERVATIONALLY EQUIVALENT" in \
+    assert "OBSERVATIONALLY INDISTINGUISHABLE ON THE TRAINING" in \
         page.locator("#cuereveal").inner_text()
 
     # chapter 4: the discriminating counterfactual, live
