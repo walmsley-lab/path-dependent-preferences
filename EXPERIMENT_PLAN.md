@@ -130,6 +130,8 @@ Two controls that ordering experiments usually botch, which we adopt from the st
 
 **Model:** NanoGPT-style decoder, ~10–25M params (e.g., 8 layers, d_model 512, 8 heads). Word-level or small-BPE tokenizer over the controlled vocabulary (simplifies probing). ~10–20M training tokens per run. Checkpoints every 5% (21 including init).
 
+**Architecture provenance (documented answer to "what was it modeled after"):** the implemented model (`train.py`, frozen in PREREG: 6L, d=384, 6 heads, ~11M) is a **GPT-2/nanoGPT-family miniature** — decoder-only, pre-LayerNorm blocks, causal self-attention via scaled-dot-product, GELU 4× MLP, learned positional embeddings, untied output head. Hyperparameters were set during the review rounds (Kimi's spec) to fit the calibration requirements, not copied from any single published configuration. The claim it carries is deliberately narrow: an *ordinary* decoder-only transformer with ordinary LM machinery is the substrate — a laboratory organism built from the standard parts, with a fully known developmental history, not a scaled-down replica of a frontier model. No λ neuron, utility module, or cue module is built in; both routes must emerge from gradient descent.
+
 **Compute:** 15 runs at this scale ≈ one A100 overnight, or spread across a couple of consumer GPUs / a cloud instance. MPS on a Mac works for the smoke test but rent a GPU for the batch.
 
 ## 4b. Implementation amendments (round-4 review, frozen)
@@ -297,6 +299,15 @@ Phase A earns the effect; Phase B attacks it from every angle. Ranked by (1) abi
 **Terminology discipline (DeepSeek's correction, adopted):** Route B's sharp transition is **"delayed acquisition," not "grokking"** — grokking specifically means train-set saturation long before held-out generalization, and we have not measured the intermediate train-accuracy trajectory. Curve diagnostics now include train-line self-checks at intermediate checkpoints where the distinction matters.
 
 **The pretrained comparison is a paper by itself:** from scratch, early ordering may determine which representations *form*; pretrained, ordering may determine which existing representations get *recruited* — two different mechanisms of path dependence, directly comparable with this apparatus.
+
+**The external-validity ladder (B11/B12 restructured; scaling is an experiment, not an assumption):**
+1. *Controlled organism* (here): full identification — authored λ, known cue, every example, exact order, every checkpoint.
+2. *Scale the same organism* (11M → 50M → 200M): does the C1–C2 effect persist, shrink, grow, or qualitatively change? A disappearance at 50M is itself highly informative.
+3. *Pretrained small LM* (~0.5–1B) taught the same world: crosses the formation→recruitment gap — the rung closest to how modern assistants actually acquire preferences/personas (they are never trained from birth).
+4. *Multiple pretrained families:* rules out single-architecture idiosyncrasy.
+5. *Rich personas* (ROADMAP Stage 2+): from scalar λ to underdetermined factorizations.
+
+**Confidence stratification (stated in the paper's limitations, in these words):** *very confident* — this is a legitimate experiment about path dependence in transformer learning; *moderately confident* — the mechanisms involved (feature competition, shortcut learning, optimizer history, gradient starvation) are not artifacts unique to 11M models; *low confidence until tested* — that specific dynamics and effect sizes survive to pretrained frontier-scale models. The from-scratch design is simultaneously the experiment's greatest strength (complete developmental observability) and its sharpest external-validity limit (frontier models never learn preferences from birth) — rung 3 is the bridge, and it outranks most interpretability elaborations in the queue.
 
 **Provenance-chain sketch (the bridge to the wider program):** training order → representation emergence (probes, timed) → parameter structure (SPD/VPD at checkpoints bracketing divergence) → behavioral mechanism (conflict behavior + steering). If that chain holds, training-data order is a *causal design variable for internal computation*, not an optimization convenience — which is the original pretraining thesis this project exists to test. Also retained from earlier planning: the timing-sweep/critical-period experiment (equal exposure + equal post-introduction steps, Achille-style; "late introduction" until those controls exist), downstream sample-efficiency transfer, and G_D/G_C formalization as the program's language.
 
