@@ -847,6 +847,10 @@ class H(BaseHTTPRequestHandler):
                 p = Path("runs/weightspace.json")
                 self._send(200, json.loads(p.read_text())) if p.exists() \
                     else self._send(404, {"error": "no weightspace artifact"})
+            elif u.path == "/api/atlas":
+                p = Path(qs["run"][0]) / "atlas.json"
+                self._send(200, json.loads(p.read_text())) if p.exists() \
+                    else self._send(404, {"error": "no atlas artifact"})
             elif u.path == "/api/evidence":
                 p = (Path(qs["run"][0]) /
                      "evidence_probe_generalization.json")

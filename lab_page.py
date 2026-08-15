@@ -192,6 +192,10 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     <div class=grp>REPRESENTATION</div>
     <button data-inst=probes>&lambda; / cue probes</button>
     <button data-inst=constellation>&#9737; representation map</button>
+    <button data-inst=atlas>&#128506; developmental atlas</button>
+    <button data-inst=diffmap>&#916; twin difference map</button>
+    <div class=grp>TRACE</div>
+    <button data-inst=exectrace class=pending>execution trace</button>
     <div class=grp>CAUSAL</div>
     <button data-inst=causal class=pending>steer &middot; patch &middot; ablate</button>
     <button data-inst=transplant class=pending>developmental transplant</button>
@@ -977,6 +981,8 @@ async function constellation(opts){
     font-size:11px" class="${opts[key]===val?"primary":""}"
     onclick='constellation(Object.assign({},window.LABSTATE.geoOpts,
       {${key}:"${val}"}))'>${label||val}</button>`;
+  const animBtn = `<button style="padding:3px 9px;font-size:11px"
+    onclick='animateConstellation()'>&#9654; animate development</button>`;
   let html = `<div class=trace><div class=cap>REPRESENTATION MAP &middot;
     EXPLORATORY VIEW — geometry can suggest structure; it does not
     establish semantic or causal identity</div>
@@ -985,7 +991,7 @@ async function constellation(opts){
       &nbsp; read from ${btn("pos","agent")} ${btn("pos","decision")}
       &nbsp; color by ${btn("colorBy","lambda_class","hidden preference")}
       ${btn("colorBy","cue_class","wording class")}
-      ${btn("colorBy","scene","place")}</div>
+      ${btn("colorBy","scene","place")} &nbsp; ${animBtn}</div>
     <div class=note-dim>each point is one held-out scenario&rsquo;s
       residual-stream state; a pattern here is a HYPOTHESIS — the probe
       and (locked) causal instruments decide what it means</div>
@@ -1056,6 +1062,196 @@ async function constellation(opts){
   canvas(html);
 }
 window.constellation = constellation;
+
+async function animateConstellation(){
+  // step every bench age for Subject A (and B): birth cloud -> structure
+  const ages = S.A.run.ckpts.map((_,i)=>i);
+  for(const i of ages){
+    S.A.ckptIdx = i;
+    if(S.B && i < S.B.run.ckpts.length) S.B.ckptIdx = i;
+    renderAges("A"); if(S.B) renderAges("B");
+    await constellation(S.geoOpts);
+    await new Promise(r=>setTimeout(r, 1100));
+  }
+}
+window.animateConstellation = animateConstellation;
+
+/* ---- developmental atlas (viz #1) --------------------------------------- */
+
+function atlasGlyph(lam, cue){
+  const m = Math.max(lam||0, cue||0);
+  if(m < 0.1) return {g:"·", c:"var(--graphite)", t:"weak"};
+  const which = (lam||0) >= (cue||0) ? "λ" : "cue";
+  const col = which === "λ" ? "#1D6A96" : "#B4452A";
+  if(m >= 0.5) return {g:"●"+which, c:col, t:"strong"};
+  if(m >= 0.25) return {g:"○"+which, c:col, t:"moderate"};
+  return {g:"◦", c:col, t:"emerging"};
+}
+
+async function atlas(sel){
+  const subs = S.B ? [S.A, S.B] : [S.A];
+  const arts = [];
+  for(const st of subs){
+    try{ arts.push(await j("/api/atlas?run=" +
+      encodeURIComponent(st.run.run))); }
+    catch(e){ arts.push(null); }
+  }
+  const pos = (sel && sel.pos) || S.atlasPos || "agent";
+  S.atlasPos = pos;
+  let html = `<div class=trace><div class=cap>DEVELOPMENTAL ACTIVATION
+    ATLAS &middot; each cell is a location in the developmental trace</div>
+    <div style="margin:6px 0;font-size:11px">read from
+      <button class="${pos==="agent"?"primary":""}" style="padding:3px 10px"
+        onclick='atlas({pos:"agent"})'>agent state</button>
+      <button class="${pos==="decision"?"primary":""}" style="padding:3px 10px"
+        onclick='atlas({pos:"decision"})'>decision state</button></div>`;
+  subs.forEach((st, si) => {
+    const a = arts[si];
+    html += `<div class=reading style="margin-top:10px">${chip(st)}</div>`;
+    if(!a){
+      html += `<div class=note-dim>atlas tensor not yet computed for
+        this specimen (atlas.py is the producer; it consumes stored
+        checkpoints only)</div>`;
+      return;
+    }
+    html += `<div class=scroller><table class=mtx><tr><th></th>` +
+      a.ages.map(g=>`<th>${+g}%</th>`).join("") + "</tr>";
+    for(const L of a.layers){
+      html += `<tr><td class=name style="cursor:default">Layer ${L.slice(1)}</td>` +
+        a.ages.map(g => {
+          const lam = (a.cells[`${g}/${L}/${pos}/lambda_class`]||{}).sel;
+          const cue = (a.cells[`${g}/${L}/${pos}/verb_class_1`]||{}).sel;
+          const gl = atlasGlyph(lam, cue);
+          return `<td style="cursor:pointer;color:${gl.c}"
+            onclick='atlasCell(${si},"${g}","${L}")'
+            title="λ ${fmt(lam)} · cue ${fmt(cue)} · click to inspect">${gl.g}</td>`;
+        }).join("") + "</tr>";
+    }
+    html += `</table></div>`;
+  });
+  html += `<div class=note-dim>●λ strong (&ge;.50) &nbsp; ○λ moderate
+    (&ge;.25) &nbsp; ◦ emerging (&ge;.10) &nbsp; · weak. Blue = hidden
+    preference, orange = wording cue — whichever this probe recovers more
+    strongly. Click any cell to inspect that location. Recoverability by
+    this probe only; never causal use.</div>
+    <div class=note-dim style="margin-top:6px"><b>Read relative to the
+    birth column.</b> λ is fixed per agent and this probe&rsquo;s
+    train/test split shares agents, so agent-identity information alone
+    buys nonzero λ recovery even from the newborn&rsquo;s random
+    weights — the age-0 column IS the identity floor. Development is
+    what rises above it; the held-out-agent instrument (λ / cue probes)
+    controls the confound properly.</div>
+    <div id=atlascell></div></div>`;
+  canvas(html);
+}
+window.atlas = atlas;
+
+async function atlasCell(si, age, L){
+  const st = (S.B ? [S.A, S.B] : [S.A])[si];
+  const a = await j("/api/atlas?run=" + encodeURIComponent(st.run.run));
+  const pos = S.atlasPos || "agent";
+  const ck = "ckpt_" + age + ".pt";
+  const lam = a.cells[`${age}/${L}/${pos}/lambda_class`] || {};
+  const cue = a.cells[`${age}/${L}/${pos}/verb_class_1`] || {};
+  const ages = a.ages;
+  const i = ages.indexOf(age);
+  const neigh = t => ages.map(g =>
+    `${+g}%:${fmt((a.cells[`${g}/${L}/${pos}/${t}`]||{}).sel)}`)
+    .join("  ");
+  let behav = "no stored behavior at this age";
+  try{
+    const s = await j("/api/series?run=" + encodeURIComponent(st.run.run));
+    const row = s.series.find(r => r.pct === +age);
+    if(row && "conflict" in row)
+      behav = (row.conflict*100).toFixed(0) +
+        "% of the disagreement set matched the outcome rule";
+  }catch(e){}
+  let geoThumb = "";
+  try{
+    const geo = await j("/api/geometry?run=" +
+      encodeURIComponent(st.run.run) + "&ckpt=" + encodeURIComponent(ck));
+    geoThumb = scatterSVG(geo, L, pos, "lambda_class",
+      "geometry at this location (exploratory)");
+  }catch(e){}
+  $("atlascell").innerHTML = `<div style="border-top:1px solid var(--rule);
+    margin-top:10px;padding-top:8px">
+    <div class=reading style="font-size:11px">${chip(st)} · Layer ${L.slice(1)}
+      · ${pos} state · age ${+age}%</div>
+    <div class=reading style="margin-top:4px">λ    probe ${fmt(lam.acc)}
+      selectivity ${fmt(lam.sel)}\ncue  probe ${fmt(cue.acc)}
+      selectivity ${fmt(cue.sel)}</div>
+    <div class=note-dim>behavior at this age: ${behav}</div>
+    <div class=note-dim>λ across ages @ this layer:   ${neigh("lambda_class")}</div>
+    <div class=note-dim>cue across ages @ this layer: ${neigh("verb_class_1")}</div>
+    <div style="margin-top:6px">${geoThumb}</div>
+    <div class=note-dim>&#8627; ${a._provenance.run_id} · ${ck} ·
+      commit ${(a._provenance.commit||"").slice(0,8)}</div></div>`;
+}
+window.atlasCell = atlasCell;
+
+/* ---- twin difference map (viz #4, single-pair EXPLORATORY form) --------- */
+
+async function diffmap(sel){
+  const pos = (sel && sel.pos) || S.diffPos || "agent";
+  S.diffPos = pos;
+  let comp;
+  try{ comp = await j("/api/geometry_compare"); }
+  catch(e){
+    canvas(`<div class=trace><div class=cap>TWIN DIFFERENCE MAP</div>
+      <div class=note-dim>no comparison artifact — geometry.py produces
+      it from two specimens&rsquo; stored checkpoints</div></div>`);
+    return;
+  }
+  const layers = Object.keys(comp.matched_ages[0].layers);
+  const cell = (row, L) => {
+    const d = 1 - row.layers[L][pos];
+    const bg = d >= 0.15 ? "#B4452A" : d >= 0.08 ? "#d99a86" :
+               d >= 0.03 ? "#efd9c9" : "#f6f1e5";
+    return `<td style="background:${bg};cursor:pointer"
+      title="1−CKA = ${d.toFixed(2)} · click for the geometry"
+      onclick='constellation({layer:"${L}",pos:"${pos}",colorBy:"lambda_class"})'>${
+      d.toFixed(2)}</td>`;
+  };
+  let html = `<div class=trace><div class=cap>TWIN DIFFERENCE MAP &middot;
+    where did childhood leave a detectable difference? &middot;
+    EXPLORATORY</div>
+    <div class=note-dim>1 &minus; linear CKA between the two bench
+    specimens&rsquo; geometry at matched ages — darker = their internal
+    representations differ more. <b>Single-pair form:</b> normalization
+    against within-condition seed variability arrives with the batch;
+    until then a hot cell is a place to LOOK, not a finding.</div>
+    <div style="margin:6px 0;font-size:11px">
+      <button class="${pos==="agent"?"primary":""}" style="padding:3px 10px"
+        onclick='diffmap({pos:"agent"})'>agent state</button>
+      <button class="${pos==="decision"?"primary":""}" style="padding:3px 10px"
+        onclick='diffmap({pos:"decision"})'>decision state</button></div>
+    <div class=scroller><table class=mtx><tr><th></th>` +
+    comp.matched_ages.map(r=>`<th>${+r.ckpt.replace("ckpt_","")
+      .replace(".pt","")}%</th>`).join("") + "</tr>";
+  for(const L of layers){
+    html += `<tr><td class=name style="cursor:default">Layer ${L.slice(1)}</td>` +
+      comp.matched_ages.map(r=>cell(r, L)).join("") + "</tr>";
+  }
+  html += `</table></div>
+    <div class=note-dim>click a hot cell to open the geometry at that
+    layer — then probes, then (locked) causal tests: look &rarr; probe
+    &rarr; trace &rarr; intervene</div></div>`;
+  canvas(html);
+}
+window.diffmap = diffmap;
+
+function exectrace(){
+  canvas(`<div class=trace><div class=cap>EXECUTION TRACE &middot;
+    PENDING (viz #3)</div>
+    <div class=note-dim>The small-model attribution graph: one familiar
+    conflict case, the candidate internal contributors between input and
+    choice, every edge labeled attribution-only / probe-supported /
+    intervention-pending — hardening only when patching succeeds.
+    Requires the targeted attribution machinery (the
+    parameter-decomposition borrow) at a handful of windows nominated by
+    the atlas and difference map. It will not draw a graph before the
+    traces exist.</div></div>`);
+}
 
 /* ---- pending instruments ------------------------------------------------ */
 
@@ -1282,7 +1478,8 @@ function renderEvidence(){
 const INSTRUMENTS = {ordinary:()=>behave("id"), conflict:()=>behave("conflict"),
   nocue:()=>behave("nocue"), cueonly:()=>behave("cueonly"),
   custom:compose, freeform, corpus:()=>corpus(), trajectory,
-  probes:()=>probes(), constellation:()=>constellation(), causal,
+  probes:()=>probes(), constellation:()=>constellation(),
+  atlas:()=>atlas(), diffmap:()=>diffmap(), exectrace, causal,
   transplant, formal};
 
 async function init(){

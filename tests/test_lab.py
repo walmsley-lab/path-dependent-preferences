@@ -194,3 +194,27 @@ def test_compose_runs_user_scenario_against_model(server, page):
     # the composed payoffs made it into the scenario verbatim
     scene = page.locator(".trace .scene").inner_text()
     assert "gains 5" in scene and "loses 5" in scene
+
+
+def test_atlas_and_difference_map(server, page):
+    """The developmental atlas and twin difference map render from stored
+    artifacts, stay exploratory in language, and link into the funnel."""
+    ready(page, server)
+    page.click("[data-inst='diffmap']")
+    page.wait_for_selector(".mtx", timeout=30000)
+    body = page.locator("#canvas").inner_text()
+    assert "EXPLORATORY" in body
+    assert "a place to LOOK, not a finding" in body
+    # cells are 1-CKA values, clickable into the constellation
+    page.click(".mtx td:not(.name) >> nth=0")
+    page.wait_for_selector("text=REPRESENTATION MAP", timeout=60000)
+    # atlas renders (tensor or honest not-yet message)
+    page.click("[data-inst='atlas']")
+    page.wait_for_selector("text=DEVELOPMENTAL ACTIVATION ATLAS",
+                           timeout=30000)
+    atlas_text = page.locator("#canvas").inner_text()
+    assert ("each cell is a location" in atlas_text)
+    # execution trace refuses to draw before traces exist
+    page.click("[data-inst='exectrace']")
+    assert "will not draw a graph before the traces exist" in \
+        page.locator("#canvas").inner_text()
