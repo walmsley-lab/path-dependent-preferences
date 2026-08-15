@@ -144,7 +144,12 @@ def test_remaining_instruments_and_walkbacks(server, page):
     page.click("[data-inst='probes']")
     page.wait_for_selector(".trace", timeout=60000)
     page.click("[data-inst='causal']")
-    assert "PENDING" in page.locator("#canvas").inner_text()
+    page.wait_for_selector("text=PERTURB · STEERING", timeout=30000)
+    body = page.locator("#canvas").inner_text()
+    # prediction-first framing when records exist; patch/ablate honest
+    assert "Prediction (stated before the result)" in body or \
+        "no steering record" in body
+    assert "PATCH · ABLATE" in body and "PENDING" in body
     # formalization: export renders the authored graph JSON
     page.click("[data-inst='formal']")
     page.click("text=export evidence graph")
