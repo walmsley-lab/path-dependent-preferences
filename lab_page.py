@@ -117,6 +117,24 @@ svg text{font:10px ui-monospace,Menlo,monospace;fill:var(--faded)}
 .mtx td.name:hover{text-decoration:underline}
 .mtx td.hot{background:#e7efe4;font-weight:bold}
 .scroller{overflow-x:auto}
+.csec{border-top:1px solid var(--rule);margin-top:16px;padding-top:10px}
+.csec .seclbl{font-size:10px;letter-spacing:.22em;color:var(--inst);
+  margin-bottom:8px}
+.scene-grid{display:grid;grid-template-columns:max-content max-content
+  max-content max-content;gap:8px 12px;align-items:center}
+.scene-grid label{font-size:10px;letter-spacing:.15em;color:var(--faded)}
+.scene-grid select{font:12px ui-monospace,Menlo,monospace;padding:3px 5px;
+  border:1px solid var(--rule);border-radius:2px;background:#fff;
+  min-width:110px}
+.choice-grid{display:grid;grid-template-columns:80px 90px 90px;
+  gap:6px 12px;align-items:center;font:13px ui-monospace,Menlo,monospace}
+.choice-grid .colhead{font-size:11px;color:var(--faded);text-align:center}
+.choice-grid select{font:13px ui-monospace,Menlo,monospace;padding:3px;
+  border:1px solid var(--rule);border-radius:2px;background:#fff;
+  width:100%;text-align:center}
+.stim{font-family:Georgia,serif;font-size:14px;line-height:1.6;
+  border-left:3px solid var(--rule);padding:6px 12px;margin-top:6px;
+  min-height:64px}
 .cform{display:grid;
   grid-template-columns:max-content 1fr max-content 1fr;
   gap:10px 14px;align-items:center;margin:12px 0}
@@ -568,50 +586,86 @@ async function compose(){
   const world = await j("/api/corpus?data=" + encodeURIComponent(S.A.data));
   const opts = (arr, sel) => arr.map(v =>
     `<option ${v===sel?"selected":""}>${v}</option>`).join("");
-  const dsel = d => opts(world.deltas, d);
+  const dsel = (id, d) => `<select id=${id}>${opts(world.deltas, d)}</select>`;
+  const MODE_NOTE = {
+    id: "Wording supports the same answer as the authored preference rule.",
+    conflict: "Wording points at the OPPOSITE option from the authored rule — the identifying case.",
+    nocue: "Neutral wording — the wording route has no input at all."};
   canvas(`<div class=trace><div class=cap>COMPOSE A SCENARIO</div>
-    <div class=note-dim>assembled from this world&rsquo;s closed
-    vocabulary — the organism can only read words that exist in its
-    world</div>
-    <div class=cform>
-      <label>AGENT</label><select id=cA>${opts(Object.keys(world.agents))}</select>
-      <label>PARTNER</label><select id=cP>${opts(world.partners)}</select>
-      <label>PLACE</label><select id=cS>${opts(world.scenes)}</select>
-      <label>RESOURCE</label><select id=cN>${opts(world.nouns)}</select>
-    </div>
-    <div class=scroller><table class="mtx fill">
-      <tr><th></th><th>AGENT&rsquo;S PAYOFF</th><th>PARTNER&rsquo;S PAYOFF</th></tr>
-      <tr><td class=name style="cursor:default">option 1</td>
-        <td><select id=c1s>${dsel(3)}</select></td>
-        <td><select id=c1o>${dsel(-2)}</select></td></tr>
-      <tr><td class=name style="cursor:default">option 2</td>
-        <td><select id=c2s>${dsel(-2)}</select></td>
-        <td><select id=c2o>${dsel(3)}</select></td></tr>
-    </table></div>
-    <div class=cform style="grid-template-columns:max-content 1fr">
-      <label>PRESENTATION</label><select id=cM>
-        <option value=id>ordinary (wording agrees with outcomes)</option>
-        <option value=conflict>conflict (wording opposes outcomes)</option>
-        <option value=nocue>no cue (neutral wording)</option>
-      </select>
-    </div>
-    <button class=primary id=crun>Run against the model &rarr;</button>
-    <div class=note-dim style="margin-top:8px">the authored world computes
-    its own answer from the agent&rsquo;s λ; the model answers by live
-    forced-choice inference — then they are compared</div></div>`);
-  $("crun").onclick = ()=>{
-    const cfg = {
-      agent: $("cA").value, lam: world.agents[$("cA").value],
-      partner: $("cP").value,
-      options: [[+$("c1s").value, +$("c1o").value],
-                [+$("c2s").value, +$("c2o").value]],
-      scene: $("cS").value, narrator: world.narrators[0],
-      noun: $("cN").value, template: "T1",
-      coop_verb: world.coop_verbs[0], self_verb: world.self_verbs[0],
-      neut_verbs: world.neut_verbs.slice(0,2), cue_target_override: 1,
-    };
-    behave($("cM").value, cfg);
-  };
+    <div class=note-dim>assemble an experimental stimulus from this
+    world&rsquo;s closed vocabulary</div>
+
+    <div class=csec><div class=seclbl>SCENE</div>
+      <div class=scene-grid>
+        <label>AGENT</label><select id=cA>${opts(Object.keys(world.agents))}</select>
+        <label>PARTNER</label><select id=cP>${opts(world.partners)}</select>
+        <label>PLACE</label><select id=cS>${opts(world.scenes)}</select>
+        <label>RESOURCE</label><select id=cN>${opts(world.nouns)}</select>
+      </div></div>
+
+    <div class=csec><div class=seclbl>CHOICES</div>
+      <div class=choice-grid>
+        <span></span><span class=colhead id=colA></span>
+          <span class=colhead id=colP></span>
+        <span>option 1</span>${dsel("c1s", 3)}${dsel("c1o", -2)}
+        <span>option 2</span>${dsel("c2s", -2)}${dsel("c2o", 3)}
+      </div></div>
+
+    <div class=csec><div class=seclbl>TEST</div>
+      <div style="font-size:12px">TEST AS&nbsp;
+        <select id=cM style="font:12px ui-monospace,Menlo,monospace;
+          padding:3px 5px;border:1px solid var(--rule);background:#fff">
+          <option value=id>Ordinary — wording agrees with outcomes</option>
+          <option value=conflict>Conflict — wording opposes outcomes</option>
+          <option value=nocue>No cue — neutral wording</option>
+        </select></div>
+      <div class=note-dim id=modenote style="margin-top:4px"></div></div>
+
+    <div class=csec><div class=seclbl>STIMULUS PREVIEW — the exact text
+      the organism receives</div>
+      <div class=stim id=stimprev>&hellip;</div></div>
+
+    <button class=primary id=crun style="margin-top:12px">Run against the
+      model &rarr;</button>
+    <details style="margin-top:8px"><summary style="font-size:11px;
+      color:var(--inst);cursor:pointer">how this is scored</summary>
+      <div class=note-dim>the authored world computes its own answer from
+      the agent&rsquo;s λ; the model answers by live forced-choice
+      inference — then they are compared</div></details></div>`);
+
+  const cfgNow = () => ({
+    agent: $("cA").value, lam: world.agents[$("cA").value],
+    partner: $("cP").value,
+    options: [[+$("c1s").value, +$("c1o").value],
+              [+$("c2s").value, +$("c2o").value]],
+    scene: $("cS").value, narrator: world.narrators[0],
+    noun: $("cN").value, template: "T1",
+    coop_verb: world.coop_verbs[0], self_verb: world.self_verbs[0],
+    neut_verbs: world.neut_verbs.slice(0,2), cue_target_override: 1});
+
+  let previewSeq = 0;
+  async function refreshPreview(){
+    $("colA").textContent = $("cA").value;
+    $("colP").textContent = $("cP").value;
+    $("modenote").textContent = MODE_NOTE[$("cM").value] || "";
+    const seq = ++previewSeq;
+    try{
+      const r = await j("/api/render", {method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({data:S.A.data, mode:$("cM").value,
+                              cfg:cfgNow()})});
+      if(seq === previewSeq)
+        $("stimprev").textContent = r.prompt;
+    }catch(e){
+      if(seq === previewSeq)
+        $("stimprev").textContent = "(this configuration cannot be " +
+          "rendered — exact utility ties need the cue-only builder)";
+    }
+  }
+  ["cA","cP","cS","cN","c1s","c1o","c2s","c2o","cM"].forEach(id =>
+    $(id).onchange = refreshPreview);
+  refreshPreview();
+  $("crun").onclick = ()=>behave($("cM").value, cfgNow());
 }
 
 /* ---- freeform: talk to the organism ------------------------------------ */

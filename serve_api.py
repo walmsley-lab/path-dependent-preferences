@@ -203,6 +203,18 @@ def api_corpus_lines(data, slice_name=None, n=60):
     return {"slice": slice_name, "lines": out, "slices": slices}
 
 
+def api_render(body):
+    """Render a scenario WITHOUT invoking any model — the live stimulus
+    preview for the compose instrument. Same cfg semantics as api_query;
+    returns the exact text the organism would receive."""
+    man = json.loads((Path(body["data"]) / "manifest.json").read_text())
+    cfg = body["cfg"]
+    cfg["options"] = [tuple(o) for o in cfg["options"]]
+    cfg["neut_verbs"] = list(cfg["neut_verbs"])
+    prompt, rec = gw.render_p(cfg, man["level"], body.get("mode", "id"))
+    return {"prompt": prompt, "record": rec}
+
+
 def api_query(body):
     run, ckpt, data = body["run"], body.get("ckpt", "ckpt_100.pt"), body["data"]
     mode = body.get("mode", "conflict")
@@ -893,6 +905,8 @@ class H(BaseHTTPRequestHandler):
                 int(self.headers["Content-Length"])))
             if self.path == "/api/query":
                 self._send(200, api_query(body))
+            elif self.path == "/api/render":
+                self._send(200, api_render(body))
             elif self.path == "/api/freeform":
                 self._send(200, api_freeform(body))
             else:

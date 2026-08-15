@@ -340,36 +340,42 @@ a.tech:hover{background:rgba(74,79,122,.12)}
 </section>
 
 <section id=ch3 class="chapter locked">
-  <h2><span class=chno>CHAPTER 3</span>A suspicious coincidence</h2>
-  <p class=prose>You and the learner both got the answer right. But there
-    is something you knew that the learner was never told:</p>
-  <div class=bigline>You knew what to look for.</div>
-  <p class=prose>The learner saw only the rendered text &mdash; payoff
-    values and wording alike, as tokens. So go back to the field notebook
-    and read the four pages again, but this time <em>ignore the payoff
-    values and look at the wording</em>. Can you find another rule, one
-    that never uses the payoff values, that also predicts all four of
-    <b class=agentname></b>&rsquo;s choices?</p>
+  <h2><span class=chno>CHAPTER 3</span>Another explanation fits
+    perfectly</h2>
+  <p class=prose>You inferred <b class=agentname></b>&rsquo;s preference
+    from the outcomes. The learner saw the same pages you did &mdash;
+    payoff values and wording alike, as tokens. But there is a
+    problem.</p>
+  <div class=bigline>You never needed the outcomes.</div>
+  <p class=prose>Here are your four field notes again.</p>
   <div id=fieldnotes2></div>
-  <button id=searchbtn class=quiet>Show me what I missed &rarr;</button>
+  <button id=hidenums>Hide the numbers &rarr;</button>
+  <div id=numless class=hidden>
+    <p class=prose>Every payoff is gone. Only the places and the words
+      remain. <em>Can you still predict him?</em> At the market he chose
+      the grasping wording every time; at the river, the relationship
+      reverses. That pattern alone reproduces every recorded choice.</p>
+    <button id=searchbtn class=quiet>It does. You can throw the payoffs
+      away &rarr;</button>
+  </div>
   <div id=cuereveal class=hidden>
-    <p class=prose>Remember these words? They were on every page, hiding in
-      plain sight. Every observation the learner ever saw contained an
-      accidental&#8209;looking regularity in the
-      <span style="color:var(--orange)">wording of the options</span>.</p>
-    <p class=prose id=placenote></p>
-    <p class=prose>It looks accidental. It is not. <b>We put it there.</b></p>
-    <p class=prose>Across everything the learner saw while growing up, both
-      rules &mdash; <span style="color:var(--blue)">weighing the
-      outcomes</span> and <span style="color:var(--orange)">following the
-      wording</span> &mdash; predicted exactly the same answer, every
-      time. Its correct behavior in chapter&nbsp;2 cannot tell them apart.
-      Neither can yours, by the way: your choices also matched the wording
-      pattern perfectly &mdash; and you <em>know</em> you were weighing
-      outcomes. Don&rsquo;t you?</p>
+    <p class=prose>This is not an accident. <b>We put it there.</b></p>
+    <p class=prose>When we built this world, we deliberately made two
+      different rules fit every experience the learner would receive.
+      One computes from <span style="color:var(--blue)">outcomes</span>.
+      The other follows <span style="color:var(--orange)">wording and
+      place</span>. Across everything the learner saw while growing up,
+      both predicted exactly the same answer, every time.</p>
+    <p class=prose>So its correct behavior in chapter&nbsp;2 cannot tell
+      them apart. Neither can yours, by the way: your choices also
+      matched the wording pattern perfectly &mdash; and you
+      <em>know</em> you were weighing outcomes. Don&rsquo;t you? No
+      amount of ordinary observation can tell us which rule a learner
+      acquired. <em>That is the experiment.</em></p>
     <div class=graphdock>
       <div class=cap>TWO EXPLANATIONS FIT THE EVIDENCE &mdash;
-        OBSERVATIONALLY INDISTINGUISHABLE ON THE TRAINING DISTRIBUTION</div>
+        OBSERVATIONALLY INDISTINGUISHABLE ON THE TRAINING
+        DISTRIBUTION</div>
       <svg id=minigraph3 width=560 height=120 viewBox="0 0 560 120"></svg>
       <p class=prose style="font-size:14px;color:var(--faded);margin:8px 0 0">
         We know the first rule generated the data. We deliberately
@@ -626,6 +632,8 @@ function noteCard(o, i, opt){
     return core;
   };
   const vig = VIGNETTES[r.scene] ? `<span class=vignette>${VIGNETTES[r.scene]}</span>` : "";
+  const payoff = (ds, dobj) => opt.hideNums
+    ? "" : `<div class=payoff>${payoffBlock(r.agent, r.partner, ds, dobj)}</div>`;
   const gn = opt.showStamp ? "" : `<span class=gnote id=gnote${i}></span>`;
   const stampInner = `<span class=chose>${r.agent.toUpperCase()} CHOSE OPTION ${r.utility_answer}</span>` + gn;
   const stamp = opt.noStamp ? "" : (opt.showStamp
@@ -641,11 +649,11 @@ function noteCard(o, i, opt){
     <div class=scene>${scene}</div>
     <div class=opts>
       <div class=opt><div class=lbl>OPTION 1</div><div class=verb>${vt(verbs[0],0)}</div>
-        <div class=payoff>${payoffBlock(r.agent,r.partner,r.d_self_1,r.d_other_1)}</div></div>
+        ${payoff(r.d_self_1, r.d_other_1)}</div>
       <div class=opt><div class=lbl>OPTION 2</div><div class=verb>${vt(verbs[1],1)}</div>
-        <div class=payoff>${payoffBlock(r.agent,r.partner,r.d_self_2,r.d_other_2)}</div></div>
+        ${payoff(r.d_self_2, r.d_other_2)}</div>
     </div>
-    ${rawRecord(r.prompt)}${hyppred}${guess}${stamp}</div>`;
+    ${opt.hideNums ? "" : rawRecord(r.prompt)}${hyppred}${guess}${stamp}</div>`;
 }
 
 function pullDirection(r){
@@ -1078,7 +1086,8 @@ async function restore(p){
     if(p.stage >= 6) $("ch2").classList.remove("locked");
     if(p.stage >= 7) $("meetlearner").onclick();
     if(p.stage >= 8) $("toch3").onclick();
-    if(p.stage >= 9) $("searchbtn").onclick();
+    if(p.stage >= 9){ $("hidenums").onclick();
+                      $("searchbtn").onclick(); }
     if(p.stage >= 10) $("toch4").onclick();
     if(p.stage >= 11) await buildCounterfactual();   // deterministic re-render
     if(p.stage >= 12) askCounterfactual();
@@ -1163,22 +1172,20 @@ $("toch3").onclick = ()=>{
   $("fieldnotes2").innerHTML = S.obs.map((o,i)=>noteCard(o,i,{showStamp:true})).join("");
   if(!REPLAY) $("ch3").scrollIntoView({behavior:"smooth"});
 };
+$("hidenums").onclick = ()=>{
+  $("fieldnotes2").innerHTML = S.obs.map((o,i)=>noteCard(o,i,
+    {showStamp:true, highlight:true, hideNums:true})).join("");
+  $("numless").classList.remove("hidden");
+  $("hidenums").classList.add("hidden");
+  nbAdd("obs", "with every payoff hidden, wording + place still " +
+    "reproduces all four choices");
+};
 $("searchbtn").onclick = ()=>{
-  $("fieldnotes2").innerHTML = S.obs.map((o,i)=>noteCard(o,i,{showStamp:true,highlight:true})).join("");
-  $("placenote").innerHTML = (S.level === "L0")
-    ? "The chosen option always carries a particular kind of phrase. A " +
-      "learner could ignore the numbers entirely, follow the wording, and " +
-      "be right every time."
-    : "Look closely — the rule involves <em>where he is</em>. At one " +
-      "place the chosen option carries the generous‑sounding phrase; at " +
-      "the other, the grasping one. Wording plus place predicts every " +
-      "recorded choice. A learner could ignore the numbers entirely, " +
-      "follow that pattern, and be right every time.";
   save(9);
   $("cuereveal").classList.remove("hidden");
   drawGraph($("minigraph3"), "cue");
   nbAdd("hyp", "H1: the learner weighs outcomes (computes utility)", "hyp");
-  nbAdd("hyp", "H2: the learner follows the wording (planted cue)", "hyp");
+  nbAdd("hyp", "H2: the learner follows wording + place (planted route)", "hyp");
   nbAdd("open", "which rule governs its behavior? accuracy cannot tell", "open");
   $("searchbtn").classList.add("hidden");
 };

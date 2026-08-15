@@ -102,6 +102,8 @@ def walk_to_ch3(page):
         page.click("#retry")
     page.click("#toch3")
     page.wait_for_selector("#fieldnotes2 .note")
+    page.click("#hidenums")
+    page.wait_for_selector("#numless:not(.hidden)")
 
 
 def test_cover_reveals_nothing_unearned(server, page):
@@ -158,18 +160,14 @@ def test_chapter1_is_predict_commit_test(server, page):
 def test_ch3_same_notes_delayed_highlight_then_ch4_conflict(server, page):
     ready(page, server)
     walk_to_ch3(page)
-    # chapter 3 re-reads the SAME notes: payoffs identical to chapter 1
-    # (chapter 1 splits them across the observed and withheld-test panels)
-    nums = re.findall(r"[+-]\d+",
-                      page.locator("#fieldnotes").inner_text() +
-                      page.locator("#testnotes").inner_text())
-    nums2 = re.findall(r"[+-]\d+", page.locator("#fieldnotes2").inner_text())
-    assert nums == nums2, "chapter 3 must re-read the SAME field notes"
-    # verbs are NOT highlighted until the reader asks
-    assert page.locator("#fieldnotes2 .cueword").count() == 0
+    # hide-the-numbers: payoffs vanish, the wording pattern remains
+    assert page.locator("#fieldnotes2 .payoff").count() == 0
+    assert page.locator("#fieldnotes2 .cueword").count() >= 4
+    assert "You can throw the payoffs" in \
+        page.locator("#numless").inner_text()
     page.click("#searchbtn")
     page.wait_for_selector("#cuereveal:not(.hidden)")
-    assert page.locator("#fieldnotes2 .cueword").count() >= 4
+    assert "We put it there" in page.locator("#cuereveal").inner_text()
     nb = page.locator("#notebook").inner_text()
     assert "H1" in nb and "H2" in nb
     # identification language, not mechanism language
