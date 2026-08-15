@@ -186,8 +186,20 @@ def main():
                     help="repeat the identical block sequence N times. "
                          "Diagnostic/pilot use; the main experiment is "
                          "single-pass per the prereg epoch rule")
+    ap.add_argument("--optimizer", choices=["adamw", "sgd", "sgd_momentum"],
+                    default="adamw",
+                    help="Phase-B ablations only; Phase A uses adamw")
+    ap.add_argument("--resume_weights_from", default=None,
+                    help="trainstate_*.pt supplying MODEL WEIGHTS (Phase-B "
+                         "transplant; pair with --resume_opt_from)")
+    ap.add_argument("--resume_opt_from", default=None,
+                    help="trainstate_*.pt supplying OPTIMIZER STATE + RNG; "
+                         "may differ from --resume_weights_from for the "
+                         "crossed transplant")
     ap.add_argument("--device", default="auto")
     args = ap.parse_args()
+    if bool(args.resume_weights_from) != bool(args.resume_opt_from):
+        ap.error("--resume_weights_from and --resume_opt_from go together")
 
     data_dir, outdir = Path(args.data), Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
@@ -213,8 +225,28 @@ def main():
                 args.block).to(device)
     init_hash = sha256_state(model)
     n_params = sum(p.numel() for p in model.parameters())
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr,
-                            weight_decay=args.wd)
+    if args.optimizer == "adamw":
+        opt = torch.optim.AdamW(model.parameters(), lr=args.lr,
+                                weight_decay=args.wd)
+    else:
+        opt = torch.optim.SGD(model.parameters(), lr=args.lr,
+                              momentum=0.9 if args.optimizer == "sgd_momentum"
+                              else 0.0, weight_decay=args.wd)
+
+    start_step = 0
+    if args.resume_weights_from:
+        ws = torch.load(args.resume_weights_from, map_location=device)
+        os_ = torch.load(args.resume_opt_from, map_location=device)
+        if ws["step"] != os_["step"]:
+            raise SystemExit("transplant states must come from equal steps")
+        model.load_state_dict(ws["model"])
+        opt.load_state_dict(os_["optimizer"])
+        torch.set_rng_state(os_["torch_rng"].cpu())
+        if os_["cuda_rng"] is not None and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all([t.cpu() for t in os_["cuda_rng"]])
+        np.random.set_state(os_["np_rng"])
+        random.setstate(os_["py_rng"])
+        start_step = ws["step"]
 
     commit = git_commit()
     run_manifest = {
@@ -230,12 +262,16 @@ def main():
         "n_lines": len(lines), "n_blocks": int(len(blocks)),
         "n_steps": n_steps, "warmup": warmup, "segments": seg_ranges,
         "config": vars(args), "n_params": n_params,
+        "start_step": start_step,
+        "resumed_weights_from": args.resume_weights_from,
+        "resumed_opt_from": args.resume_opt_from,
         "torch": torch.__version__, "device": device,
         "platform": platform.platform(),
     }
     (outdir / "run_manifest.json").write_text(json.dumps(run_manifest, indent=2))
 
-    torch.save(model.state_dict(), outdir / "ckpt_000.pt")   # init checkpoint
+    if start_step == 0:
+        torch.save(model.state_dict(), outdir / "ckpt_000.pt")  # init ckpt
     ckpt_steps = {max(1, round(n_steps * p / 100)): int(p)
                   for p in np.arange(args.ckpt_every_pct, 100.01,
                                      args.ckpt_every_pct)}
@@ -247,8 +283,11 @@ def main():
                              for r in seg_ranges} | {n_steps})
 
     def save_train_state(step1):
+        # Model weights INCLUDED so (theta, m, v) come from the same step —
+        # required for the crossed weightxoptimizer-state transplant.
         torch.save({
-            "step": step1, "optimizer": opt.state_dict(),
+            "step": step1, "model": model.state_dict(),
+            "optimizer": opt.state_dict(),
             "torch_rng": torch.get_rng_state(),
             "cuda_rng": (torch.cuda.get_rng_state_all()
                          if torch.cuda.is_available() else None),
@@ -257,7 +296,7 @@ def main():
 
     log = []
     model.train()
-    for step in range(n_steps):
+    for step in range(start_step, n_steps):
         lo, hi = step * args.batch, min((step + 1) * args.batch, len(blocks))
         xb = torch.from_numpy(blocks[lo:hi]).to(device)
         mb = torch.from_numpy(mask[lo:hi]).to(device)
