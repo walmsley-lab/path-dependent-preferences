@@ -147,9 +147,9 @@ def stage_batch(args):
         data = f"data/final_{args.level}_seed{seed}"
         run = f"runs/{cond}_{args.level}_s{seed}"
         for ckpt in sorted(Path(run).glob("ckpt_*.pt")):
-            extra = ["--probes"] if ckpt.name in (
-                "ckpt_020.pt", "ckpt_040.pt", "ckpt_060.pt", "ckpt_080.pt",
-                "ckpt_100.pt") else []
+            extra = ["--probes", "--w_set", "eval_w_heldout_names"] \
+                if ckpt.name in ("ckpt_020.pt", "ckpt_040.pt", "ckpt_060.pt",
+                                 "ckpt_080.pt", "ckpt_100.pt") else []
             if ckpt.name == "ckpt_100.pt":
                 extra += ["--context", "eval_nocue"]
             sh([PY, "score.py", "--run", run, "--data", data,

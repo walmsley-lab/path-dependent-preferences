@@ -81,6 +81,25 @@ def forced_choice(model, stoi, prompts, device, block, batch=64,
         else np.array(out)
 
 
+@torch.no_grad()
+def score_w(model, stoi, lines, device, block, batch=64):
+    """W-competence: teacher-forced exact match on every answer token after 'A:'."""
+    correct = 0
+    for i in range(0, len(lines), batch):
+        chunk = lines[i:i + batch]
+        toks = [encode(l, stoi)[-block:] for l in chunk]
+        n_ans = [len(l.rsplit(" A: ", 1)[1].split()) for l in chunk]
+        T = max(len(t) for t in toks)
+        x = torch.zeros(len(chunk), T, dtype=torch.long, device=device)
+        for j, t in enumerate(toks):
+            x[j, :len(t)] = torch.tensor(t)
+        pred = model(x).argmax(-1)
+        for j, t in enumerate(toks):
+            span = range(len(t) - n_ans[j], len(t))
+            correct += all(pred[j, k - 1] == t[k] for k in span)
+    return correct / len(lines)
+
+
 def score_set(model, stoi, records, device, block):
     dlogp = forced_choice(model, stoi, [r["prompt"] for r in records],
                           device, block)
@@ -157,6 +176,41 @@ def probe_suite(model, stoi, data_dir, device, block, layers):
     return out
 
 
+def steer_test(model, stoi, data_dir, device, block, layer,
+               alphas=(-8.0, -4.0, 0.0, 4.0, 8.0)):
+    """Causal stretch: add alpha * v_lambda at one layer, measure choice shift.
+
+    v_lambda = normalized class-mean difference (COOP - SELF) of residual
+    activations on probe_train. If steering moves conflict choices more in C1
+    than C2, developmental order changed CAUSAL RELIANCE on the preference
+    representation, not just its decodability.
+    """
+    tr = load_set(data_dir, "probe_train")
+    _, H = forced_choice(model, stoi, [r["prompt"] for r in tr], device,
+                         block, return_hidden_layer=layer)
+    y = np.array([r["lambda_class"] == "COOP" for r in tr])
+    v = H[y].mean(0) - H[~y].mean(0)
+    v = torch.tensor(v / np.linalg.norm(v), dtype=torch.float32,
+                     device=device)
+    records = load_set(data_dir, "eval_conflict")
+    prompts = [r["prompt"] for r in records]
+    ua = np.array([r["utility_answer"] for r in records])
+    ca = np.array([r["cue_answer"] for r in records])
+    out = {}
+    for a in alphas:
+        handle = model.blocks[layer].register_forward_hook(
+            lambda m, i, o, a=a: o + a * v)
+        try:
+            dlogp = forced_choice(model, stoi, prompts, device, block)
+        finally:
+            handle.remove()
+        pred = np.where(dlogp > 0, 1, 2)
+        out[str(a)] = {"acc_utility": float((pred == ua).mean()),
+                       "acc_cue": float((pred == ca).mean()),
+                       "mean_dlogp": float(dlogp.mean())}
+    return {"layer": layer, "alphas": out}
+
+
 def context_test(model, stoi, data_dir, device, block, query_set, k=4,
                  n_queries=200, seed=0):
     """In-context counter-evidence: congruent / incongruent / none demos."""
@@ -202,9 +256,14 @@ def main():
                                                   "eval_nocue", "eval_cueonly"])
     ap.add_argument("--probes", action="store_true")
     ap.add_argument("--probe_layers", nargs="*", type=int, default=None)
+    ap.add_argument("--w_set", default=None,
+                    help="W-competence eval file (txt), e.g. eval_w_heldout_names")
     ap.add_argument("--context", default=None,
                     help="query set for the in-context test, e.g. eval_nocue")
     ap.add_argument("--k", type=int, default=4)
+    ap.add_argument("--steer", action="store_true",
+                    help="causal steering along the lambda direction")
+    ap.add_argument("--steer_layer", type=int, default=None)
     ap.add_argument("--device", default="auto")
     args = ap.parse_args()
 
@@ -215,6 +274,9 @@ def main():
     for name in args.sets:
         report["sets"][name] = score_set(
             model, stoi, load_set(args.data, name), device, block)
+    if args.w_set:
+        lines = (Path(args.data) / f"{args.w_set}.txt").read_text().splitlines()
+        report["acc_w"] = score_w(model, stoi, lines, device, block)
     if args.probes:
         layers = args.probe_layers or [cfg["layers"] // 2, cfg["layers"] - 1]
         report["probes"] = probe_suite(model, stoi, args.data, device, block,
@@ -222,6 +284,11 @@ def main():
     if args.context:
         report["context"] = context_test(model, stoi, args.data, device,
                                          block, args.context, k=args.k)
+    if args.steer:
+        layer = args.steer_layer if args.steer_layer is not None \
+            else cfg["layers"] // 2
+        report["steer"] = steer_test(model, stoi, args.data, device, block,
+                                     layer)
     out = Path(args.run) / f"score_{args.ckpt.replace('.pt', '')}.json"
     out.write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))

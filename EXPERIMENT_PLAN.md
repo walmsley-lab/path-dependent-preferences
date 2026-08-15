@@ -255,6 +255,20 @@ The persona-dissociation result (5.3) does **not depend on** the ordering effect
 
 **Report standards:** the writeup follows [technical-writing-guide.md](technical-writing-guide.md) (research-post register, Sections 1–7, 9–10). Non-negotiables for this project in particular: label every claim's status (observation / interpretation / hypothesis); figures show per-seed points, never best-seed only; probe results reported as *linear decodability with selectivity*, never "the model knows/believes"; "preference" used only for the λ-defined ground-truth quantity, with behavioral claims stated as measured choices. The persona-dissociation result especially must not be written as "the model hides its true feelings" — it is "probes recover the trained λ while expressed choices follow the prompt."
 
+## 9b. Presentation plan (engineered, not improvised)
+
+**Lead with one paradox, not seven topics:** *two models can see exactly the same evidence and make exactly the same ordinary choices — yet learn different reasons for making them. We ask whether the order of experience determines which reason wins.* Three pictures carry the whole design: (1) two developmental histories, W→P vs. P→W; (2) two equally valid training solutions, payoffs→λ-utility→choice vs. correlated cue→choice; (3) the diagnostic conflict where utility ≠ cue. Under one minute to understand; internals and probes come after.
+
+**Track anchoring:** Track 5 (Assistant Persona & Model Identity), with the contribution phrased at three levels — **developmental identity** (what preference solution training history built), **contextual policy** (what immediate demonstrations cause the model to express), **internal persistence** (what developmental information remains represented underneath changed behavior). Track 1 relevance noted; Track 6 fallback only.
+
+**Model-organism framing (turn the weakness into the strength):** never apologize for the toy world. It uniquely provides complete training history, exact latent-preference ground truth, exact order control, every checkpoint, and causal intervention — none of which frontier-model studies can have. Theory of change: does the phenomenon survive in pretrained open-weight models?
+
+**Novelty sentence (final wording):** "To our knowledge, this is the first controlled study testing whether developmental ordering of identical preference-relevant evidence selects different latent solutions for the same apparent preference, and whether those developmental differences remain detectable when immediate context changes expressed behavior."
+
+**Title:** working title stays *Path-Dependent Preferences*; submission title chosen by result — *"Does Learning Order Shape the Mechanism Behind Model Preferences?"* (question form, safe under any outcome) or *"Same Preferences, Different Reasons"* (only if the mechanism-selection result lands).
+
+**Scope rule for the rest of the sprint:** add nothing unless it strengthens impact, execution, or presentation. The 5/5 stretch remains the differential-steering result (§5.3): steering along v_λ shifting conflict choices in C1 but not C2 would show order changed *causal reliance*, not just decodability — implemented in `score.py --steer`.
+
 ## 10. Extensions (post-sprint, ranked)
 
 1. **Timing sweep / critical period, done right:** introduce P at τ ∈ {0.2, 0.4, 0.6, 0.8}·T with *equal P counts and equal post-introduction steps* (extend training so late conditions aren't step-starved). Nonlinearity in final learnability = evidence of a developmental window, in the spirit of Achille et al.'s deficit experiments. Until those controls exist, we say "late introduction," never "critical period."
