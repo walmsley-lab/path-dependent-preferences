@@ -91,8 +91,16 @@ returns for the comparison and the editor. Never a separate feature.
   not just read the conclusions.
 - **Aesthetic**: laboratory notebook × natural-history exhibit — specimen
   documentation, annotations, restrained type, uncertainty on display.
-  Never SaaS-dashboard. (Congruent with the Field Note house style and the
-  openpollination visual direction.)
+  Never SaaS-dashboard. Host identity: **Open Pollination** ("Let ideas
+  cross. Test what emerges.") — warm-ivory grounds, deep-green serif
+  display, vintage-botanical illustration whose below-soil roots form a
+  neural network: growth above, learned structure beneath. That motif IS
+  the World-graph ↔ learned-structure duality of chapters 1 and 9, and the
+  site's "Reveal the system" affordance is our progressive-disclosure
+  escape hatch. Site-level framing of this experiment (adopted): *"What if
+  training order is part of the architecture?"* Route colors (utility blue /
+  cue orange) remain reserved for data encoding within the naturalist
+  palette.
 
 ## Sequencing (resource-conscious)
 
