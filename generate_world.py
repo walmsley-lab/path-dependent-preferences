@@ -366,7 +366,7 @@ def build_pilot(w_lines, p_lines, kind, seed):
 # --- dataset assembly -------------------------------------------------------
 
 def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
-                   n_demo=600):
+                   n_demo=600, n_p_nocue=0):
     rng = random.Random(f"{level}-{seed}")
     agent_map = assign_lambdas(seed)
     used_keys = set()
@@ -405,6 +405,14 @@ def build_datasets(level, seed, n_w=4000, n_p=4000, n_eval=400, n_probe=800,
                            for c in fresh_configs(n_probe, HELDOUT_NOUNS, "T1")]
     data["probe_test"] = [render_p(c, level, "id")[1]
                           for c in fresh_configs(n_probe // 2, HELDOUT_NOUNS, "T2")]
+    if n_p_nocue:
+        # Calibration instrument only (never in main runs): P task with
+        # neutral verbs and utility-consistent answers — tests whether Route A
+        # is learnable WITHOUT the cue competing during training. The cued
+        # pilot tests dominance; this tests learnability.
+        data["train_p_nocue"] = [
+            persona_demo_line(cfg, level, "congruent")[0]
+            for cfg in fresh_configs(n_p_nocue, TRAIN_NOUNS)]
     demos = []
     for cfg in fresh_configs(n_demo, TRAIN_NOUNS):
         consistency = "congruent" if len(demos) % 2 == 0 else "incongruent"
@@ -438,6 +446,10 @@ def write_datasets(data, level, seed, outdir):
     for kind in ("p_only", "w_heavy_then_p", "interleaved"):
         lines = build_pilot(data["train_w"], data["train_p"], kind, seed)
         (outdir / f"pilot_{kind}.txt").write_text("\n".join(lines) + "\n")
+    if "train_p_nocue" in data:
+        lines = build_pilot(data["train_w"], data["train_p_nocue"],
+                            "w_heavy_then_p", seed)
+        (outdir / "pilot_w_then_nocue_p.txt").write_text("\n".join(lines) + "\n")
     (outdir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return manifest
 
@@ -449,9 +461,11 @@ def main():
     ap.add_argument("--outdir", default=None)
     ap.add_argument("--n_w", type=int, default=4000)
     ap.add_argument("--n_p", type=int, default=4000)
+    ap.add_argument("--n_p_nocue", type=int, default=0)
     args = ap.parse_args()
     outdir = args.outdir or f"data/{args.level}_seed{args.seed}"
-    data = build_datasets(args.level, args.seed, n_w=args.n_w, n_p=args.n_p)
+    data = build_datasets(args.level, args.seed, n_w=args.n_w, n_p=args.n_p,
+                          n_p_nocue=args.n_p_nocue)
     manifest = write_datasets(data, args.level, args.seed, outdir)
     print(json.dumps(manifest, indent=2))
 
