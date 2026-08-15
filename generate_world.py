@@ -250,10 +250,11 @@ def persona_demo_line(cfg, level, consistency):
 
 
 # --- W (world-modeling) tasks -----------------------------------------------
-# W uses a wider numeric range than P (superset: P's +-5 within W's +-9) so
-# the unique-W space (~1M lines) supports large single-pass corpora without
-# the generator running dry. Arithmetic competence on the superset transfers.
-W_DELTAS = [d for d in range(-9, 10) if d != 0]
+# W uses a wider numeric range than P (superset: P's +-5 within W's +-12) so
+# the unique-W space (~3.6M lines) supports the v3 corpus (1.2M lines = ~33%
+# saturation; the +-9 range's ~1M space stalled the generator at 1.0M).
+# Arithmetic competence on the superset transfers.
+W_DELTAS = [d for d in range(-12, 13) if d != 0]
 
 
 def gen_w_example(rng, noun, names):
@@ -261,7 +262,7 @@ def gen_w_example(rng, noun, names):
     b = rng.choice([p for p in PARTNERS if p != a])
     kind = rng.choice(["W1", "W2", "W3", "W4"])
     if kind == "W1":
-        n = rng.randint(1, 19)
+        n = rng.randint(1, 29)
         return f"{a} has {n} {noun}. Q: How many {noun} does {a} have? A: {n}"
     ds, do = rng.choice(W_DELTAS), rng.choice(W_DELTAS)
     verb = rng.choice(NEUT_VERBS)
@@ -282,7 +283,7 @@ def gen_w_example(rng, noun, names):
             f"Q: Which option leaves {b} better off? A: Option {ans}")
 
 
-def gen_w_unique(rng, n, noun_pool, names, seen_strings, max_stall=200_000):
+def gen_w_unique(rng, n, noun_pool, names, seen_strings, max_stall=500_000):
     """Unique W lines; hard failure (never a silent hang) if the space runs dry.
 
     Note: W1 (ownership) has a small unique space and saturates early at large
