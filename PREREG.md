@@ -48,6 +48,20 @@ Route A, cued (24-epoch, GCP): crystallizes WITH the cue present — no-cue 0.54
 
 *Headline calibration fact (preserved for interpretation, recorded before the main batch):* the routes have **qualitatively different isolated learning dynamics and different generalization ceilings** — Route A: train and held-out rise together from ~20–25% of training, gradual acquisition, asymptote ≈ 0.85; Route B: train rises first (partial memorization to ~85%), long flat held-out phase, abrupt generalization snap, asymptote ≈ 1.00. Consequences fixed in advance: (a) "shortcut" and "easy-to-acquire-first" are not synonyms — B's eventual rule is simpler but its acquisition is *later*; (b) "both >80%" does NOT mean the mechanisms are equally learnable — B has the higher isolated ceiling; (c) therefore, if all conditions end cue-dominated, B's intrinsic generalization advantage is a plausible explanation and must be weighed against a path-dependence null; conversely, if structure-first history preserves Route A *despite* B's isolated advantage, the order effect is stronger than a naive reading would suggest.
 
+**Gate v3 OUTCOME — 2026-08-15 07:35 UTC, commit 2abed0d, provenance-stamped (archived: `calibration/gate_v3_results.json`).**
+
+| | Gate 1 cue-follow (>0.80, HARD) | Gate 2 no-cue (>0.80, HARD) | Target 3 dominance (<0.90) | λ-probe selectivity |
+|---|---|---|---|---|
+| L0 | 1.000 ✅ | 0.578 ❌ | 0.9925 ❌ (cue-dominant) | 0.45 |
+| L1 | 0.825 ✅ | 0.9425 ✅ | 0.980 ❌ (utility-dominant) | 0.70 |
+| L2 | 0.5225 ❌ | 0.9975 ✅ | 0.975 ❌ (utility-dominant: 0.975/0.025) | 0.53 |
+
+Code's mechanical verdict: **NO LEVEL PASSED** — independently confirmed by hand against the frozen rule. L0 fails hard gate 2 (out, never overridable). L2 fails hard gate 1 — a calibration finding in its own right: the two-feature conjunction cue is *not learnable from choices alone* at this exposure (0.5225 ≈ chance), so L2 offers no two-route race. **L1 is the only level passing both hard gates**, failing only calibration target 3, in the utility direction.
+
+**Override adjudication (frozen text applied):** Override B requires all levels to fail target 3 with the SAME dominant route — L0 is cue-dominant while L1/L2 are utility-dominant → **Override B unavailable.** **Override A is the live path, at L1:** proceed only if the mini-C1/C2 pilot at L1 shows ≥10 pp conflict-set separation in the expected direction.
+
+**Override-A mini interpretation rule (fixed NOW, before the minis run):** 2 paired seeds (0, 1), C1 vs. C2 at L1, full calibrated scale, single pass, identical to main-run configuration. Expected direction: Δ = Acc_conflict-utility(C1) − Acc_conflict-utility(C2) **> 0** (structure-first more utility-governed). Support for Override A = both seeds' Δ same sign in the expected direction AND mean Δ ≥ 10 pp. Anything else → Override A fails → no launch; the calibration story (including the striking L0-vs-L1 dominance flip under identical interleaved exposure) is the sprint result.
+
 *Exposure semantics (appended for precision, before v2 results were seen):*
 - **"Same exposure" means same evidence for the route under test, not same total optimizer updates.** Gate 1's operational question: can Route B be learned from the same 80k P lines the main run provides? (W lines carry no cue evidence.) Gate 2's: can Route A be learned given the same W machinery + P evidence the main run provides? The interleaved pilot is the joint, main-run-like check. Both line counts AND realized optimizer steps/token counts are reported for v1 and v2 from run manifests.
 - **W-heavy composition, corrected record:** the original prereg text ("1200 W + 400 P") never matched the implemented pilot builder, which has always used the full generated pools — v1 actually ran 16k W + 16k P; v2 runs 80k W then 80k P. This makes the W-heavy pilot deliberately the *most Route-A-favorable arrangement* (C1-like, minus the tail mix) — correct for a learnability gate: if the most favorable arrangement cannot learn utility, the route is dead. Pilot data is disjoint from main-run data and pilot results only gate; they never enter the analysis.

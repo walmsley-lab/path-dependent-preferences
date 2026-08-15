@@ -1,0 +1,36 @@
+{
+  "L0": {
+    "gate1_cue_follow": 1.0,
+    "gate1_pass": true,
+    "gate2_nocue": 0.5775,
+    "gate2_pass": false,
+    "target3_dominance": 0.9925,
+    "target3_pass": false,
+    "diag4_lambda_selectivity": 0.44999999999999996
+  },
+  "L1": {
+    "gate1_cue_follow": 0.825,
+    "gate1_pass": true,
+    "gate2_nocue": 0.9425,
+    "gate2_pass": true,
+    "target3_dominance": 0.98,
+    "target3_pass": false,
+    "diag4_lambda_selectivity": 0.7025
+  },
+  "L2": {
+    "gate1_cue_follow": 0.5225,
+    "gate1_pass": false,
+    "gate2_nocue": 0.9975,
+    "gate2_pass": true,
+    "target3_dominance": 0.975,
+    "target3_pass": false,
+    "diag4_lambda_selectivity": 0.5349999999999999
+  },
+  "_provenance": {
+    "stage": "gate",
+    "calibration_version": 3,
+    "git_commit": "2abed0d1d1ddaa424da3332e23aef212d24eda23",
+    "created_at": "2026-08-15T07:35:38.137346+00:00",
+    "gate_n": 1200000
+  }
+}
