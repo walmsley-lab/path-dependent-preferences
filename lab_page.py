@@ -1243,17 +1243,54 @@ async function diffmap(sel){
 }
 window.diffmap = diffmap;
 
-function exectrace(){
-  canvas(`<div class=trace><div class=cap>EXECUTION TRACE &middot;
-    PENDING (viz #3)</div>
-    <div class=note-dim>The small-model attribution graph: one familiar
-    conflict case, the candidate internal contributors between input and
-    choice, every edge labeled attribution-only / probe-supported /
-    intervention-pending — hardening only when patching succeeds.
-    Requires the targeted attribution machinery (the
-    parameter-decomposition borrow) at a handful of windows nominated by
-    the atlas and difference map. It will not draw a graph before the
-    traces exist.</div></div>`);
+async function exectrace(){
+  const subs = S.B ? [S.A, S.B] : [S.A];
+  let html = "";
+  let shownCase = false;
+  for(const st of subs){
+    let tr = null;
+    try{ tr = await j("/api/trace?run=" +
+      encodeURIComponent(st.run.run)); }catch(e){}
+    if(!tr){
+      html += `<div class=trace><div class=cap>EXECUTION TRACE &middot;
+        ${chip(st)}</div><div class=note-dim>no trace record yet
+        (trace_run.py — it will not draw a graph before the traces
+        exist)</div></div>`;
+      continue;
+    }
+    if(!shownCase){
+      shownCase = true;
+      html += `<div class=trace><div class=cap>EXECUTION TRACE &middot;
+        ONE DECISION, THE IMPLICATED STAGES ONLY — never a dump of the
+        network</div>
+        <div class=scene>${tr.case.prompt}</div>
+        <div class=reading style="font-size:12px">utility says Option
+        ${tr.case.utility_answer} · wording says Option
+        ${tr.case.cue_answer}</div>
+        <div class=note-dim>hypothesis under trace: ${tr.hypothesis}</div>
+        </div>`;
+    }
+    const Ls = Object.keys(tr.stages);
+    html += `<div class=trace><div class=cap>${chip(st)} &middot; chose
+      Option ${tr.model_choice} (Δlogp ${fmt(tr.final_dlogp)})</div>
+      <div class=scroller><table class=mtx><tr><th></th>` +
+      Ls.map(l=>`<th>${l}</th>`).join("") + `</tr>
+      <tr><td class=name style="cursor:default" title="projection of the residual onto v_λ at the agent token">λ signal @ agent</td>` +
+      Ls.map(l=>`<td>${fmt(tr.stages[l].lambda_alignment_agent)}</td>`).join("") + `</tr>
+      <tr><td class=name style="cursor:default" title="projection at the decision position">λ signal @ decision</td>` +
+      Ls.map(l=>`<td>${fmt(tr.stages[l].lambda_alignment_decision)}</td>`).join("") + `</tr>
+      <tr><td class=name style="cursor:default" title="Δlogp(1−2) if the network stopped at this layer">decision forming (lens)</td>` +
+      Ls.map(l=>`<td>${fmt(tr.stages[l].logitlens_dlogp)}</td>`).join("") + `</tr>
+      <tr><td class=name style="cursor:default" title="how this case's Δlogp moves when v_λ is projected out at this layer">λ-ablation shift</td>` +
+      Ls.map(l=>`<td>${fmt(tr.stages[l].lambda_ablation_dlogp_shift)}</td>`).join("") + `</tr>
+      </table></div>
+      <div class=note-dim>${tr.semantics}. Each row connects backward to
+      the localization evidence that nominated it and forward to the
+      intervention that tests it.</div>
+      <div class=note-dim>&#8627; ${tr._provenance.run_id} · ${tr.ckpt} ·
+      commit ${(tr._provenance.commit||"").slice(0,8)}</div></div>`;
+  }
+  canvas(html);
 }
 
 /* ---- pending instruments ------------------------------------------------ */
