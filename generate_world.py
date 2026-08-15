@@ -59,7 +59,8 @@ def assign_lambdas(seed):
     else:
         coop = males[:3] + females[:2]
     return {n: (0.2 if n in coop else 0.8) for n in AGENT_NAMES}
-PARTNERS = ["Kevin", "Rachel", "Brandon", "Megan"]     # second agents, no lambda
+PARTNERS = ["Kevin", "Rachel", "Brandon", "Megan",     # second agents, no lambda
+            "Derek", "Amber", "Scott", "Crystal"]      # widened for v3 corpus scale
 HELDOUT_NAMES = ["Joshua", "Brittany", "Eric", "Lauren"]  # W-generalization only
 TRAIN_NOUNS = ["stones", "gems", "tokens", "shells"]
 HELDOUT_NOUNS = ["lumens", "spools", "marbles"]        # probe + surface sets
