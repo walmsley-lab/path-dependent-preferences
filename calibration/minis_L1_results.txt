@@ -1,0 +1,4 @@
+MINI seed 0: C1=0.7100 C2=0.9650 delta=-0.2550
+MINI seed 1: C1=0.4350 C2=0.9550 delta=-0.5200
+MINI mean delta: -0.3875
+OVERRIDE_A: NOT SUPPORTED (rule: both deltas > 0 and mean >= 0.10; frozen in PREREG.md)

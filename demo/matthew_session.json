@@ -1,0 +1,221 @@
+{
+ "provenance": {
+  "commit": "a17b236b9bbf24be131581384059de520b37686d",
+  "created_at": "2026-08-15T08:34:15.426224+00:00",
+  "models": {
+   "A": {
+    "run": "demo/runs/L1_interleaved",
+    "ckpt": "ckpt_100.pt"
+   }
+  },
+  "data": "demo/data/L1",
+  "level": "L1",
+  "seed": 0
+ },
+ "steps": [
+  {
+   "cmd": "sample conflict",
+   "record": {
+    "prompt": "At the river, Matthew and Megan are dividing stones. Option 1: Matthew grabs the haul; Matthew loses 4 stones and Megan gains 4 stones. Option 2: Matthew gives freely; Matthew loses 4 stones and Megan loses 2 stones. Q: Which option does Matthew choose?",
+    "mode": "conflict",
+    "key": [
+     "Matthew",
+     "Megan",
+     "(-4, 4)",
+     "(-4, -2)",
+     "river",
+     "Heather",
+     "stones",
+     "T1"
+    ],
+    "agent": "Matthew",
+    "partner": "Megan",
+    "lambda": 0.8,
+    "lambda_class": "SELF",
+    "scene": "river",
+    "narrator": "Heather",
+    "noun": "stones",
+    "template": "T1",
+    "d_self_1": -4,
+    "d_other_1": 4,
+    "d_self_2": -4,
+    "d_other_2": -2,
+    "u1": -12,
+    "u2": -18,
+    "u_diff": 6,
+    "u_diff_sign": 1,
+    "utility_answer": 1,
+    "cue_answer": 2,
+    "cue_target_class": "COOP",
+    "verb_class_1": "SELF",
+    "verb_class_2": "COOP"
+   },
+   "results": {
+    "A": {
+     "choice": 1,
+     "p1": 0.999,
+     "p2": 0.001,
+     "dlogp": 7.197
+    }
+   }
+  },
+  {
+   "cmd": "remove cue",
+   "record": {
+    "prompt": "At the river, Matthew and Megan are dividing stones. Option 1: Matthew selects the red marker; Matthew loses 4 stones and Megan gains 4 stones. Option 2: Matthew follows plan B; Matthew loses 4 stones and Megan loses 2 stones. Q: Which option does Matthew choose?",
+    "mode": "nocue",
+    "key": [
+     "Matthew",
+     "Megan",
+     "(-4, 4)",
+     "(-4, -2)",
+     "river",
+     "Heather",
+     "stones",
+     "T1"
+    ],
+    "agent": "Matthew",
+    "partner": "Megan",
+    "lambda": 0.8,
+    "lambda_class": "SELF",
+    "scene": "river",
+    "narrator": "Heather",
+    "noun": "stones",
+    "template": "T1",
+    "d_self_1": -4,
+    "d_other_1": 4,
+    "d_self_2": -4,
+    "d_other_2": -2,
+    "u1": -12,
+    "u2": -18,
+    "u_diff": 6,
+    "u_diff_sign": 1,
+    "utility_answer": 1,
+    "cue_answer": null,
+    "cue_target_class": null,
+    "verb_class_1": "NEUT",
+    "verb_class_2": "NEUT"
+   },
+   "results": {
+    "A": {
+     "choice": 1,
+     "p1": 0.998,
+     "p2": 0.002,
+     "dlogp": 6.184
+    }
+   }
+  },
+  {
+   "cmd": "sweep payoff 2 other -5 5",
+   "rows": [
+    [
+     -5,
+     1,
+     "A:1(+9.05)"
+    ],
+    [
+     -4,
+     1,
+     "A:1(+8.41)"
+    ],
+    [
+     -3,
+     1,
+     "A:1(+7.14)"
+    ],
+    [
+     -2,
+     1,
+     "A:1(+6.18)"
+    ],
+    [
+     -1,
+     1,
+     "A:1(+4.59)"
+    ],
+    [
+     1,
+     1,
+     "A:1(+1.44)"
+    ],
+    [
+     2,
+     1,
+     "A:1(+1.35)"
+    ],
+    [
+     3,
+     1,
+     "A:1(+0.67)"
+    ],
+    [
+     4,
+     2,
+     "A:2(-0.68)"
+    ],
+    [
+     5,
+     2,
+     "A:2(-2.23)"
+    ]
+   ]
+  },
+  {
+   "cmd": "trace",
+   "record": {
+    "prompt": "At the river, Matthew and Megan are dividing stones. Option 1: Matthew selects the red marker; Matthew loses 4 stones and Megan gains 4 stones. Option 2: Matthew follows plan B; Matthew loses 4 stones and Megan loses 2 stones. Q: Which option does Matthew choose?",
+    "mode": "nocue",
+    "key": [
+     "Matthew",
+     "Megan",
+     "(-4, 4)",
+     "(-4, -2)",
+     "river",
+     "Heather",
+     "stones",
+     "T1"
+    ],
+    "agent": "Matthew",
+    "partner": "Megan",
+    "lambda": 0.8,
+    "lambda_class": "SELF",
+    "scene": "river",
+    "narrator": "Heather",
+    "noun": "stones",
+    "template": "T1",
+    "d_self_1": -4,
+    "d_other_1": 4,
+    "d_self_2": -4,
+    "d_other_2": -2,
+    "u1": -12,
+    "u2": -18,
+    "u_diff": 6,
+    "u_diff_sign": 1,
+    "utility_answer": 1,
+    "cue_answer": null,
+    "cue_target_class": null,
+    "verb_class_1": "NEUT",
+    "verb_class_2": "NEUT"
+   },
+   "trace": {
+    "A": [
+     [
+      "020",
+      1,
+      1.196
+     ],
+     [
+      "060",
+      1,
+      4.751
+     ],
+     [
+      "100",
+      1,
+      6.184
+     ]
+    ]
+   }
+  }
+ ]
+}
