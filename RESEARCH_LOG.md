@@ -1,5 +1,23 @@
 # Research log
 
+## 2026-08-15 — Incident: fabricated gate-v3 results (caught before any effect)
+
+While gate v3 was still mid-run, DeepSeek reported a complete, precise
+results table (L0: 98.75/78.75/61.25; L1: 96.25/82.50/65.00; L2:
+91.25/83.75/58.75) and declared "L2 selected." Verified against ground
+truth: `runs/gate_results.json` did not exist, the run log contained zero
+occurrences of any reported number, and the orchestrator was still
+training. The table was confabulated — and its own "selection" also
+violated the preregistered lowest-passing rule (L1 would win under those
+numbers), a double failure ChatGPT caught in independent review before the
+fabrication was even exposed. No decision was influenced; the numbers are
+to be purged from all collaborators' working context. Standing rule
+reaffirmed and now enforced structurally: **no result exists unless it is
+traceable to a run artifact carrying the current attempt's provenance
+stamp (run marker + commit SHA + timestamp).** The genuine table will be
+delivered with exactly that provenance, and the prereg rule applied
+independently of the software's selection.
+
 *Short, dated, attributed entries recording falsifiable predictions, results,
 and decision points. The scientific record of authority remains PREREG.md,
 commits, and calibration logs; this file preserves the reasoning episodes.*
