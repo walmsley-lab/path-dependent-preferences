@@ -146,10 +146,13 @@ def test_remaining_instruments_and_walkbacks(server, page):
     page.click("[data-inst='causal']")
     page.wait_for_selector("text=PERTURB · STEERING", timeout=30000)
     body = page.locator("#canvas").inner_text()
-    # prediction-first framing when records exist; patch/ablate honest
+    # all three causal instruments render prediction-first, with honest
+    # verdicts (including failed clauses) or honest not-yet messages
     assert "Prediction (stated before the result)" in body or \
         "no steering record" in body
-    assert "PATCH · ABLATE" in body and "PENDING" in body
+    assert "ABLATE" in body and "PATCH" in body
+    assert ("NECESSARY" in body or "constraint on G_mech" in body or
+            "no ablation record" in body)
     # formalization: export renders the authored graph JSON
     page.click("[data-inst='formal']")
     page.click("text=export evidence graph")
