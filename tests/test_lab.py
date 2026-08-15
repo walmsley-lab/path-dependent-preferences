@@ -46,7 +46,7 @@ def server():
 
 
 def ready(page, server):
-    page.goto(server + "/lab")
+    page.goto(server + "/lab/bench")
     page.wait_for_selector("body[data-ready]", timeout=30000)
     # instrument families are collapsed by default; open all for testing
     page.evaluate(
@@ -87,9 +87,10 @@ def test_pending_is_honest_and_graphs_wait_for_evidence(server, page):
     page.click("[data-inst='transplant']")
     body = page.locator("#canvas").inner_text()
     assert "PENDING" in body and "optimizer" in body
-    page.select_option("#graphsel", "mechanism")
+    page.click("[data-inst='worldmodels']")
+    page.click("#canvas button:has-text('Mechanism')")
     assert "will not be drawn before" in page.locator("#canvas").inner_text()
-    page.select_option("#graphsel", "generating")
+    page.click("#canvas button:has-text('Generator')")
     page.wait_for_selector("text=G_generator")
     canvas_text = page.locator("#canvas").inner_text()
     assert "PRIVILEGED GROUND TRUTH" in canvas_text
@@ -97,7 +98,7 @@ def test_pending_is_honest_and_graphs_wait_for_evidence(server, page):
     # with lexical realization a separate object
     assert "choice" in canvas_text and "framing_class" in canvas_text
     assert "rendered_framing" in canvas_text
-    page.select_option("#graphsel", "observational")
+    page.click("#canvas button:has-text('Observational')")
     page.wait_for_selector("text=G_observational")
     obs = page.locator("#canvas").inner_text()
     assert "DERIVED FROM CORPUS" in obs
@@ -149,9 +150,10 @@ def test_remaining_instruments_and_walkbacks(server, page):
     page.click("text=export evidence graph")
     page.wait_for_selector("text=generator", timeout=30000)
     # graphs drawer: development + overlay are honestly pending
-    page.select_option("#graphsel", "development")
+    page.click("[data-inst='worldmodels']")
+    page.click("#canvas button:has-text('Development')")
     assert "will not be drawn" in page.locator("#canvas").inner_text()
-    page.select_option("#graphsel", "overlay")
+    page.click("#canvas button:has-text('Overlay')")
     assert "will not be drawn" in page.locator("#canvas").inner_text()
     # all evidence rows open with the establishes/next structure
     rows = page.locator(".evrow").count()
@@ -163,7 +165,7 @@ def test_remaining_instruments_and_walkbacks(server, page):
 def test_the_crossing_is_a_handoff_not_a_dump(server, page):
     """Arriving from the expedition greets the reader with their specimen
     and their open questions; a direct visit stays neutral."""
-    page.goto(server + "/lab")
+    page.goto(server + "/lab/bench")
     page.wait_for_selector("body[data-ready]", timeout=30000)
     assert "Choose a specimen and an instrument." in \
         page.locator("#canvas").inner_text()
@@ -222,3 +224,25 @@ def test_atlas_and_difference_map(server, page):
     page.click("[data-inst='exectrace']")
     assert "will not draw a graph before the traces exist" in \
         page.locator("#canvas").inner_text()
+
+
+def test_spine_layout_alternative(server, page):
+    """The tandem spine layout: specimens with prominent scrubbers,
+    evidence spine center, graph + locked doors right — strict artifact
+    consumer, subject selection available."""
+    page.goto(server + "/lab/spine")
+    page.wait_for_selector("body[data-ready]", timeout=30000)
+    body = page.locator("body").inner_text()
+    assert "THE SPECIMENS" in body and "The Evidence" in body
+    assert "THE NEXT EXPEDITIONS" in body
+    assert "FINAL DRAGON · LOCKED" in body
+    # subjects are selectable and scrubbable
+    assert page.locator(".spec select").count() >= 1
+    assert page.locator(".spec input[type=range]").count() >= 1
+    # scrubbing re-reads the spine at that age
+    page.locator(".spec input >> nth=0").evaluate(
+        "el => { el.value = 0; el.dispatchEvent(new Event('input')); }")
+    page.wait_for_selector("text=developmental age 0%", timeout=15000)
+    # evidence levels carry statuses, not experiment names
+    assert "ESTABLISHED" in page.locator("#spine").inner_text()
+    assert "OPEN" in page.locator("#spine").inner_text()

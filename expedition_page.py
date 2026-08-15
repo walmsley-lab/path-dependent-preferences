@@ -503,7 +503,7 @@ INTERVENE             does that difference cause the behavior?
   <p class=prose>The first of those instruments is already running in the
     laboratory; the rest arrive as the twins finish growing.</p>
   <p class=prose>Your specimen and your open questions come with you.</p>
-  <button onclick="try{localStorage.setItem('pdp-crossing','1')}catch(e){};location.href='/lab'">
+  <button onclick="try{localStorage.setItem('pdp-crossing','1')}catch(e){};location.href='/lab/bench'">
     Cross to the research annex &rarr;</button>
   <div style="margin-top:60px;text-align:center">
     <span id=embod title="Where does a sufficiently explicit learned computation go next?"

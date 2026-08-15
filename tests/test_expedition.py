@@ -206,7 +206,7 @@ def test_ch3_same_notes_delayed_highlight_then_ch4_conflict(server, page):
 def test_embodiment_lives_in_the_lab(server, page):
     """The three doors live behind 'Beyond this experiment', as locked
     destinations."""
-    page.goto(server + "/lab")
+    page.goto(server + "/lab/bench")
     page.wait_for_selector("body[data-ready]", timeout=30000)
     page.click("#beyond")
     body = page.locator("#canvas").inner_text()

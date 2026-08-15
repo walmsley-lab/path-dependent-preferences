@@ -26,6 +26,7 @@ from pathlib import Path
 import generate_world as gw
 from expedition_page import EXPEDITION, render_technique
 from lab_page import LAB
+from lab_spine import LAB_SPINE
 from interact import Model
 from train import pick_device
 
@@ -801,7 +802,11 @@ class H(BaseHTTPRequestHandler):
                 self._send(200, EXPEDITION.encode(),
                            "text/html; charset=utf-8")
             elif u.path == "/lab":
-                self._send(200, LAB.encode(), "text/html; charset=utf-8")
+                self._send(200, LAB_SPINE.encode(),
+                           "text/html; charset=utf-8")
+            elif u.path in ("/lab/bench", "/lab/spine"):
+                page = LAB if u.path == "/lab/bench" else LAB_SPINE
+                self._send(200, page.encode(), "text/html; charset=utf-8")
             elif u.path == "/lab/classic":
                 self._send(200, PAGE.encode(), "text/html; charset=utf-8")
             elif u.path.startswith("/technique/"):

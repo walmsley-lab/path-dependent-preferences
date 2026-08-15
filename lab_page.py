@@ -142,6 +142,7 @@ textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
   <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX</span>
   <span>
     <a class=toplink href="/">&larr; the Expedition</a>&nbsp;&nbsp;
+    <a class=toplink href="/lab">evidence view</a>&nbsp;&nbsp;
     <a class=toplink href="/lab/classic">classic workbench</a>
   </span>
 </div>
@@ -212,6 +213,7 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
     </details>
     <details class=fam><summary>FORMALIZE</summary>
       <button data-inst=formal>derive candidate graph</button>
+      <button data-inst=worldmodels>world models (G_*)</button>
     </details>
   </div>
   <button id=beyond class=quiet style="margin-top:22px;width:100%">
@@ -223,17 +225,6 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 </main>
 
 <aside class=drawer>
-  <h3 class=zone>WORLD MODEL</h3>
-  <select id=graphsel style="width:100%;font:12px ui-monospace,Menlo,monospace;
-    padding:4px;border:1px solid var(--rule);background:#fff">
-    <option value="">view a graph&hellip;</option>
-    <option value=generating>Generator (authored)</option>
-    <option value=observational>Observational</option>
-    <option value=development>Development</option>
-    <option value=mechanism>Mechanism</option>
-    <option value=overlay>Overlay</option>
-  </select>
-  <hr class=g>
   <h3 class=zone>EVIDENCE</h3>
   <div class=note-dim style="font-size:10px;margin-bottom:4px">
     Experiments don&rsquo;t unlock chapters. Evidence unlocks claims.</div>
@@ -1434,9 +1425,26 @@ window.exportGraph = async () => {
 
 /* ---- graphs drawer ------------------------------------------------------ */
 
+function worldmodels(){ showGraph("generating"); }
+
+function graphSwitcher(active){
+  const kinds = [["generating","Generator"],["observational","Observational"],
+    ["development","Development"],["mechanism","Mechanism"],
+    ["overlay","Overlay"]];
+  return `<div style="margin-bottom:8px"><span class=note-dim
+    style="font-size:10px;letter-spacing:.15em">MODELS OF THE WORLD —
+    how it was generated &rarr; what the corpus offers &rarr; what
+    developed &rarr; what the network computes. Their disagreements are
+    the point.&nbsp;&nbsp;</span>` +
+    kinds.map(([k,l])=>`<button style="padding:3px 9px;font-size:11px"
+      class="${k===active?"primary":""}"
+      onclick="showGraph('${k}')">${l}</button>`).join(" ") + "</div>";
+}
+
 async function showGraph(kind){
   if(kind === "development" || kind === "mechanism" || kind === "overlay"){
-    canvas(`<div class=trace><div class=cap>${kind.toUpperCase()} GRAPH &middot;
+    canvas(graphSwitcher(kind) +
+      `<div class=trace><div class=cap>${kind.toUpperCase()} GRAPH &middot;
       PENDING</div><div class=note-dim>This graph populates as evidence
       records accumulate (${kind === "development"
         ? "paired-curriculum contrasts from the main batch"
@@ -1452,7 +1460,8 @@ async function showGraph(kind){
   const cap = kind === "observational"
     ? "G_observational &middot; DERIVED FROM CORPUS"
     : "G_generator &middot; PRIVILEGED GROUND TRUTH — SYNTHETIC WORLD ONLY";
-  let html = `<div class=trace><div class=cap>${cap}</div><div class=reading>`;
+  let html = graphSwitcher(kind) +
+    `<div class=trace><div class=cap>${cap}</div><div class=reading>`;
   for(const e of g.edges || []){
     const arrow = e.type === "predictive" ? "⇢" : "→";
     html += String(e.src).padEnd(20) + " " + arrow + " " +
@@ -1508,7 +1517,7 @@ const INSTRUMENTS = {ordinary:()=>behave("id"), conflict:()=>behave("conflict"),
   custom:compose, freeform, corpus:()=>corpus(), trajectory,
   probes:()=>probes(), constellation:()=>constellation(),
   atlas:()=>atlas(), diffmap:()=>diffmap(), exectrace, causal,
-  transplant, formal};
+  transplant, formal, worldmodels};
 
 async function init(){
   const [runs, ds] = await Promise.all([j("/api/runs"), j("/api/datasets")]);
@@ -1531,11 +1540,15 @@ async function init(){
   };
   document.querySelectorAll("[data-inst]").forEach(b=>
     b.onclick = ()=>INSTRUMENTS[b.dataset.inst]());
-  $("graphsel").onchange = ()=>{ if($("graphsel").value)
-    showGraph($("graphsel").value); };
   $("beyond").onclick = doors;
   renderEvidence();
   arrival();
+  const want = new URLSearchParams(location.search).get("inst");
+  if(want && INSTRUMENTS[want]){
+    const btn = document.querySelector(`[data-inst='${want}']`);
+    if(btn){ btn.closest("details").open = true; }
+    INSTRUMENTS[want]();
+  }
   document.body.dataset.ready = "1";
 }
 
