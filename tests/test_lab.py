@@ -228,10 +228,13 @@ def test_atlas_and_difference_map(server, page):
                            timeout=30000)
     atlas_text = page.locator("#canvas").inner_text()
     assert ("each cell is a location" in atlas_text)
-    # execution trace refuses to draw before traces exist
+    # execution trace: honest refusal before records exist, or the
+    # targeted trace (implicated stages only) once they do
     page.click("[data-inst='exectrace']")
-    assert "will not draw a graph before the traces exist" in \
-        page.locator("#canvas").inner_text()
+    page.wait_for_selector("text=EXECUTION TRACE", timeout=30000)
+    body = page.locator("#canvas").inner_text()
+    assert ("will not draw a graph before the traces exist" in body or
+            "IMPLICATED STAGES ONLY" in body)
 
 
 def test_spine_layout_alternative(server, page):

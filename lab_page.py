@@ -182,7 +182,7 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
       cursor:pointer">metadata</summary>
       <div class=idcard id=cardB></div></details>
   </div>
-  <button id=addB>+ add comparison specimen</button>
+  <button id=addB style="width:100%">+ add comparison specimen</button>
 
   <h3 class=zone style="margin-top:18px">INSTRUMENTS</h3>
   <div class=tray>
@@ -1324,6 +1324,23 @@ async function causal(){
         alphas.map(a=>`<td>${fmt(sweep[a].acc_utility)}</td>`).join("") +
         `</tr></table></div>`;
     };
+    const spark = (sweepIn, color) => {
+      const sweep = sweepIn.alphas || sweepIn;
+      const ks = Object.keys(sweep).sort((a,b)=>+a-+b);
+      const W=140, H=36;
+      const pts = ks.map((k,i)=>
+        (i?"L":"M") + (6+(W-12)*i/(ks.length-1)).toFixed(1) + " " +
+        (H-4-(H-8)*sweep[k].acc_utility).toFixed(1)).join(" ");
+      return `<svg width=${W} height=${H} viewBox="0 0 ${W} ${H}"
+        style="vertical-align:middle"><path d="${pts}" fill=none
+        stroke="${color}" stroke-width=1.6></path></svg>`;
+    };
+    html += `<div style="margin:6px 0">
+      ${spark(ev.sweeps.candidate, "#1e4d38")} candidate
+      ${spark(ev.sweeps.control_layer, "#8a8574")} layer ctrl
+      ${spark(ev.sweeps.random_direction, "#B4452A")} random ctrl
+      <span class=note-dim style="font-size:10px">(acc-utility vs α —
+      the candidate should be the only sloped line)</span></div>`;
     html += sweepTable("CANDIDATE " + ev.candidate_layer + " · λ direction",
                        ev.sweeps.candidate);
     html += sweepTable("control · " + ev.control_layer + " · λ direction",
@@ -1364,6 +1381,16 @@ async function causal(){
 drop when ablating:  v_λ @ ${ab.candidate_layer} ${fmt(d.candidate_lambda)}
                      random @ ${ab.candidate_layer} ${fmt(d.random_direction)}
                      v_λ @ ${ab.control_layer} ${fmt(d.control_layer_lambda)}</div>`;
+    const bar = (label, val, color) => {
+      const w = Math.min(Math.abs(val)*600, 160);
+      return `<div style="font:11px ui-monospace,Menlo,monospace">${label.padEnd(14)}
+        <span style="display:inline-block;height:9px;width:${w}px;
+        background:${color};vertical-align:middle"></span> ${fmt(val)}</div>`;
+    };
+    html += `<div style="margin:6px 0">
+      ${bar("v_λ @ cand", d.candidate_lambda, "#1e4d38")}
+      ${bar("random @ cand", d.random_direction, "#B4452A")}
+      ${bar("v_λ @ ctrl", d.control_layer_lambda, "#8a8574")}</div>`;
     const selective = d.candidate_lambda >
       2 * Math.max(d.random_direction, d.control_layer_lambda);
     const necessary = d.candidate_lambda >
@@ -1394,13 +1421,40 @@ drop when ablating:  v_λ @ ${ab.candidate_layer} ${fmt(d.candidate_lambda)}
     html += `<div class=note-dim><b>Prediction (stated before the
       result):</b> ${pa.prediction}</div>`;
     for(const [age, row] of Object.entries(pa.ages)){
-      html += `<div class=reading style="font-size:12px;margin-top:4px">age ${+age}%:
-  recipient ${fmt(row.recipient_baseline.acc_utility)} → patched
-  ${fmt(row.patched_candidate.acc_utility)}   (donor
-  ${fmt(row.donor_baseline.acc_utility)})
-  controls: layer ${fmt(row.patched_control_layer.acc_utility)} ·
-  mismatched ${fmt(row.patched_mismatched_donor.acc_utility)}
-  transfer-toward-donor ${fmt(row.transfer_toward_donor)}</div>`;
+      const r = row.recipient_baseline.acc_utility,
+            dn = row.donor_baseline.acc_utility,
+            p = row.patched_candidate.acc_utility;
+      const lo = Math.min(r, dn, p) - 0.05, hi = Math.max(r, dn, p) + 0.05;
+      const X = v => 8 + 224 * (v - lo) / (hi - lo);
+      html += `<div class=reading style="font-size:12px;margin-top:6px">age ${+age}%</div>
+      <svg width=280 height=34 viewBox="0 0 280 34">
+        <line x1=8 y1=17 x2=232 y2=17 stroke="#cfc9b6"></line>
+        <circle cx=${X(r).toFixed(1)} cy=17 r=4 fill="#1e4d38"><title>recipient ${fmt(r)}</title></circle>
+        <circle cx=${X(dn).toFixed(1)} cy=17 r=4 fill="#1D6A96"><title>donor ${fmt(dn)}</title></circle>
+        <circle cx=${X(p).toFixed(1)} cy=17 r=5 fill="none" stroke="#B4452A"
+          stroke-width=2><title>patched ${fmt(p)}</title></circle>
+        <text x=${X(r).toFixed(1)} y=31 text-anchor=middle
+          style="font:8px ui-monospace">rec</text>
+        <text x=${X(dn).toFixed(1)} y=8 text-anchor=middle
+          style="font:8px ui-monospace">donor</text>
+        <text x=${X(p).toFixed(1)} y=31 text-anchor=middle
+          style="font:8px ui-monospace;fill:#B4452A">patched</text></svg>`;
+      const au = pa.audit && pa.audit.per_example &&
+                 pa.audit.per_example[age];
+      if(au){
+        html += `<div class=reading style="font-size:11.5px">on the ${au.candidate.n_disputed} items where the twins DISAGREE,
+  the patched model sides with the donor ${fmt(au.candidate
+    .on_disputed_items_sides_with_donor)} of the time
+  (control layer ${fmt(au.control_layer
+    .on_disputed_items_sides_with_donor)} · mismatched ${fmt(au
+    .mismatched.on_disputed_items_sides_with_donor)})</div>`;
+      }
+    }
+    if(pa.audit){
+      html += `<div class=note-dim style="margin-top:6px"><b>AUDITED
+        VERDICT:</b> ${pa.audit.verdict}</div>
+        <div class=note-dim style="font-size:10.5px">${pa.audit
+        .metric_note}</div>`;
     }
     html += `<div class=note-dim>&#8627; ${pa._provenance.run_id} ·
       commit ${(pa._provenance.commit||"").slice(0,8)}</div>`;
@@ -1484,6 +1538,7 @@ async function formal(){
        gen ? gen.sel >= 0.25 : null],
       ["causal", steer ? "steer " + fmt(steer.dose_response_spread
         .candidate) : "○", steerOk || null],
+      ["portable", "not supported", false],
       ["development", "○", null]]),
     (probeRow ? "λ-class recoverable @ " + probeRow.loc + " (this probe, " +
       "this evaluation). " : "") +

@@ -131,3 +131,26 @@ any process-matching pattern used over SSH must use the bracket idiom
 ([t]rain.py) — in the watcher AND in anything the watcher might match.
 Seed-0 C2/C3 completed normally; no artifacts lost; orchestrator resumed
 with the remaining 13 runs.
+
+## 2026-08-15 — Metric incident: "transfer-toward-donor" retracted
+
+The patching analysis initially reported a normalized transfer metric
+((patched−recipient)/(donor−recipient)) that is degenerate when donor ≈
+recipient, and session commentary briefly promoted an "asymmetric
+transfer" interpretation from aggregate accuracies (C3←C2 patched to
+0.74 ≈ donor 0.72). ChatGPT flagged the anomaly and ordered an audit
+before any further experiments. The per-example audit (from raw
+predictions, on the ~105-108 disputed items where the twins disagree)
+showed candidate-layer patches side with the donor only 0.16–0.51 of
+the time — at or below the mismatched-donor control in one cell — while
+control-layer (L5) patches side with the donor 0.98–1.0 because the
+decision is already computed by then. The aggregate "transfer" was
+disruption coincidentally landing at donor-level accuracy. **Claim
+retracted; metric retired** in favor of per-example agreement rates;
+audited verdict recorded in the artifact: predicted transfer NOT
+established; constraint for G_mech: the instantaneous candidate-layer
+residual state is insufficient as a portable carrier of the
+developmental phenotype. The failure clause is the finding. Standing
+rule reinforced: normalized ratios with small denominators do not enter
+evidence records; per-example transitions are the ground truth for
+transfer claims.
