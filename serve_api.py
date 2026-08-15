@@ -856,6 +856,10 @@ class H(BaseHTTPRequestHandler):
                 p = Path(qs["run"][0]) / "atlas.json"
                 self._send(200, json.loads(p.read_text())) if p.exists() \
                     else self._send(404, {"error": "no atlas artifact"})
+            elif u.path == "/api/steering":
+                p = Path(qs["run"][0]) / "evidence_steering.json"
+                self._send(200, json.loads(p.read_text())) if p.exists() \
+                    else self._send(404, {"error": "no steering record"})
             elif u.path == "/api/evidence":
                 p = (Path(qs["run"][0]) /
                      "evidence_probe_generalization.json")

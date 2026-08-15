@@ -186,7 +186,7 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
 
   <h3 class=zone style="margin-top:18px">INSTRUMENTS</h3>
   <div class=tray>
-    <details class=fam open><summary>OBSERVE</summary>
+    <details class=fam open><summary title="what does the organism do?">OBSERVE</summary>
       <button data-inst=ordinary>ordinary case</button>
       <button data-inst=conflict>conflict test</button>
       <button data-inst=nocue>remove cue</button>
@@ -195,23 +195,23 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
       <button data-inst=freeform>&#9000; freeform prompt</button>
       <button data-inst=corpus>&#128065; what the learner saw</button>
     </details>
-    <details class=fam><summary>LOCATE</summary>
+    <details class=fam><summary title="where and when does information live?">LOCATE</summary>
       <button data-inst=trajectory>checkpoint trajectories</button>
       <button data-inst=atlas>&#128506; developmental atlas</button>
       <button data-inst=probes>&lambda; / cue probes</button>
     </details>
-    <details class=fam><summary>COMPARE</summary>
+    <details class=fam><summary title="where did developmental histories make the networks different?">COMPARE</summary>
       <button data-inst=constellation>&#9737; representation map</button>
       <button data-inst=diffmap>&#916; twin difference map</button>
     </details>
-    <details class=fam><summary>PERTURB</summary>
+    <details class=fam><summary title="which differences matter? correlation becomes causation here">PERTURB</summary>
       <button data-inst=causal class=pending>steer &middot; patch &middot; ablate</button>
       <button data-inst=transplant class=pending>developmental transplant</button>
     </details>
-    <details class=fam><summary>TRACE</summary>
+    <details class=fam><summary title="what sequence of transformations produced this decision?">TRACE</summary>
       <button data-inst=exectrace class=pending>execution trace</button>
     </details>
-    <details class=fam><summary>FORMALIZE</summary>
+    <details class=fam><summary title="the smallest mechanism that explains what survived">FORMALIZE</summary>
       <button data-inst=formal>derive candidate graph</button>
       <button data-inst=worldmodels>world models (G_*)</button>
     </details>
@@ -1258,13 +1258,62 @@ function exectrace(){
 
 /* ---- pending instruments ------------------------------------------------ */
 
-function causal(){
-  canvas(`<div class=trace><div class=cap>CAUSAL &middot; PENDING</div>
-    <div class=note-dim>Steering along probe directions exists in the REPL
-    harness; patching and ablation arrive with Phase B. Per the trace
-    ledger, causal instruments run only on candidate mechanisms that
-    survive the cheaper levels — and every run writes an evidence record,
-    with the predicted direction stated before the intervention.</div></div>`);
+async function causal(){
+  const subs = S.B ? [S.A, S.B] : [S.A];
+  let any = false;
+  let html = `<div class=trace><div class=cap>PERTURB &middot; STEERING
+    &middot; predicted-direction intervention with controls</div>`;
+  for(const st of subs){
+    let ev = null;
+    try{ ev = await j("/api/steering?run=" +
+      encodeURIComponent(st.run.run)); }catch(e){}
+    html += `<div class=reading style="margin-top:10px">${chip(st)}</div>`;
+    if(!ev){
+      html += `<div class=note-dim>no steering record for this specimen
+        yet (steer_run.py is the producer; it states its prediction
+        before running)</div>`;
+      continue;
+    }
+    any = true;
+    html += `<div class=note-dim><b>Prediction (stated before the
+      result):</b> ${ev.prediction}</div>`;
+    const sweepTable = (name, sweepIn) => {
+      const sweep = sweepIn.alphas || sweepIn;
+      const alphas = Object.keys(sweep);
+      return `<div class=reading style="font-size:11px;margin-top:6px">${name}</div>
+        <div class=scroller><table class=mtx><tr><th>α</th>` +
+        alphas.map(a=>`<th>${a}</th>`).join("") + `</tr>
+        <tr><td class=name style="cursor:default">matches outcomes</td>` +
+        alphas.map(a=>`<td>${fmt(sweep[a].acc_utility)}</td>`).join("") +
+        `</tr></table></div>`;
+    };
+    html += sweepTable("CANDIDATE " + ev.candidate_layer + " · λ direction",
+                       ev.sweeps.candidate);
+    html += sweepTable("control · " + ev.control_layer + " · λ direction",
+                       ev.sweeps.control_layer);
+    html += sweepTable("control · " + ev.candidate_layer +
+                       " · random direction", ev.sweeps.random_direction);
+    const d = ev.dose_response_spread;
+    const verdict = d.candidate > Math.max(d.control_layer,
+                                           d.random_direction)
+      ? "dose-response at the candidate site EXCEEDS both controls — " +
+        "consistent with the prediction"
+      : "dose-response at the candidate site does NOT exceed the " +
+        "controls — the prediction is not supported here";
+    html += `<div class=reading style="margin-top:6px">spread:
+      candidate ${fmt(d.candidate)} · control layer ${fmt(d.control_layer)}
+      · random ${fmt(d.random_direction)}</div>
+    <div class=note-dim><b>${verdict}.</b> Semantics: ${ev.semantics}.</div>
+    <div class=note-dim>&#8627; ${ev._provenance.run_id} · ${ev.ckpt} ·
+      commit ${(ev._provenance.commit||"").slice(0,8)}</div>`;
+  }
+  html += any ? "" : "";
+  html += `</div>
+  <div class=trace><div class=cap>PATCH &middot; ABLATE &middot;
+    PENDING</div><div class=note-dim>Cross-organism activation patching
+    and candidate-direction ablation follow on the sites steering
+    implicates — cheapest adequate intervention first.</div></div>`;
+  canvas(html);
 }
 
 function transplant(){
@@ -1326,14 +1375,23 @@ async function formal(){
     </div>`;
   let html = `<div class=trace><div class=cap>CANDIDATE FORMALIZATION
     &middot; ${chip(st)} &middot; click an edge for its evidence</div>`;
+  let steer = null;
+  try{ steer = await j("/api/steering?run=" +
+    encodeURIComponent(st.run.run)); }catch(e){}
+  const steerOk = steer && steer.dose_response_spread.candidate >
+    2 * Math.max(steer.dose_response_spread.control_layer,
+                 steer.dose_response_spread.random_direction);
   html += edgeCard(
-    "agent identity ─── λ ──⇢ choice   (candidate)",
+    steerOk ? "agent identity ─── λ ──── choice   (hardening)"
+            : "agent identity ─── λ ──⇢ choice   (candidate)",
     chipRow([
       ["behavioral", conf ? fmt(conf.acc_utility) : "—", !!conf],
       ["recoverable", probeRow ? fmt(probeRow.sel) : "—", !!probeRow],
       ["generalizes", gen ? fmt(gen.sel) : "untested",
        gen ? gen.sel >= 0.25 : null],
-      ["causal", "○", null], ["development", "○", null]]),
+      ["causal", steer ? "steer " + fmt(steer.dose_response_spread
+        .candidate) : "○", steerOk || null],
+      ["development", "○", null]]),
     (probeRow ? "λ-class recoverable @ " + probeRow.loc + " (this probe, " +
       "this evaluation). " : "") +
     (gen ? "Held-out-agent selectivity " + fmt(gen.sel) + " @ " + gen.loc +

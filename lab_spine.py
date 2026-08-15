@@ -238,11 +238,32 @@ async function renderSpine(){
     "recoverable by this probe ≠ used; read relative to the identity " +
     "floor at birth. What is established DIFFERS BY SPECIMEN — read each " +
     "line.", "probes");
-  html += level("open", "OPEN · CAUSAL",
+  const causalRows = [];
+  let anyCausal = false;
+  for(const st of S.subs){
+    const ev = await art(st, "steering");
+    if(ev){
+      anyCausal = true;
+      const d = ev.dose_response_spread;
+      causalRows.push(st.run.run.replace("runs/","") +
+        ":  steering @ " + ev.candidate_layer + " spread " +
+        fmt(d.candidate) + "  vs controls " + fmt(d.control_layer) +
+        " (layer) / " + fmt(d.random_direction) + " (random)");
+    } else {
+      causalRows.push(st.run.run.replace("runs/","") +
+        ":  no intervention records yet");
+    }
+  }
+  html += level(anyCausal ? "done" : "open",
+    anyCausal ? "EVIDENCE · CAUSAL (single-seed)" : "OPEN · CAUSAL",
     "Does that information cause the behavior?",
-    "steering · patching · ablation — no intervention records yet",
-    "predicted-direction interventions only; the arrow stays dotted " +
-    "until this level is earned", "causal");
+    causalRows.join("\n"),
+    (anyCausal ? "predicted-direction steering at the nominated site " +
+      "moved conflict behavior far more than the layer and random-" +
+      "direction controls — causal involvement under the tested " +
+      "intervention, single-seed until the batch replicates. " : "") +
+    "patching and ablation next; the arrow hardens only with this " +
+    "level", "causal");
   html += level("open", "OPEN · DEVELOPMENT",
     "What did childhood change, and what carries it?",
     "15-organism batch in training · crossed transplant apparatus ready",
