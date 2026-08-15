@@ -433,9 +433,19 @@ function chip(st){
 }
 
 function idcard(run){
-  return run.arch + "\n" + (run.n_params ? (run.n_params/1e6).toFixed(1) +
-    "M parameters\n" : "") + "curriculum: " + (run.curriculum || "?") +
-    "\ncommit: " + run.commit;
+  // one attribute per line: "6-layer decoder-only, d=384, 6 heads"
+  // becomes an aligned key-value card
+  const m = (run.arch || "").match(/(\d+)-layer ([^,]+), d=(\d+), (\d+) heads/);
+  const rows = m
+    ? [["architecture", m[1] + "-layer " + m[2]],
+       ["width", "d=" + m[3] + " · " + m[4] + " heads"]]
+    : [["architecture", run.arch || "?"]];
+  if(run.n_params)
+    rows.push(["parameters", (run.n_params/1e6).toFixed(1) + "M"]);
+  rows.push(["curriculum",
+             (run.curriculum || "?").replace("curriculum_", "")]);
+  rows.push(["commit", run.commit]);
+  return rows.map(([k, v]) => k.padEnd(13) + v).join("\n");
 }
 
 function refreshActive(){
