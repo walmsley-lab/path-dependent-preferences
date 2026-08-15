@@ -51,7 +51,27 @@ cannot have.
 - [ ] Balance gate (the first experiment: are both routes independently learnable?)
 - [ ] 15-run batch (3 orderings × 5 paired seeds) + analysis
 
-## Reproduce
+## Reproduce: walking in our footsteps
+
+The project is built as a **ladder** — each rung is one command, cheap
+before expensive, with "what success looks like" stated so you can verify
+every step before trusting the next. The git history is the audit trail of
+how the design evolved (including preserved failed calibrations —
+see [PREREG.md](PREREG.md)'s Calibration log and
+[RESEARCH_LOG.md](RESEARCH_LOG.md)); the ladder is how you re-walk it.
+
+| Rung | Command | Hardware / time | Success looks like |
+|---|---|---|---|
+| 0 | `python test_generator.py` | CPU, seconds | `17 invariant tests passed` — the design guarantees hold by construction |
+| 1 | `bash smoke_test.sh` | CPU, ~3 min | `SMOKE PASS` — whole pipeline mechanically verified at toy scale (near-chance accuracy is *expected* here) |
+| 2 | `bash run_nocue_debug.sh` | GPU, ~15 min | Route A learns: no-cue accuracy climbs to ~0.84 (compare `figures/route_a_acquisition.png`); rung 2b: the same 8-epoch treatment on `pilot_p_only` shows Route B snap to 1.00 |
+| 3 | `python run_batch.py --stage gate --gate_n 1200000 --parallel 3` | GPU, ~1–2 hr | The balance-gate table: both routes independently learnable at main exposure; mechanical level selection per the frozen rule |
+| 4 | `python run_batch.py --stage batch --level <Lx> --seeds 0 1 2 3 4` then `python analyze.py --level <Lx>` | GPU, hours | Figures 1–4 + Table 1 + the preregistered paired-Δ report — the main experiment |
+| 5 | `train.py --resume_weights_from A --resume_opt_from B` (see [PHASE_B.md](PHASE_B.md)) | GPU | Crossed weight × optimizer-state transplant and the causal decomposition program |
+
+Every run writes a manifest (run id, commit SHA, dataset/init hashes,
+timestamps); results without that provenance are treated as nonexistent —
+a rule this project learned the hard way (see the research log).
 
 ### Local or existing GPU machine
 
