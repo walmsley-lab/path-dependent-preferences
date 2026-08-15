@@ -164,3 +164,32 @@ understand the computation well enough to build it somewhere else?
 - G_authored explicitly labeled as the privileged synthetic-world object
   in the interfaces.
 - Everything else stays roadmap.
+
+## The two final dragons (2026-08-15 addendum)
+
+The formal computation has two directions of travel, and the ending
+reveals both:
+
+```
+                    FORMAL COMPUTATION
+                           │
+            ┌──────────────┴──────────────┐
+            ▼                             ▼
+     EMBODY THE GRAPH               IMPORT A BRAIN
+   neuromorphic hardware              connectome
+   [COMPILE] under construction    [IMPORT] coming soon
+```
+
+They are near-inverses. **Embodiment** asks: given a computation we
+understand, can we build a physical substrate that executes it?
+**Reconstruction** asks: given a physical biological substrate, can we
+recover enough structure *and dynamics* to produce an executable formal
+abstraction? The grounding copy for the import button is mandatory: *"A
+wiring diagram is not yet a brain. This instrument asks what additional
+evidence is required to turn biological structure into a testable
+computational specification"* — connectomics alone omits morphology,
+cell types, synaptic properties, dynamics, plasticity, neuromodulation,
+functional recordings. Which is exactly this project's philosophy:
+**structure is a hypothesis; evidence promotes it.** Between the two
+dragons sits the thing the project actually builds: an evidence-bearing
+formal representation of computation.
