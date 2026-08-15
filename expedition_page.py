@@ -636,6 +636,13 @@ function noteCard(o, i, opt){
     ${rawRecord(r.prompt)}${hyppred}${guess}${stamp}</div>`;
 }
 
+function pullDirection(r){
+  // which way must the slider move for this note to fit?
+  if(predict(0.999, r) === r.utility_answer) return "HIMSELF";
+  if(predict(0.001, r) === r.utility_answer) return "OTHERS";
+  return null;
+}
+
 function predict(lamHat, r){
   const a = lamHat*r.d_self_1 + (1-lamHat)*r.d_other_1;
   const b = lamHat*r.d_self_2 + (1-lamHat)*r.d_other_2;
@@ -705,8 +712,14 @@ function sliderReport(){
   for(const i of [0,1]){
     if(predict(lamHat, S.obs[i].record) === S.obs[i].record.utility_answer) ok++;
   }
-  $("fitreport").textContent = "Your setting re‑predicts " + ok +
-    " of the 2 decisions you have seen.";
+  const pulls = [0,1].filter(i =>
+    predict(lamHat, S.obs[i].record) !== S.obs[i].record.utility_answer)
+    .map(i => pullDirection(S.obs[i].record)).filter(Boolean);
+  $("fitreport").textContent = ok === 2
+    ? "Your setting re‑predicts both decisions you have seen. Commit it — " +
+      "or explore how far it can move and still fit."
+    : "Your setting re‑predicts " + ok + " of the 2 decisions you have " +
+      "seen." + (pulls.length ? " Try moving toward " + pulls[0] + "." : "");
   $("commit").disabled = (ok < 2);
 }
 
@@ -753,10 +766,28 @@ function revealTest(i, p){
 
 function reviseReport(){
   const lamHat = 1 - $("lamslider2").value/100;
-  const hits = [0,1,2,3].filter(k =>
-    predict(lamHat, S.obs[k].record) === S.obs[k].record.utility_answer).length;
-  $("fitreport2").textContent = "Your revised setting explains " + hits +
-    " of 4 recorded decisions.";
+  const misses = [];
+  [0,1,2,3].forEach(k => {
+    const r = S.obs[k].record;
+    const p = predict(lamHat, r);
+    const ok = p === r.utility_answer;
+    if(!ok) misses.push(k);
+    const g = $("gnote"+k);
+    const dir = pullDirection(r);
+    if(g) g.innerHTML = ok
+      ? '<span style="color:var(--green)">&#10003; this setting predicts it</span>'
+      : '<span style="color:var(--orange)">&#10007; misses' +
+        (dir ? " — this page pulls toward " + dir : "") + "</span>";
+  });
+  const hits = 4 - misses.length;
+  const dirs = misses.map(k => pullDirection(S.obs[k].record)).filter(Boolean);
+  const uniq = [...new Set(dirs)];
+  $("fitreport2").textContent = hits === 4
+    ? "All four pages agree with this setting."
+    : "Explains " + hits + " of 4. Disagreeing: " +
+      misses.map(k => "FIELD NOTE " + String(k+1).padStart(3,"0")).join(", ") +
+      (uniq.length === 1 ? " — move toward " + uniq[0] + "." :
+       " — the pages disagree about the direction; find the balance point.");
   if(hits === 4){
     S.lamHat = lamHat;
     $("lamslider2").disabled = true;

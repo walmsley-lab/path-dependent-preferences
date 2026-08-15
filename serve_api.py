@@ -116,10 +116,25 @@ def api_observe(data, agent=None, n=4):
             sorted(amap, key=lambda a: (-amap[a], a))[0]
     lam = amap[agent]
     rng = random.Random(20260814)
+
+    def pred(lam_hat, rec):
+        u1 = lam_hat*rec["d_self_1"] + (1-lam_hat)*rec["d_other_1"]
+        u2 = lam_hat*rec["d_self_2"] + (1-lam_hat)*rec["d_other_2"]
+        return 1 if u1 >= u2 else 2
+
+    # every field note must be INFORMATIVE: its prediction flips somewhere
+    # on the reader's slider. Otherwise "your setting fits" is vacuously
+    # true everywhere, the committed hypothesis is unconstrained, and the
+    # withheld tests feel like a wall instead of a clue (2026-08-15 UX
+    # incident: two dominated-option notes -> apparent dead end).
     obs = []
-    for _ in range(n):
+    for _ in range(2000):
+        if len(obs) >= n:
+            break
         cfg = gw.sample_p_config(rng, {agent: lam}, gw.TRAIN_NOUNS, "T1")
         _, rec = gw.render_p(cfg, man["level"], "train")
+        if pred(0.001, rec) == pred(0.999, rec):
+            continue
         obs.append({"record": rec,
                     "cfg": {**cfg, "options": [list(o) for o in
                                                cfg["options"]]}})
