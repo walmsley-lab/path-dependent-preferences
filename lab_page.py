@@ -527,7 +527,12 @@ async function behave(mode, customCfg){
     ${mode.toUpperCase()} ${liveBadge()}</div>
     <div style="display:flex;gap:14px;align-items:stretch">
     <div style="flex:1;min-width:0">
-    <div class=scene>${rA.record.prompt}</div><div class=duo>`;
+    <div class=reading style="font-size:10px;letter-spacing:.2em;
+      color:var(--inst)">PROMPT</div>
+    <div class=scene>${rA.record.prompt}</div>
+    <div class=reading style="font-size:10px;letter-spacing:.2em;
+      color:var(--inst);margin-bottom:4px">RESPONSE</div>
+    <div class=duo>`;
   html += answerBlock(S.A, rA);
   let crossWorld = false;
   if(S.B){
