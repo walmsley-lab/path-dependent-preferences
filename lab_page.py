@@ -675,36 +675,67 @@ async function trajectory(){
   const subs = S.B ? [S.A, S.B] : [S.A];
   const series = await Promise.all(subs.map(st =>
     j("/api/series?run=" + encodeURIComponent(st.run.run))));
-  let html = `<div class=trace><div class=cap>DEVELOPMENT &middot; STORED
-    CHECKPOINT SCORES (conflict = utility-agreement)</div>`;
-  const W=520, H=180, colors=["#1e4d38","#B4452A"];
-  let svg = `<svg width=${W} height=${H} viewBox="0 0 ${W} ${H}">`;
-  svg += `<line x1=30 y1=10 x2=30 y2=${H-25} stroke="#cfc9b6"></line>`;
-  svg += `<line x1=30 y1=${H-25} x2=${W-10} y2=${H-25} stroke="#cfc9b6"></line>`;
-  svg += `<text x=2 y=14>1.0</text><text x=2 y=${H-22}>0.0</text>`;
+  let html = `<div class=trace><div class=cap>DEVELOPMENT &middot; when
+    does behavior change as this organism grows?</div>
+    <div class=note-dim>Each dot is a STORED measurement: at a preserved
+    developmental age, the fraction of the held-out disagreement set
+    (hundreds of cases where the two rules point at different options)
+    on which behavior matched the <b>outcome rule</b>. 1.0 = always
+    outcomes · 0.0 = always wording · the dashed line is chance.</div>`;
+  const W=520, H=210, padL=38, padR=14, padT=12, padB=30,
+        colors=["#1e4d38","#B4452A"];
+  let svg = `<line x1=${padL} y1=${padT} x2=${padL} y2=${H-padB}
+      stroke="#cfc9b6"></line>
+    <line x1=${padL} y1=${H-padB} x2=${W-padR} y2=${H-padB}
+      stroke="#cfc9b6"></line>
+    <line x1=${padL} y1=${padT+(H-padT-padB)/2} x2=${W-padR}
+      y2=${padT+(H-padT-padB)/2} stroke="#cfc9b6"
+      stroke-dasharray="4 4"></line>
+    <text x=4 y=${padT+6}>1.0</text>
+    <text x=4 y=${padT+(H-padT-padB)/2+4}>0.5</text>
+    <text x=4 y=${H-padB+4}>0.0</text>
+    <text x=${W/2-60} y=${H-6}>developmental age %</text>
+    <text x=${padL+4} y=${padT+(H-padT-padB)/2-4}
+      style="font-style:italic">chance</text>`;
   let any = false;
+  const sx = pct => padL + (W-padL-padR)*pct/100;
+  const sy = v => padT + (H-padT-padB)*(1-v);
   series.forEach((s, si) => {
     const pts = s.series.filter(r => "conflict" in r);
     if(!pts.length) return;
     any = true;
-    const path = pts.map((r,i) =>
-      (i?"L":"M") + (30 + (W-45)*r.pct/100) + " " +
-      (10 + (H-35)*(1-r.conflict))).join(" ");
-    svg += `<path d="${path}" fill=none stroke="${colors[si]}" stroke-width=1.6></path>`;
+    svg += `<path d="${pts.map((r,i)=>(i?"L":"M")+sx(r.pct).toFixed(1)+
+      " "+sy(r.conflict).toFixed(1)).join(" ")}" fill=none
+      stroke="${colors[si]}" stroke-width=1.6></path>`;
     pts.forEach(r => {
-      svg += `<circle cx=${30 + (W-45)*r.pct/100} cy=${10 + (H-35)*(1-r.conflict)} r=2.5 fill="${colors[si]}"></circle>`;
+      svg += `<circle cx=${sx(r.pct).toFixed(1)} cy=${sy(r.conflict)
+        .toFixed(1)} r=3.2 fill="${colors[si]}"><title>age ${r.pct}%:
+        ${(r.conflict*100).toFixed(1)}% outcomes</title></circle>
+        <text x=${sx(r.pct)-8} y=${H-padB+14}>${r.pct}</text>`;
     });
-    svg += `<text x=${W-190} y=${20+si*13} fill="${colors[si]}">${chip(subs[si])} · conflict</text>`;
+    svg += `<text x=${W-160} y=${padT+12+si*13}
+      fill="${colors[si]}">${chip(subs[si])}</text>`;
   });
-  svg += "</svg>";
-  html += any ? svg : `<div class=note-dim>no stored checkpoint scores for
-    this specimen yet — the main batch writes them as it trains</div>`;
-  html += `<div class=note-dim>points, not smoothed curves — the honest
-    resolution of the stored record</div></div>`;
+  html += any
+    ? `<div class=scroller><svg viewBox="0 0 ${W} ${H}"
+        style="width:100%;max-width:${W}px;height:auto;border:1px solid
+        var(--rule);border-radius:3px;background:#fff;margin-top:8px">
+        ${svg}</svg></div>
+      <div class=note-dim style="margin-top:6px">points, not smoothed
+        curves — the honest resolution of this bench (${
+        series[0].series.filter(r=>"conflict" in r).length} preserved
+        ages; the full record holds 21). <b>Established:</b> when
+        behavior moved. <b>Not established:</b> what changed inside
+        (probes) or whether it is causal (locked). An interesting window
+        here is exactly where to point the representation
+        instruments.</div>`
+    : `<div class=note-dim>no stored checkpoint scores for this
+        specimen yet — the main batch writes them as it trains</div>`;
+  html += "</div>";
   canvas(html);
 }
 
-/* ---- representation ----------------------------------------------------- */
+/* ---- representation/* ---- representation ----------------------------------------------------- */
 
 const HUMAN = {lambda_class: "Hidden preference λ",
   u_diff_sign: "Utility difference", verb_class_1: "Wording cue"};
