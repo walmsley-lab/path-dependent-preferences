@@ -63,8 +63,9 @@ hr.g{border:none;border-top:1px solid var(--rule);margin:14px 0}
 .idcard{font:11.5px ui-monospace,Menlo,monospace;color:var(--faded);
   white-space:pre-wrap}
 .age{margin-top:8px}
-.ages{display:flex;flex-wrap:wrap;gap:3px}
-.ages button{padding:2px 7px;font:11px ui-monospace,Menlo,monospace}
+.ages{display:flex;flex-wrap:nowrap;gap:2px;overflow-x:auto}
+.ages button{padding:2px 5px;font:10px ui-monospace,Menlo,monospace;
+  flex:none}
 .ages button.on{background:var(--green);color:var(--ivory);
   border-color:var(--green)}
 .age .lbl{font:10px ui-monospace,Menlo,monospace;color:var(--faded);
@@ -85,7 +86,7 @@ button:disabled{opacity:.4;cursor:default}
 .fam[open] summary{color:var(--inst)}
 .tray .grp{font-size:9px;letter-spacing:.2em;color:var(--graphite);
   margin:10px 0 3px}
-.tray button.pending{color:var(--graphite);border-style:dashed}
+.tray button.pending{color:var(--graphite)}
 
 /* canvas */
 #canvas-empty{color:var(--graphite);font-family:Georgia,serif;
@@ -182,38 +183,38 @@ paired init &#10003;   same multiset &#10003;   same token budget &#10003;</span
       cursor:pointer">metadata</summary>
       <div class=idcard id=cardB></div></details>
   </div>
-  <button id=addB style="width:100%">+ add comparison specimen</button>
+  <button id=addB style="width:100%">Add comparison specimen</button>
 
   <h3 class=zone style="margin-top:18px">INSTRUMENTS</h3>
   <div class=tray>
     <details class=fam open><summary title="what does the organism do?">OBSERVE</summary>
-      <button data-inst=ordinary>ordinary case</button>
-      <button data-inst=conflict>conflict test</button>
-      <button data-inst=nocue>remove cue</button>
-      <button data-inst=cueonly>cue only</button>
-      <button data-inst=custom>&#9998; compose a scenario</button>
-      <button data-inst=freeform>&#9000; freeform prompt</button>
-      <button data-inst=corpus>&#128065; what the learner saw</button>
+      <button data-inst=ordinary>Ordinary case</button>
+      <button data-inst=conflict>Conflict test</button>
+      <button data-inst=nocue>Remove cue</button>
+      <button data-inst=cueonly>Cue only</button>
+      <button data-inst=custom>Compose a scenario</button>
+      <button data-inst=freeform>Freeform prompt</button>
+      <button data-inst=corpus>What the learner saw</button>
     </details>
     <details class=fam><summary title="where and when does information live?">LOCATE</summary>
-      <button data-inst=trajectory>checkpoint trajectories</button>
-      <button data-inst=atlas>&#128506; developmental atlas</button>
+      <button data-inst=trajectory>Checkpoint trajectories</button>
+      <button data-inst=atlas>Developmental atlas</button>
       <button data-inst=probes>&lambda; / cue probes</button>
     </details>
     <details class=fam><summary title="where did developmental histories make the networks different?">COMPARE</summary>
-      <button data-inst=constellation>&#9737; representation map</button>
-      <button data-inst=diffmap>&#916; twin difference map</button>
+      <button data-inst=constellation>Representation map</button>
+      <button data-inst=diffmap>Twin difference map</button>
     </details>
     <details class=fam><summary title="which differences matter? correlation becomes causation here">PERTURB</summary>
-      <button data-inst=causal class=pending>steer &middot; patch &middot; ablate</button>
-      <button data-inst=transplant class=pending>developmental transplant</button>
+      <button data-inst=causal>Steer, patch, ablate</button>
+      <button data-inst=transplant class=pending>Developmental transplant</button>
     </details>
     <details class=fam><summary title="what sequence of transformations produced this decision?">TRACE</summary>
-      <button data-inst=exectrace class=pending>execution trace</button>
+      <button data-inst=exectrace>Execution trace</button>
     </details>
     <details class=fam><summary title="the smallest mechanism that explains what survived">FORMALIZE</summary>
-      <button data-inst=formal>derive candidate graph</button>
-      <button data-inst=worldmodels>world models (G_*)</button>
+      <button data-inst=formal>Derive candidate graph</button>
+      <button data-inst=worldmodels>World models (G_*)</button>
     </details>
   </div>
   <button id=beyond class=quiet style="margin-top:22px;width:100%">
