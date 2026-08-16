@@ -17,6 +17,9 @@ import b0_design as B0
 import curriculum as C
 import design as D
 import odyssey_world as W
+from odyssey_adapter import OdysseyWorld
+
+WORLD = OdysseyWorld()
 
 
 @pytest.fixture(autouse=True)
@@ -104,22 +107,22 @@ def test_mastery_gating_cannot_claim_matched_exposure():
 
 
 def test_arms_differing_in_an_undeclared_factor_are_refused():
-    graph = W.default_graph()
+    graph = WORLD.schema()
     a = C.policy_topological(graph); a.scale = 0.1
     b = C.policy_topological(graph); b.scale, b.cue_mode = 0.1, "off"
-    _, _, ma = C.compile_curriculum(graph, a, 0)
-    _, _, mb = C.compile_curriculum(graph, b, 0)
+    _, _, ma = C.compile_curriculum(WORLD, a, 0)
+    _, _, mb = C.compile_curriculum(WORLD, b, 0)
     problems = D.preflight(ok_contract(), [ma, mb])
     assert any("shortcut prevalence" in p or "cue mode" in p
                for p in problems), problems
 
 
 def test_unmatched_exposure_budget_is_refused_when_declared_matched():
-    graph = W.default_graph()
+    graph = WORLD.schema()
     a = C.policy_topological(graph); a.scale = 0.1
     b = C.policy_topological(graph); b.scale = 0.2
-    _, _, ma = C.compile_curriculum(graph, a, 0)
-    _, _, mb = C.compile_curriculum(graph, b, 0)
+    _, _, ma = C.compile_curriculum(WORLD, a, 0)
+    _, _, mb = C.compile_curriculum(WORLD, b, 0)
     problems = D.preflight(ok_contract(), [ma, mb])
     assert any("exposure matched" in p for p in problems), problems
 
@@ -127,18 +130,18 @@ def test_unmatched_exposure_budget_is_refused_when_declared_matched():
 def test_arms_that_compile_identically_are_refused():
     """If the declared manipulation produced the same corpus, the run
     would answer nothing."""
-    graph = W.default_graph()
+    graph = WORLD.schema()
     a = C.policy_topological(graph); a.scale = 0.1
-    _, _, ma = C.compile_curriculum(graph, a, 0)
+    _, _, ma = C.compile_curriculum(WORLD, a, 0)
     problems = D.preflight(ok_contract(), [ma, dict(ma)])
     assert any("identical corpus" in p for p in problems)
 
 
 def test_arms_must_share_the_same_fact_pool():
-    graph = W.default_graph()
+    graph = WORLD.schema()
     a = C.policy_topological(graph); a.scale = 0.1
-    _, _, m0 = C.compile_curriculum(graph, a, 0)
-    _, _, m1 = C.compile_curriculum(graph, a, 7)   # different world
+    _, _, m0 = C.compile_curriculum(WORLD, a, 0)
+    _, _, m1 = C.compile_curriculum(WORLD, a, 7)   # different world
     problems = D.preflight(ok_contract(), [m0, m1])
     assert any("fact pool" in p or "different world seeds" in p
                for p in problems), problems
@@ -156,9 +159,9 @@ def test_every_measured_node_declares_its_construct():
     """Hu's lesson: we observe behaviour and infer a construct, so the
     account of what else could produce that behaviour is part of the
     design, not commentary on it."""
-    for node in ("recognition", "judgment", W.TARGET_NODE):
-        assert node in W.CONSTRUCTS, node
-        c = W.CONSTRUCTS[node]
+    for node in ("recognition", "judgment", WORLD.target_node):
+        assert node in WORLD.constructs, node
+        c = WORLD.constructs[node]
         assert c["known_confounds"] and c["controls"]
         assert len(c["controls"]) >= len(c["known_confounds"])
 
@@ -167,7 +170,7 @@ def test_diagnostics_are_forced_choice_not_generation():
     """Direct measurement, per Hu & Levy (2023): our models are small,
     which is exactly the regime where generation-based prompts penalise
     a competence the model actually has."""
-    ev = W.target_eval(0, n=6)
+    ev = WORLD.target_eval(0, n=6)
     for items in ev.values():
         for r in items:
             assert r["scoring"] == "forced_choice"

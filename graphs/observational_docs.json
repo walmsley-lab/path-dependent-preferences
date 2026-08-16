@@ -1,0 +1,741 @@
+{
+ "document": "expedition_design.md",
+ "n_passages": 117,
+ "competency_questions": [
+  "Which concepts appear prerequisite to others?",
+  "Which concepts compose to answer multi-hop questions?",
+  "Which relations recur across contexts?",
+  "Which concepts can be tested independently?",
+  "Which candidate shortcuts predict answers without the intended concepts?"
+ ],
+ "concepts": {
+  "never": 14,
+  "reader": 14,
+  "world": 11,
+  "expedition": 9,
+  "chapter": 9,
+  "lab": 8,
+  "model": 8,
+  "causal": 8,
+  "chapters": 7,
+  "data": 7,
+  "live": 7,
+  "evidence": 7,
+  "representation": 7,
+  "probe": 7,
+  "developmental": 7,
+  "notebook": 7,
+  "view": 7,
+  "real": 6,
+  "design": 5,
+  "built": 5,
+  "instrument": 5,
+  "utility": 5,
+  "authored": 5,
+  "behavior": 5,
+  "slider": 5,
+  "claims": 4,
+  "frozen": 4,
+  "semantic": 4,
+  "experience": 4,
+  "experiment": 4,
+  "every": 4,
+  "route": 4,
+  "cover": 4,
+  "instruments": 4,
+  "discovered": 4,
+  "abstraction": 4,
+  "graph": 4,
+  "layer": 4,
+  "next": 4,
+  "object": 4,
+  "identity": 4,
+  "first": 4,
+  "development": 4,
+  "act": 4,
+  "observatory": 4,
+  "ladder": 3,
+  "laws": 3,
+  "spec": 3,
+  "level": 3,
+  "must": 3,
+  "strength": 3,
+  "visual": 3,
+  "scientific": 3,
+  "them": 3,
+  "controls": 3,
+  "existing": 3,
+  "narrative": 3,
+  "moment": 3,
+  "reveal": 3,
+  "preference": 3,
+  "steering": 3,
+  "conflict": 3,
+  "generator": 3,
+  "probes": 3,
+  "patching": 3,
+  "rule": 3,
+  "candidate": 3,
+  "keeps": 3,
+  "matthew": 3,
+  "mechanism": 3,
+  "specimen": 3,
+  "formal": 3,
+  "checkpoints": 3,
+  "interaction": 3,
+  "discriminating": 3,
+  "hypotheses": 3,
+  "answers": 3,
+  "full": 3,
+  "phase": 3,
+  "unresolved": 3,
+  "persistent": 3,
+  "stored": 3,
+  "corpus": 3
+ },
+ "edges": [
+  {
+   "src": "claims",
+   "dst": "ladder",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 0,
+     "end": 61,
+     "quote": "# Expedition Design: the frozen laws and the ladder of claims"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 76,
+     "end": 311,
+     "quote": "Implementation-level spec for the public experience, adopted from the DeepSeek handoff (\"E\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 2341,
+     "end": 2405,
+     "quote": "## The ladder of claims (what each level licenses the UI to say)"
+    }
+   ]
+  },
+  {
+   "src": "abstraction",
+   "dst": "causal",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 4095,
+     "end": 4483,
+     "quote": "Matthew's journey through the visual grammar: person \u2192 specimen \u2192 variable \u2192 representatio\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 9517,
+     "end": 9655,
+     "quote": "What does    NOT yet exist: per-layer-per-position patching maps, SAE features, the    \"co\u2026"
+    }
+   ]
+  },
+  {
+   "src": "authored",
+   "dst": "evidence",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 3328,
+     "end": 3590,
+     "quote": "Between authored world and neural model, the UI keeps **two objects and never collapses th\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 13763,
+     "end": 14106,
+     "quote": "Governing rule, now in the UI: *experiments don't unlock chapters; evidence unlocks claims\u2026"
+    }
+   ]
+  },
+  {
+   "src": "behavior",
+   "dst": "causal",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 4,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 3692,
+     "end": 3917,
+     "quote": "When a probe does succeed, the very next beat is the crossed implication: **decodable \u2260 us\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 5378,
+     "end": 5506,
+     "quote": "Later we infer the model's representations from its behavior; later still we intervene to \u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 6920,
+     "end": 7269,
+     "quote": "``` EXPERIENCE      what has it seen so far (curriculum segments \u2014 real data) BEHAVIOR    \u2026"
+    }
+   ]
+  },
+  {
+   "src": "candidate",
+   "dst": "evidence",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 3328,
+     "end": 3590,
+     "quote": "Between authored world and neural model, the UI keeps **two objects and never collapses th\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 10301,
+     "end": 10442,
+     "quote": "The graph editor's eventual three-graph discipline    (generating / evidence / candidate a\u2026"
+    }
+   ]
+  },
+  {
+   "src": "causal",
+   "dst": "patching",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 9517,
+     "end": 9655,
+     "quote": "What does    NOT yet exist: per-layer-per-position patching maps, SAE features, the    \"co\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 12766,
+     "end": 13077,
+     "quote": "Planned set: TECHNIQUE \u00b7 DECODER-ONLY TRANSFORMER; METHOD \u00b7 DISCRIMINATIVE EVALUATION; MET\u2026"
+    }
+   ]
+  },
+  {
+   "src": "evidence",
+   "dst": "model",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 3328,
+     "end": 3590,
+     "quote": "Between authored world and neural model, the UI keeps **two objects and never collapses th\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 6074,
+     "end": 6229,
+     "quote": "And when the model then answers utility-side, the notebook records \"behavioral evidence fa\u2026"
+    }
+   ]
+  },
+  {
+   "src": "probes",
+   "dst": "steering",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 6920,
+     "end": 7269,
+     "quote": "``` EXPERIENCE      what has it seen so far (curriculum segments \u2014 real data) BEHAVIOR    \u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 9310,
+     "end": 9516,
+     "quote": "**Instrument honesty.** What exists today: forced-choice logp scoring,    control-probed l\u2026"
+    }
+   ]
+  },
+  {
+   "src": "evidence",
+   "dst": "never",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 3328,
+     "end": 3590,
+     "quote": "Between authored world and neural model, the UI keeps **two objects and never collapses th\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 6074,
+     "end": 6229,
+     "quote": "And when the model then answers utility-side, the notebook records \"behavioral evidence fa\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 10301,
+     "end": 10442,
+     "quote": "The graph editor's eventual three-graph discipline    (generating / evidence / candidate a\u2026"
+    }
+   ]
+  },
+  {
+   "src": "never",
+   "dst": "evidence",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 511,
+     "end": 597,
+     "quote": "**The interface must never visually claim more than the experiment has    established."
+    }
+   ]
+  },
+  {
+   "src": "model",
+   "dst": "never",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 3328,
+     "end": 3590,
+     "quote": "Between authored world and neural model, the UI keeps **two objects and never collapses th\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 6074,
+     "end": 6229,
+     "quote": "And when the model then answers utility-side, the notebook records \"behavioral evidence fa\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 13554,
+     "end": 13762,
+     "quote": "The Lab is an **artifact consumer**: sliders and view switches must never invoke a model; \u2026"
+    }
+   ]
+  },
+  {
+   "src": "never",
+   "dst": "model",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 511,
+     "end": 597,
+     "quote": "**The interface must never visually claim more than the experiment has    established."
+    }
+   ]
+  },
+  {
+   "src": "causal",
+   "dst": "representation",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 3692,
+     "end": 3917,
+     "quote": "When a probe does succeed, the very next beat is the crossed implication: **decodable \u2260 us\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 4095,
+     "end": 4483,
+     "quote": "Matthew's journey through the visual grammar: person \u2192 specimen \u2192 variable \u2192 representatio\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 6920,
+     "end": 7269,
+     "quote": "``` EXPERIENCE      what has it seen so far (curriculum segments \u2014 real data) BEHAVIOR    \u2026"
+    }
+   ]
+  },
+  {
+   "src": "causal",
+   "dst": "representation",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2407,
+     "end": 3326,
+     "quote": "| Level | Evidence | Licensed language | Forbidden language | |---|---|---|---| | 0 | **Au\u2026"
+    }
+   ]
+  },
+  {
+   "src": "probe",
+   "dst": "representation",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 3692,
+     "end": 3917,
+     "quote": "When a probe does succeed, the very next beat is the crossed implication: **decodable \u2260 us\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 10047,
+     "end": 10300,
+     "quote": "**Perturbation depth is the post-development chapter axis** \u2014 \"how    stable is what it be\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 11758,
+     "end": 11938,
+     "quote": "Chapter 5's outro reveals only the next stations (observe development \u2192 probe representati\u2026"
+    }
+   ]
+  },
+  {
+   "src": "representation",
+   "dst": "probe",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 3328,
+     "end": 3590,
+     "quote": "Between authored world and neural model, the UI keeps **two objects and never collapses th\u2026"
+    }
+   ]
+  },
+  {
+   "src": "chapter",
+   "dst": "reader",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 5141,
+     "end": 5377,
+     "quote": "Chapter 1 has the reader infer Matthew's hidden \u03bb from his behavior (a slider \u2014 \"Matthew s\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 5585,
+     "end": 5885,
+     "quote": "Likewise chapter 4: the reader *constructs* the discriminating experiment with a constrain\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 10446,
+     "end": 10651,
+     "quote": "**The graph grows with the reader.** Chapter 1 shows nothing but    inhabitants; edges mat\u2026"
+    }
+   ]
+  },
+  {
+   "src": "reader",
+   "dst": "chapter",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 696,
+     "end": 809,
+     "quote": "**Never visualize a scientific conclusion before the reader has    encountered the observa\u2026"
+    }
+   ]
+  },
+  {
+   "src": "reader",
+   "dst": "slider",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 5141,
+     "end": 5377,
+     "quote": "Chapter 1 has the reader infer Matthew's hidden \u03bb from his behavior (a slider \u2014 \"Matthew s\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 6757,
+     "end": 6918,
+     "quote": "The full-width developmental slider (the centerpiece) scrubs a **stacked strip**, one row \u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 10446,
+     "end": 10651,
+     "quote": "**The graph grows with the reader.** Chapter 1 shows nothing but    inhabitants; edges mat\u2026"
+    }
+   ]
+  },
+  {
+   "src": "reader",
+   "dst": "slider",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 696,
+     "end": 809,
+     "quote": "**Never visualize a scientific conclusion before the reader has    encountered the observa\u2026"
+    }
+   ]
+  },
+  {
+   "src": "discriminating",
+   "dst": "experiment",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 5585,
+     "end": 5885,
+     "quote": "Likewise chapter 4: the reader *constructs* the discriminating experiment with a constrain\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 5886,
+     "end": 6073,
+     "quote": "**Experience first, terminology after.** The moment the discriminating experiment is desig\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 10829,
+     "end": 11001,
+     "quote": "Chapters 0\u20134: cover \u2192 field notes + \u03bb-slider inference \u2192 meet the    learner (it's right \u2014\u2026"
+    }
+   ]
+  },
+  {
+   "src": "experiment",
+   "dst": "discriminating",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 511,
+     "end": 597,
+     "quote": "**The interface must never visually claim more than the experiment has    established."
+    }
+   ]
+  },
+  {
+   "src": "data",
+   "dst": "real",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 6920,
+     "end": 7269,
+     "quote": "``` EXPERIENCE      what has it seen so far (curriculum segments \u2014 real data) BEHAVIOR    \u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 8960,
+     "end": 9125,
+     "quote": "**Static, precomputed data.** The hosted Expedition runs on stored    real measurements (s\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 12064,
+     "end": 12115,
+     "quote": "\u2026 Real training data gives us none of those things."
+    }
+   ]
+  },
+  {
+   "src": "data",
+   "dst": "real",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 1231,
+     "end": 1331,
+     "quote": "- **Lab** (`/lab`): the existing workbench, unrestricted \u2014 all controls,   all primitives,\u2026"
+    }
+   ]
+  },
+  {
+   "src": "chapter",
+   "dst": "probe",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 10047,
+     "end": 10300,
+     "quote": "**Perturbation depth is the post-development chapter axis** \u2014 \"how    stable is what it be\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 11187,
+     "end": 11311,
+     "quote": "Chapter 6 (layer signal-strength view from stored probe suites) and    the perturbation ch\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 11758,
+     "end": 11938,
+     "quote": "Chapter 5's outro reveals only the next stations (observe development \u2192 probe representati\u2026"
+    }
+   ]
+  },
+  {
+   "src": "chapter",
+   "dst": "probe",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 2079,
+     "end": 2292,
+     "quote": "It deliberately does NOT reveal the hidden preference (discovery #1), and the learner is d\u2026"
+    }
+   ]
+  },
+  {
+   "src": "observatory",
+   "dst": "world",
+   "type": "associated_with",
+   "status": "observationally_supported",
+   "support": 3,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 11379,
+     "end": 11651,
+     "quote": "The full three-environment architecture (Laboratory \u2192 Observatory \u2192 Foundry) and the three\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 12116,
+     "end": 12251,
+     "quote": "THE OBSERVATORY \u2014 what happens when the world doesn't come with a map?\"* \u2014 enters only aft\u2026"
+    },
+    {
+     "document": "expedition_design.md",
+     "start": 12252,
+     "end": 12401,
+     "quote": "The repeated `WORLD GROUND TRUTH \u2014 KNOWN BECAUSE WE GENERATED THE WORLD` captions are deli\u2026"
+    }
+   ]
+  },
+  {
+   "src": "world",
+   "dst": "observatory",
+   "type": "mentioned_before",
+   "status": "candidate",
+   "support": 1,
+   "provenance": [
+    {
+     "document": "expedition_design.md",
+     "start": 1129,
+     "end": 1230,
+     "quote": "The opening   is almost empty \u2014 a world and an invitation, no Route B, no \u03bb, no C1/C2   on\u2026"
+    }
+   ]
+  }
+ ],
+ "note": "observational only; no edge here is a developmental claim, and none may be promoted to one without a curriculum intervention"
+}

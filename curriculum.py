@@ -8,16 +8,27 @@ policy into one realised token sequence, and emits a manifest complete
 enough that two curricula can be diffed structurally before any GPU is
 touched.
 
-WHY NOT SEARCH ALL ORDERINGS. The authored graph admits 7,173 valid
-topological orderings. Almost all of that number is an illusion: it comes
-from nodes the graph says are independent, so orderings that differ only
-by swapping them assert nothing the graph distinguishes. Under
-`equivalence_key` every valid topological ordering collapses to a single
-class, because a topological order fixes the relative position of every
-comparable pair by definition. What is actually worth spending compute on
-is (a) policies — exposure, spacing, rehearsal, composition depth — and
-(b) orderings that violate specific dependency edges, which do form
-distinct classes and are the real manipulation.
+WHY NOT SEARCH ALL ORDERINGS. Under `equivalence_key` every valid
+topological ordering of the authored graph collapses to a single class,
+because a topological order fixes the relative position of every
+comparable pair by definition. Training thousands of them would spend
+compute re-testing one hypothesis.
+
+    SCOPE OF THAT CLAIM. They are one class with respect to SATISFACTION
+    OF THE DECLARED DEPENDENCY EDGES. They are not thereby
+    developmentally equivalent. Ordering two graph-incomparable concepts
+    can still produce interference, recency or representational
+    competition, and Phase A's lesson was precisely that a graph's
+    declared dependencies do not exhaust the relevant developmental
+    dynamics. So the reduction is a legitimate way to avoid re-testing
+    one hypothesis many times, and an illegitimate way to permanently
+    prune ordering effects among incomparable nodes from later search.
+    B0 tests dependency satisfaction; ordering among incomparable nodes
+    is a separate later experiment.
+
+What is worth compute now is (a) policies — exposure, spacing, rehearsal,
+composition depth — and (b) orderings that violate specific dependency
+edges, which do form distinct classes and are the real manipulation.
 
 WHAT 'BEST' MEANS. Optimising final accuracy alone would rediscover the
 endpoint problem that Phase A already ran into. `objective_vector`
@@ -33,7 +44,8 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import odyssey_world as W
+import adapters
+import schema as S
 
 
 @dataclass
@@ -64,18 +76,18 @@ class Curriculum:
 # --- policies: graph -> exposure program --------------------------------
 
 def policy_topological(graph, seed=0):
-    return Curriculum("topological", W.topological(graph))
+    return Curriculum("topological", S.topological(graph))
 
 
 def policy_reverse(graph, seed=0):
     """Deliberately DAG-violating: every dependency edge is inverted."""
-    return Curriculum("reverse", list(reversed(W.topological(graph))))
+    return Curriculum("reverse", list(reversed(S.topological(graph))))
 
 
 def policy_depth_first_breadth(graph, seed=0):
     """Breadth-first by dependency depth: all depth-0 nodes, then all
     depth-1, and so on. Valid, but a different shape from topological."""
-    d = W.depth(graph)
+    d = S.depth(graph)
     return Curriculum("breadth-by-depth",
                       sorted(graph, key=lambda c: (d[c], c)))
 
@@ -90,7 +102,7 @@ def policy_random(graph, seed=0):
 def policy_interleaved(graph, seed=0):
     """No blocks at all: every concept distributed across the whole run.
     The natural null for any ordering claim."""
-    return Curriculum("interleaved", W.topological(graph),
+    return Curriculum("interleaved", S.topological(graph),
                       spacing="distributed")
 
 
@@ -103,7 +115,7 @@ def policy_mastery_gated(graph, seed=0, threshold=0.85):
     advancing early or extending. Compiling it without a trainer produces
     the ungated corpus plus the gate record, so the manifest still diffs.
     """
-    c = Curriculum("mastery-gated", W.topological(graph))
+    c = Curriculum("mastery-gated", S.topological(graph))
     c.gate = {k: threshold for k in c.order}
     return c
 
@@ -128,7 +140,7 @@ def equivalence_key(order, graph):
     """
     pos = {c: i for i, c in enumerate(order)}
     return tuple(sorted((a, b, pos[a] < pos[b])
-                        for a, b in W.comparable_pairs(graph)))
+                        for a, b in S.comparable_pairs(graph)))
 
 
 def violations(order, graph):
@@ -151,7 +163,7 @@ def reduce_orderings(orders, graph):
 
 # --- the compiler: graph + curriculum -> corpus + manifest --------------
 
-def _exposure_program(graph, cur, F, rng):
+def _exposure_program(world, graph, cur, F, rng):
     """Layer 3. Produce the list of exposures, before any text exists.
 
     Atomic nodes: every fact, `per_fact` times, cycling paraphrase
@@ -164,7 +176,7 @@ def _exposure_program(graph, cur, F, rng):
         node = graph[c]
         p = node.policy
         if node.kind == "atomic":
-            facts = W.facts_of(c, F)
+            facts = world.facts_of(c, F)
             # Fractional allocation, not round(): rounding a small
             # per-fact count to an integer distorts the concept mix at
             # proxy scale, so a screening run would not resemble the
@@ -178,13 +190,29 @@ def _exposure_program(graph, cur, F, rng):
             program[c] += [("atomic", f, whole) for f in facts[:extra]]
         else:
             n = max(1, round(p.examples * cur.scale))
-            program[c] = [("composed", W.sample_instance(c, F, rng), i)
+            program[c] = [("composed", world.sample_instance(c, F, rng), i)
                           for i in range(n)]
         rng.shuffle(program[c])
-    return program
+
+    # Rehearsal is part of the BUDGET, not of the arrangement. Sizing it
+    # from the corpus total keeps it order-independent, so every arm
+    # receives exactly the same number of exposures and only their
+    # placement differs — which is the treatment. Deriving it from "how
+    # much sequence happens to follow this block" made the budget itself
+    # depend on the ordering, silently unmatching the arms by ~0.6%.
+    rehearsal = {}
+    if cur.rehearsal:
+        total = sum(len(v) for v in program.values())
+        for c in cur.order:
+            rate = graph[c].policy.rehearsal_rate
+            if rate <= 0:
+                continue
+            k = int(round(total * rate))
+            rehearsal[c] = [rng.choice(program[c]) for _ in range(k)]
+    return program, rehearsal
 
 
-def _arrange(graph, cur, program, rng):
+def _arrange(graph, cur, program, rehearsal, rng):
     """Layer 3, part two: place exposures in time.
 
     Blocked concepts occupy a contiguous span. Distributed concepts are
@@ -206,21 +234,15 @@ def _arrange(graph, cur, program, rng):
         seq.extend((c, e) for e in program[c])
         bounds[c] = (start, len(seq))
 
-    # spaced rehearsal of concepts already introduced
-    if cur.rehearsal:
-        inject = []
-        for c in blocked:
-            rate = graph[c].policy.rehearsal_rate
-            if rate <= 0:
-                continue
-            after = len(seq) - bounds[c][1]
-            k = int(after * rate)
-            for _ in range(k):
-                inject.append((c, rng.choice(program[c])))
-        for item in inject:
-            lo = bounds[item[0]][1]
-            if lo < len(seq):
-                seq.insert(rng.randrange(lo, len(seq) + 1), item)
+    # Spaced retrieval: the budget is already fixed, so this only decides
+    # WHERE the revisits land — after the concept's own block, spread
+    # through whatever follows it. A concept introduced last has little
+    # room left, and that is a genuine property of the schedule rather
+    # than a reason to give it fewer exposures.
+    for c, items in rehearsal.items():
+        lo = bounds[c][1] if c in bounds else len(seq)
+        for e in items:
+            seq.insert(rng.randrange(lo, len(seq) + 1), (c, e))
 
     # distributed concepts spread over the whole sequence
     for c in spread:
@@ -243,20 +265,20 @@ def _arrange(graph, cur, program, rng):
     return seq, bounds
 
 
-def compile_curriculum(graph=None, curriculum=None, seed=0, world=None):
+def compile_curriculum(world, curriculum=None, seed=0, state=None):
     """The whole pipeline: world -> facts -> exposures -> text.
 
     Pure in its inputs. The same graph, curriculum and seed always give
     the same corpus, so a manifest hash identifies a training program
     exactly and a graph perturbation is visible as a hash change.
     """
-    graph = graph or W.default_graph()
+    graph = world.schema()
     curriculum = curriculum or policy_topological(graph)
-    F = world or W.build_facts(seed)
+    F = state if state is not None else world.build(seed)
     rng = random.Random(f"compile-{seed}-{curriculum.key()}")
 
-    program = _exposure_program(graph, curriculum, F, rng)
-    seq, bounds = _arrange(graph, curriculum, program, rng)
+    program, rehearsal = _exposure_program(world, graph, curriculum, F, rng)
+    seq, bounds = _arrange(graph, curriculum, program, rehearsal, rng)
 
     lines, records = [], []
     exposures_per_fact = defaultdict(Counter)
@@ -266,11 +288,11 @@ def compile_curriculum(graph=None, curriculum=None, seed=0, world=None):
     for i, (c, (kind, payload, idx)) in enumerate(seq):
         if kind == "atomic":
             n_para = graph[c].policy.paraphrases
-            line, ans = W.render_atomic(c, payload, idx, n_para)
+            line, ans = world.render_atomic(c, payload, idx, n_para)
             exposures_per_fact[c][payload] += 1
             rec = {"concept": c, "answer": ans, "hops": 1}
         else:
-            line, cue = W.render_composed(c, payload, rng,
+            line, cue = world.render_composed(c, payload, rng,
                                           curriculum.cue_mode)
             rec = {"concept": c, "answer": payload["answer"],
                    "cue_answer": cue, "hops": payload["hops"]}
@@ -281,9 +303,9 @@ def compile_curriculum(graph=None, curriculum=None, seed=0, world=None):
         lines.append(line)
         records.append(rec)
 
-    manifest = _manifest(graph, curriculum, seed, F, lines, records,
-                         bounds, exposures_per_fact, cooccur, surfaces,
-                         positions)
+    manifest = _manifest(world, graph, curriculum, seed, F, lines,
+                         records, bounds, exposures_per_fact, cooccur,
+                         surfaces, positions)
     return lines, records, manifest
 
 
@@ -309,17 +331,17 @@ def _spread(positions, total):
     return round((positions[-1] - positions[0]) / (total - 1), 3)
 
 
-def _manifest(graph, cur, seed, F, lines, records, bounds, per_fact,
-              cooccur, surfaces, positions):
+def _manifest(world, graph, cur, seed, F, lines, records, bounds,
+              per_fact, cooccur, surfaces, positions):
     """Everything needed to answer 'what exactly differed between two
     experimental arms?' without training either of them (spec §6)."""
-    atomic_facts = {c: len(W.facts_of(c, F))
+    atomic_facts = {c: len(world.facts_of(c, F))
                     for c in graph if graph[c].kind == "atomic"}
     exposures = Counter(r["concept"] for r in records)
     tokens = sum(len(x.split()) for x in lines)
 
     shortcut = {}
-    for chan, spec in W.SHORTCUTS.items():
+    for chan, spec in world.shortcuts.items():
         node = spec["node"]
         items = [r for r in records if r["concept"] == node]
         cued = [r for r in items if r.get("cue_answer")]
@@ -332,7 +354,7 @@ def _manifest(graph, cur, seed, F, lines, records, bounds, per_fact,
         }
 
     return {
-        "world": "odyssey-stage2", "seed": seed,
+        "world": world.name, "seed": seed,
         "curriculum": {"name": cur.name, "order": cur.order,
                        "scale": cur.scale, "rehearsal": cur.rehearsal,
                        "spacing": cur.spacing, "cue_mode": cur.cue_mode,
@@ -343,7 +365,7 @@ def _manifest(graph, cur, seed, F, lines, records, bounds, per_fact,
                   "sha": graph_hash(graph)},
         "facts": {"atomic_per_concept": atomic_facts,
                   "atomic_total": sum(atomic_facts.values()),
-                  "entities": len(F["people"])},
+                  "entities": world.entity_count(F)},
         "exposures": {"per_concept": dict(exposures),
                       "total": len(lines),
                       "mean_per_atomic_fact": {
@@ -399,7 +421,7 @@ def diff_manifests(a, b):
 PRIMARY_OBJECTIVE = (
     "sample_efficiency",
     f"exposures required to reach 0.80 held-out competence on "
-    f"'{W.TARGET_NODE}' (fewer is better)", -1)
+    f"'{'the target node'}' (fewer is better)", -1)
 
 SECONDARY_OBJECTIVES = [
     ("final_competence", "target-task accuracy at the end of training", +1),
@@ -444,17 +466,17 @@ def pareto(rows):
 
 # --- artifact writing ---------------------------------------------------
 
-def write_program(outdir, graph=None, curriculum=None, seed=0,
+def write_program(outdir, world, curriculum=None, seed=0,
                   eval_world_seed=None):
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
-    lines, records, manifest = compile_curriculum(graph, curriculum, seed)
+    lines, records, manifest = compile_curriculum(world, curriculum, seed)
     (out / "curriculum.txt").write_text("\n".join(lines) + "\n")
-    for name, items in W.eval_sets(seed).items():
+    for name, items in world.eval_sets(seed).items():
         (out / f"{name}.jsonl").write_text(
             "\n".join(json.dumps(r) for r in items) + "\n")
     if eval_world_seed is not None:
-        held = W.eval_sets(eval_world_seed)
+        held = world.eval_sets(eval_world_seed)
         (out / "eval_heldout_world.jsonl").write_text(
             "\n".join(json.dumps(r) for r in held["eval_id"]) + "\n")
         manifest["heldout_world_seed"] = eval_world_seed
@@ -469,11 +491,14 @@ if __name__ == "__main__":
     ap.add_argument("--policy", default="topological")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--world", default=adapters.DEFAULT,
+                    choices=adapters.available())
     ap.add_argument("--survey", action="store_true",
                     help="compare the baseline policies without training")
     args = ap.parse_args()
 
-    G = W.default_graph()
+    world = adapters.get(args.world)
+    G = world.schema()
     by_name = {p(G).name.split("-")[0]: p for p in BASELINE_POLICIES}
 
     if args.survey:
@@ -483,7 +508,7 @@ if __name__ == "__main__":
         for pol in BASELINE_POLICIES:
             cur = pol(G, args.seed)
             cur.scale = args.scale
-            _, _, m = compile_curriculum(G, cur, args.seed)
+            _, _, m = compile_curriculum(world, cur, args.seed)
             rows.append(m)
             print(f"{m['curriculum']['name']:<18}"
                   f"{m['exposures']['total']:>9,}"
@@ -499,8 +524,8 @@ if __name__ == "__main__":
         cur = pol(G, args.seed)
         cur.scale = args.scale
         if args.outdir:
-            m = write_program(args.outdir, G, cur, args.seed,
+            m = write_program(args.outdir, world, cur, args.seed,
                               eval_world_seed=args.seed + 100)
         else:
-            _, _, m = compile_curriculum(G, cur, args.seed)
+            _, _, m = compile_curriculum(world, cur, args.seed)
         print(json.dumps(m, indent=1)[:1400])

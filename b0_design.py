@@ -20,6 +20,38 @@ import json
 import curriculum as C
 import design as D
 import odyssey_world as W
+from odyssey_adapter import OdysseyWorld
+
+# --- frozen before launch (signed off 2026-08-15) -----------------------
+
+MASTERY_CRITERION = 0.80        # forced-choice accuracy on the target node
+MEOI = 0.15                     # relative reduction worth calling an effect
+
+MEOI_DEFINITION = (
+    "effect = 1 - (T_graph / T_baseline), where T is exposures required "
+    "to reach MASTERY_CRITERION on held-out target-node items. An effect "
+    "of 0.15 means the graph-informed curriculum needs at least 15% "
+    "fewer exposures. This threshold is frozen: if a smaller reduction "
+    "later looks valuable at pretraining scale, that is a new declared "
+    "criterion for a new experiment, never a reinterpretation of this one.")
+
+ESCALATION_RULE = (
+    "Stage 1: 4 development worlds x 2 initialisations x 4 arms = 32 "
+    "runs, to establish learnability, absence of floor/ceiling effects, "
+    "rough effect neighbourhood, and whether world or initialisation "
+    "variance dominates. Stage 2: if the outcome is usable, expand the "
+    "variance study on DEVELOPMENT worlds only — expected 12-16 paired "
+    "blocks — until the between-unit SD is stable. Only then compute the "
+    "confirmatory sample size. No confirmatory world is touched at any "
+    "point in this process. Eight blocks are explicitly not treated as a "
+    "sufficient variance estimate for the power calculation.")
+
+OUT_OF_SCOPE = (
+    "The 21 single-dependency-violation classes are not run in this "
+    "battery. B0 answers the coarse question — does respecting the graph "
+    "matter at all — before opening a 21-arm multiplicity problem. If B0 "
+    "is positive they become the next frontier: screened exploratorily, "
+    "confirmed on untouched worlds.")
 
 PILOT_WORLDS = D.DEVELOPMENT_WORLDS[:4]
 PILOT_MODEL_SEEDS = [0, 1]
@@ -78,7 +110,7 @@ def pilot_contract():
         estimand=("expected difference, over new world and initialisation "
                   f"seeds, in exposures required to reach 0.80 forced-"
                   f"choice accuracy on held-out '{W.TARGET_NODE}' items"),
-        minimum_effect_of_interest="to be set from this pilot's variance",
+        minimum_effect_of_interest=MEOI_DEFINITION,
         primary_endpoint=C.PRIMARY_OBJECTIVE[1],
         secondary_endpoints=[d for _, d, _ in C.SECONDARY_OBJECTIVES],
         pairing=("each arm trained on every (world seed, model seed) "
@@ -94,7 +126,7 @@ def pilot_contract():
                           "made from a pilot"),
         multiplicity_policy="none; exploratory",
         stopping_rule=("fixed: all 4 arms x 4 worlds x 2 seeds, no "
-                       "interim looks"),
+                       "interim looks. " + ESCALATION_RULE),
         constructs=constructs(),
     )
 
@@ -134,8 +166,7 @@ def confirmatory_contract(mei_pct, n_worlds, n_model_seeds, sd_note):
                   f"choice accuracy on held-out '{W.TARGET_NODE}' items, "
                   "graph-respecting minus each baseline"),
         minimum_effect_of_interest=(
-            f"a {mei_pct}% reduction in exposures to criterion; smaller "
-            f"differences are not worth calling a curriculum effect"),
+            f"{mei_pct}% relative reduction. " + MEOI_DEFINITION),
         primary_endpoint=C.PRIMARY_OBJECTIVE[1],
         secondary_endpoints=[d for _, d, _ in C.SECONDARY_OBJECTIVES],
         pairing=("paired by (world seed, model seed): every arm sees the "
@@ -162,12 +193,13 @@ def confirmatory_contract(mei_pct, n_worlds, n_model_seeds, sd_note):
 
 
 def compile_arms(world_seed, scale=1.0):
-    graph = W.default_graph()
+    world = OdysseyWorld()
+    graph = world.schema()
     out = {}
     for name, policy in ARMS.items():
         cur = policy(graph, world_seed)
         cur.name, cur.scale = name, scale
-        _, _, m = C.compile_curriculum(graph, cur, world_seed)
+        _, _, m = C.compile_curriculum(world, cur, world_seed)
         out[name] = m
     return out
 
@@ -202,7 +234,7 @@ def main(freeze=False, scale=0.25):
         print("  PREFLIGHT: passed — the contract permits this experiment")
 
     # the firewall, demonstrated rather than asserted
-    bad = confirmatory_contract(15, 8, 2, "placeholder")
+    bad = confirmatory_contract(int(MEOI * 100), 8, 2, "placeholder")
     bad.world_seeds = PILOT_WORLDS          # confirmatory on dev worlds
     fw = D.preflight(bad, [])
     print("\n  firewall check (confirmatory test naming dev worlds):")
