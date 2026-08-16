@@ -184,3 +184,57 @@ story). Whether it reflects a reproducible curriculum-dependent
 instability or a rare stochastic event is precisely the open question;
 Milestone A is framed neutrally around route stability, not
 "structure-first causes reversals."
+
+## 2026-08-16 — The activation atlas does not carry weight at this scale
+
+Built `atlas_frame.py` to answer whether an Activation Atlas can be one of
+the Lab's primary visual languages. Measured on real Phase A checkpoints
+(runs/C2_L1_s0 and C3_L1_s0, layer 3, decision position, 400 held-out
+probe items, d_model 384). Three findings, in order of discovery.
+
+**1. Per-checkpoint projections are unusable for a developmental slider.**
+`geometry.pca2` refits every call. Across consecutive checkpoints PC1 stayed
+put (|cos| 0.93–0.99) but PC2 rotated by nearly a right angle (|cos| 0.024
+at 0→20%, 0.107 at 60→80%). Apparent point displacement ran 0.15–0.73 of
+the cloud radius per step with no way for a viewer to tell frame rotation
+from representational change. Fixed by fitting one frame on activations
+pooled across all checkpoints and projecting every age into it — pooled
+rather than endpoint-fit, so development is not described as the approach
+to a privileged mature geometry.
+
+**2. λ is invisible to the unsupervised atlas at any component count.**
+Selectivity for lambda_class was ≈0.000 at k=2, +0.003 at k=8, and +0.047
+using 100% of the variance at its best age. Scene, narrator, noun and
+template were likewise ≈0.00 in the top two components. The variance
+structure of the residual stream is simply not about the concepts we care
+about, and no number of components changes that.
+
+**3. The supervised frame is dominated by lexical readout.**
+A whitened (LDA-style) frame does recover λ, but the estimate was
+ill-conditioned at d=384 with n=400 — separation ran 110,072 at ridge 1e-6,
+390 at 1e-2 and 9.9 at 1.0, five orders of magnitude across defensible
+choices. Only 400 probe items exist, so n/d ≈ 1.0 and no ridge fixes it.
+With the standard PCA(40)-then-LDA pipeline the estimate stabilises, and
+then says something decisive: **λ separation is maximal at initialisation
+(530) and falls with training (211 at 20%, 15 at 80%, 28 at 100%).** λ is
+carried by the payoff tokens, so an untrained residual stream separates it
+trivially; training reorganises the space around the task and raw lexical
+separability drops. This is the geometric cousin of the identity floor the
+probe campaign already controls for.
+
+**Consequence for the Lab.** The activation atlas is demoted from primary
+visual language to a subordinate exploratory instrument. The developmental
+graph and the token×layer trace remain primary. The instrument that
+actually measures λ here is the existing probe campaign with held-out-agent
+generalisation and control probes — held-out-agent λ generalisation was
+0.77 at L2 (C2) and 1.0 at L3 (C3), which the atlas cannot see at all.
+Reporting that disagreement is the useful output: decodable-but-not-
+geometrically-dominant is a real property, not an instrument failure.
+
+Guards added so none of this can be rediscovered by accident:
+`ConditioningError` refuses a separation number when n < 10d rather than
+returning a ridge artifact; `lexically_readable_at_init` suppresses any
+emergence claim for a concept the untrained model already separates; and
+`selectivity_supervised` refits the frame inside every permutation, because
+shuffling labels after a supervised fit destroys the alignment and reports
+a near-zero null that makes an overfit projection look clean.
