@@ -128,18 +128,39 @@ identify strategy.
 
 ### 3.1 Models and training
 
-Each run is a six-layer decoder-only Transformer (hidden dimension 384,
-six attention heads, 10,924,032 parameters) with a word-level vocabulary
-constructed from its own corpus, trained by next-token prediction. Each
-seed's corpus contains 1.2M structure lines (payoff relations, neutral
-wording, no preference content) and 1.2M choice lines (the only lines
-containing preference evidence and the planted wording correlation),
-approximately 89M tokens in total. Lines are packed into 320-token
-blocks aligned to curriculum phase boundaries; batch size 64; a single
-pass over the corpus, giving 4,459 optimizer steps at a flat learning
-rate after warmup. Structure lines are deduplicated by exact string and
-choice lines by scenario key across surface templates; rejection counts
-are recorded in the corpus manifest.
+Each run uses a six-layer decoder-only Transformer with a
+384-dimensional hidden state, six attention heads, and 10.9 million
+parameters, trained from scratch by next-token prediction. A word-level
+vocabulary is constructed from each seed's own corpus, and all
+evaluation is forced-choice scoring at the final token.
+
+For each seed, the corpus contains 1.2 million structure lines (payoff
+relations, neutral wording, no preference content) and 1.2 million
+choice lines (the only examples containing preference evidence and the
+planted wording correlation), totalling approximately 89 million tokens.
+Calibration (§3.3) established this scale: in a diagnostic run of 6,839
+steps, held-out agreement with the utility rule crosses 80% at
+approximately 2,400 steps and then plateaus at 0.80–0.86 from roughly
+half the trajectory onward. The single-pass design places the endpoint
+at 4,459 steps, about 65% of that diagnostic trajectory and inside the
+plateau, so that the measurement is not taken at a threshold graze.
+
+Lines are packed into blocks of 320 tokens, with block boundaries
+aligned to curriculum phase boundaries so that examples from different
+phases are not mixed within a block. The batch size is 64 and the
+learning rate is flat after a 200-step warmup, which avoids the
+entanglement between presentation order and effective learning rate that
+a decaying schedule would introduce: under decay, examples appearing
+late in training would receive systematically smaller updates, which is
+itself an ordering effect.
+
+Structure lines are deduplicated by exact string and choice lines by
+scenario key across surface templates, with all rejection counts
+recorded in the corpus manifest. Each seed's training examples are
+therefore unique, so a single pass over the corpus is a developmental
+history rather than repeated exposure to the same items. All curricula
+contain the same multiset of lines arranged differently, with an
+identical final 10% tail across conditions (§3.2).
 
 ### 3.2 Curriculum intervention
 
