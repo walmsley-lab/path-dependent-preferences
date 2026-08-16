@@ -65,7 +65,7 @@ def test_all_four_graphs_render(server, page):
     graph(page, server)
     for kind, marker in [("generator", "PRIVILEGED GROUND TRUTH"),
                          ("observational", "OBSERVATIONAL STRUCTURE"),
-                         ("development", "EXPERIMENTALLY INFERRED"),
+                         ("development", "CANDIDATE STRUCTURE"),
                          ("mechanism", "EXPERIMENTALLY INFERRED")]:
         page.click(f"[data-kind='{kind}']")
         page.wait_for_timeout(600)
@@ -198,3 +198,46 @@ def test_generator_shows_the_planted_edge_direction(server, page):
     pairs = {(e["src"], e["dst"]) for e in spec["edges"]}
     assert ("choice", "framing") in pairs
     assert ("framing", "choice") not in pairs
+
+
+def test_development_nodes_are_acquired_states_not_schedules(server, page):
+    """A training phase is something we manipulate, not something the
+    model acquired. An edge from "early phase composition" to
+    "acquisition" is close to tautological — of course the early phase
+    precedes what comes later — and it crowds out the claims that would
+    actually be informative."""
+    graph(page, server, "development")
+    spec = page.evaluate("window.GRAPHSTATE.graph")
+    labels = " ".join(n["label"].lower() for n in spec["nodes"])
+    for schedule_word in ["phase composition", "shared tail", "exposure",
+                          "curriculum", "schedule"]:
+        assert schedule_word not in labels, \
+            f"'{schedule_word}' is a control parameter, not an acquired state"
+    # the schedule still exists — as a timeline layer, not as nodes
+    assert spec["control_layer"]["phases"]
+    assert "manipulated, not acquired" in spec["control_layer"]["label"]
+
+
+def test_no_development_edge_claims_more_than_precedence(server, page):
+    """Phase A never manipulated composition, so nothing here has earned
+    a developmental status. Leaving them candidate is the accurate
+    report."""
+    graph(page, server, "development")
+    spec = page.evaluate("window.GRAPHSTATE.graph")
+    assert spec["edges"], "no candidate edges at all"
+    for e in spec["edges"]:
+        assert e["status"] == "candidate", (e["src"], e["dst"], e["status"])
+        assert not e["evidence"].get("causal", {}).get("supported")
+        assert e["next_test"], f"{e['src']}->{e['dst']} has no discriminating test"
+        assert "fork" in e["next_test"].lower(), \
+            "a developmental claim is earned by forking matched learners"
+
+
+def test_development_nodes_separate_availability_from_acquisition(server,
+                                                                  page):
+    """Available in the corpus, acquired by the model, and
+    developmentally depended upon are three different facts."""
+    graph(page, server, "development")
+    spec = page.evaluate("window.GRAPHSTATE.graph")
+    keys = [set(n) for n in spec["nodes"]]
+    assert all("available_at" in k and "acquired_at" in k for k in keys)

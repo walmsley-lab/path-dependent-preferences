@@ -160,48 +160,118 @@ def g_observational(level="L1"):
 # --- G_development: temporal ------------------------------------------
 
 def g_development():
+    """Relations among ACQUIRED STATES. Schedules are not nodes here.
+
+    The earlier version of this graph had "early phase composition" and
+    "shared tail" as nodes pointing at "acquisition", which was a
+    category error: those are curriculum-control parameters, and an edge
+    from a training phase to acquisition is close to tautological —
+    of course the early phase precedes what is acquired later. Saying so
+    tells us nothing about what depended on what.
+
+    A developmental node is a state the model came to be in. A
+    developmental edge is a claim that acquiring the source changes the
+    acquisition of the target, and it is earned only by forking matched
+    learners and measuring the difference. The exposure schedule belongs
+    to `control_layer` below, which the UI renders as a synchronised
+    timeline rather than as graph nodes.
+
+    THREE THINGS THAT ARE NOT THE SAME, tracked per node:
+      available_at  when the corpus first supplies evidence for it
+      acquired_at   when behaviour or probes show it emerged
+      depends_on    whether an intervention showed the dependency
+
+    Phase A honestly supports the first two and almost none of the third.
+    Its world has too few independent concepts to yield a dependency
+    graph, which is the reason Milestone B exists. Leaving these edges
+    unearned is the accurate report, not a gap to fill in.
+    """
     spec = _load("graphs/g_development.json") or {"edges": []}
+
     nodes = [
-        {"id": "early", "label": "early phase composition", "shape": "rect",
-         "x": 80, "y": 90},
-        {"id": "late", "label": "late phase composition", "shape": "rect",
-         "x": 80, "y": 230},
-        {"id": "tail", "label": "shared tail", "shape": "rect",
-         "x": 80, "y": 360},
-        {"id": "acq", "label": "acquisition", "shape": "circle",
-         "x": 360, "y": 90},
+        {"id": "utility", "label": "utility competence", "shape": "circle",
+         "x": 110, "y": 90,
+         "available_at": 0.0, "acquired_at": 0.45,
+         "note": "utility-route accuracy reaches criterion in 15/15 runs"},
+        {"id": "cue", "label": "cue competence", "shape": "circle",
+         "x": 110, "y": 300,
+         "available_at": 0.0, "acquired_at": 0.30,
+         "note": "cue-route accuracy; the planted shortcut is available "
+                 "from the first exposure"},
+        {"id": "preference", "label": "route preference", "shape": "circle",
+         "x": 380, "y": 195,
+         "available_at": None, "acquired_at": 0.55,
+         "note": "which route governs under conflict"},
         {"id": "stability", "label": "route stability", "shape": "circle",
-         "x": 380, "y": 230},
-        {"id": "consol", "label": "consolidation /\ndestabilization",
-         "shape": "circle", "x": 380, "y": 360},
+         "x": 640, "y": 195,
+         "available_at": None, "acquired_at": None,
+         "note": "whether the preference holds once competence plateaus"},
     ]
-    edges = []
-    for e in spec.get("edges", []):
-        dst = "stability" if "stability" in e["dst"] else "consol"
-        src = "late" if "late" in e["src"] else "tail"
-        edges.append({
-            "src": src, "dst": dst,
-            "relation": e.get("relation", "modulates (candidate)"),
-            "status": "candidate",
-            "evidence": {"observational": {"supported": True,
-                                           "note": e.get("observation")},
-                         "replication": {"n_seeds": 0,
-                                         "note": e.get("replication")}},
-            "next_test": e.get("next_discriminating_experiment"),
-            "provenance": e.get("provenance")})
-    edges.append({
-        "src": "early", "dst": "acq", "relation": "precedes",
-        "status": "candidate",
-        "evidence": {"observational": {
-            "supported": True,
-            "note": "all conditions acquire the utility route by ~50% of "
-                    "training (Phase A, 15/15 runs)"}},
-        "next_test": "vary early composition and measure acquisition time",
-        "provenance": "batch_results/runs/* · commit 8de3c010"})
-    return {"kind": "development", "layout": "temporal",
-            "status": "EXPERIMENTALLY INFERRED — acquisition order and "
-                      "path dependence, NOT prerequisite claims",
-            "nodes": nodes, "edges": edges}
+
+    # Candidate edges only. Each names the fork that would earn it.
+    edges = [
+        {"src": "utility", "dst": "preference",
+         "relation": "facilitates (candidate)", "status": "candidate",
+         "evidence": {"observational": {
+             "supported": True,
+             "note": "utility competence reaches criterion before a stable "
+                     "preference appears in 15/15 runs — temporal "
+                     "precedence only; composition was never manipulated"}},
+         "next_test": "checkpoint fork at 40%: continue matched copies "
+                      "with and without further utility exposure, holding "
+                      "total exposure constant, and compare exposures to "
+                      "preference criterion",
+         "provenance": "batch_results/runs/* · commit 8de3c010"},
+        {"src": "cue", "dst": "preference",
+         "relation": "competes with (candidate)", "status": "candidate",
+         "evidence": {"observational": {
+             "supported": True,
+             "note": "cue competence emerges earlier than utility "
+                     "competence; whether it delays or biases preference "
+                     "is untested"}},
+         "next_test": "checkpoint fork at 40% with cue_mode off in one "
+                      "arm; if the cue was carrying preference, "
+                      "competence collapses in that arm",
+         "provenance": "batch_results/runs/* · commit 8de3c010"},
+        {"src": "preference", "dst": "stability",
+         "relation": "modulates (candidate)", "status": "candidate",
+         "evidence": {"observational": {
+             "supported": True,
+             "note": "3/15 runs show a competence-preserving decline after "
+                     "commitment (C1 2/5, C2 0/5, C3 1/5); explicitly "
+                     "underpowered and never manipulated"},
+             "replication": {"n_seeds": 0,
+                             "note": "no interventional replication"}},
+         "next_test": "checkpoint fork after commitment: vary spaced "
+                      "retrieval of the utility route while holding total "
+                      "exposure constant",
+         "provenance": "batch_results/runs/* · commit 8de3c010"},
+    ]
+    for e in spec.get("edges", []):          # earned edges, when they exist
+        if e.get("src") in {n["id"] for n in nodes}:
+            edges.append(e)
+
+    return {
+        "kind": "development", "layout": "temporal",
+        "status": "CANDIDATE STRUCTURE — no developmental dependency has "
+                  "been established. Every edge here is temporal "
+                  "precedence awaiting a fork experiment.",
+        "nodes": nodes, "edges": edges,
+        # The schedule. Rendered as a timeline band, never as nodes: it is
+        # what we manipulate, not what the model acquired.
+        "control_layer": {
+            "label": "TRAINING EXPERIENCE (manipulated, not acquired)",
+            "phases": [
+                {"id": "structure", "label": "structure exposure",
+                 "start": 0.0, "end": 0.35},
+                {"id": "choice", "label": "choice exposure",
+                 "start": 0.35, "end": 0.70},
+                {"id": "cue", "label": "cue exposure",
+                 "start": 0.0, "end": 0.70},
+                {"id": "tail", "label": "shared tail",
+                 "start": 0.70, "end": 1.0},
+            ]},
+    }
 
 
 # --- G_mechanism: hierarchical, evidence-driven, age-aware ------------
