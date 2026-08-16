@@ -92,7 +92,7 @@ button:hover{border-color:var(--green);color:var(--green)}
 
 <div class=topbar>
   <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX</span>
-  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink here" href="/lab">Evidence</a><a class="toplink" href="/lab/bench">Laboratory</a></span>
+  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink here" href="/lab">Evidence</a><a class="toplink" href="/lab/bench">Laboratory</a><a class="toplink" href="/lab/graph">Graphs</a></span>
 </div>
 
 <div class=frame>

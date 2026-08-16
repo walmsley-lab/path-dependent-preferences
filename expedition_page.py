@@ -182,7 +182,7 @@ a.tech:hover{background:rgba(74,79,122,.12)}
 
 <div class=topbar>
   <span class=wordmark>OPEN POLLINATION &mdash; FIELD STATION</span>
-  <span><a class="lablink here" href="/">Expedition</a><a class="lablink" href="/lab">Evidence</a><a class="lablink" href="/lab/bench">Laboratory</a><a class="lablink hidden" id=startover
+  <span><a class="lablink here" href="/">Expedition</a><a class="lablink" href="/lab">Evidence</a><a class="lablink" href="/lab/bench">Laboratory</a><a class="lablink" href="/lab/graph">Graphs</a><a class="lablink hidden" id=startover
     href="#" style="margin-left:16px"
     onclick="localStorage.removeItem('pdp-expedition-v1');location.reload();return false">
     start over &#8634;</a></span>

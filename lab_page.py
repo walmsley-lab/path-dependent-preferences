@@ -162,7 +162,7 @@ textarea{width:100%;font:13px ui-monospace,Menlo,monospace;
 
 <div class=topbar>
   <span class=wordmark>OPEN POLLINATION &mdash; RESEARCH ANNEX</span>
-  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink" href="/lab">Evidence</a><a class="toplink here" href="/lab/bench">Laboratory</a></span>
+  <span class=nav><a class="toplink" href="/">Expedition</a><a class="toplink" href="/lab">Evidence</a><a class="toplink here" href="/lab/bench">Laboratory</a><a class="toplink" href="/lab/graph">Graphs</a></span>
 </div>
 
 <header class=lab>

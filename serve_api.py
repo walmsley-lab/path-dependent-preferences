@@ -27,6 +27,8 @@ import generate_world as gw
 from expedition_page import EXPEDITION, render_technique
 from lab_page import LAB
 from lab_spine import LAB_SPINE
+from lab_graph import LAB_GRAPH
+import graph_spec
 from interact import Model
 from train import pick_device
 
@@ -307,6 +309,18 @@ class H(BaseHTTPRequestHandler):
             elif u.path == "/lab":
                 self._send(200, LAB_SPINE.encode(),
                            "text/html; charset=utf-8")
+            elif u.path == "/lab/graph":
+                self._send(200, LAB_GRAPH.encode(),
+                           "text/html; charset=utf-8")
+            elif u.path == "/api/graphspec":
+                self._send(200, graph_spec.build(
+                    qs.get("kind", ["mechanism"])[0],
+                    qs.get("run", ["C2_L1_s0"])[0],
+                    int(qs.get("age", ["100"])[0])))
+            elif u.path == "/api/frontier":
+                self._send(200, graph_spec.frontier(
+                    [graph_spec.build("mechanism"),
+                     graph_spec.build("development")]))
             elif u.path in ("/lab/bench", "/lab/spine"):
                 page = LAB if u.path == "/lab/bench" else LAB_SPINE
                 self._send(200, page.encode(), "text/html; charset=utf-8")
