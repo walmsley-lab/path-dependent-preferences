@@ -1,4 +1,4 @@
-# Path-Dependent Preferences: Training Order and Strategy Stability in a Controlled Transformer Environment
+# Training Order and Strategy Stability in a Controlled Transformer Environment
 
 **Patrick Walmsley**
 Apart Research Digital Minds Sprint 2026 (Track 5: Assistant Persona and
@@ -31,17 +31,19 @@ utility-agreement (mean 0.97 to 0.74) beginning when their curriculum
 stops presenting choice examples and recovering to 0.93 when the shared
 tail restores them; because this decline tracks in-distribution accuracy
 almost exactly, it is consistent with practice recency rather than
-strategy change. Second, one structure-first run exhibits a late
-transition from 0.98 to 0.21 utility-agreement while maintaining
-0.99–1.00 in-distribution accuracy, a dissociation of 0.79 against 0.29
-for the next most extreme run. Exploratory post-hoc analyses of two
+strategy change. Second, applying a competence-gated definition of
+post-commitment decline, three of fifteen runs (C1 2/5, C2 0/5, C3 1/5)
+lose an acquired strategy while in-distribution accuracy is preserved;
+in one of them utility-agreement falls from 0.98 to 0.21 with
+in-distribution accuracy at 0.99–1.00, constituting full alignment with
+the competing rule. The contrast between conditions is not statistically
+informative at this sample size (Fisher exact p = 0.44). Exploratory post-hoc analyses of two
 completed runs find preference-class information that is linearly
 recoverable across held-out agents and causally influential under
 steering, while ablation and cross-run patching controls do not support
-unique layer localization or portable state transfer. We report a
-follow-up experiment designed to test whether curriculum composition
-predicts post-acquisition strategy transitions under preregistered
-conditions.
+unique layer localization or portable state transfer. A preregistered follow-up (n = 25 per arm, 82% power at
+the observed base rate) tests whether curriculum composition predicts
+post-acquisition strategy transitions.
 
 ## 1. Introduction
 
@@ -206,8 +208,9 @@ order determines final strategy preference. The design does not test
 equivalence, so this does not establish that curriculum order cannot
 affect strategy selection.
 
-Viewed only at the final checkpoint, the single extreme value (C1, seed
-3) would reasonably be treated as an anomalous run.
+Viewed only at the final checkpoint, the extreme value (C1, seed 3) would
+reasonably be treated as an anomalous run, and the moderate values
+(C1 seed 0 at 0.783, C3 seed 2 at 0.735) as unremarkable variation.
 
 ## 5. Result: the checkpointed record
 
@@ -236,51 +239,65 @@ closely (at 60%: 0.76 and 0.78; at 70%: 0.74 and 0.74; at 95%: 0.94 and
 competence in the absence of choice examples, and its recovery when they
 return, rather than with a transition between strategies.
 
-### 5.2 A late strategy transition in one run
+### 5.2 Post-commitment declines with preserved competence
 
 Because degradation and strategy change are confusable at the level of
-conflict accuracy alone, we separate them using
-D = (in-distribution accuracy − conflict utility-agreement). Degradation
-moves both terms together and leaves D near zero; a strategy transition
-preserves competence while conflict agreement falls, producing large
-positive D.
+conflict accuracy alone, we separate them with a competence-gated
+definition. A run is *committed* when conflict utility-agreement is at
+least 0.90 for three consecutive checkpoints; a *transition* occurs when
+agreement subsequently falls below 0.80 for three consecutive
+checkpoints while in-distribution accuracy remains at or above 0.95.
+The competence gate ensures that a run losing general task ability is
+not classified as changing strategy.
 
-Maximum D over training, across all fifteen runs: C1 seed 3 reaches
-0.79; the next most extreme run reaches 0.29; eleven of fifteen remain
-below 0.06.
+Three of fifteen runs meet this definition: C1 seeds 0 and 3, and C3
+seed 2 (C1 2/5, C2 0/5, C3 1/5). The classification is unchanged across
+the pre-declared sensitivity grid (commitment threshold 0.85 or 0.90,
+persistence 2 or 3 checkpoints). We note that these thresholds were
+chosen with the trajectories visible and treat the definition as
+exploratory in origin; it is frozen for the follow-up (§9).
 
-The C1 seed 3 trajectory of conflict utility-agreement is:
+The three runs differ in severity. C1 seed 0 rises to 0.97, declines to
+0.71 at 85% of training, and finishes at 0.78, with in-distribution
+accuracy reaching 1.00. C3 seed 2 rises to 0.97 and erodes gradually to
+0.73, with accuracy at 1.00 from 70% onward. C1 seed 3 is the only full
+crossing: its trajectory of conflict utility-agreement is
 
 ```
 0.54 0.49 0.59 0.75 0.78 0.73 0.66 0.62 0.76 0.84 0.93 0.96 0.98
 0.73 0.61 0.60 0.52 0.45 0.84 0.23 0.21
 ```
 
-The run acquires behavior consistent with the utility rule to 0.98 at
-60% of training, declines through the second half, recovers transiently
-to 0.84 at 90%, and finishes at 0.21, aligned with the wording rule
-(conflict cue-agreement 0.785; cue-only accuracy 1.00). In-distribution
-accuracy is 0.99–1.00 from 65% of training onward.
+reaching 0.98 at 60% of training, declining through the second half,
+recovering transiently to 0.84 at 90%, and finishing at 0.21 — aligned
+with the wording rule (conflict cue-agreement 0.785; cue-only accuracy
+1.00) — while in-distribution accuracy is 0.99–1.00 from 65% onward. A
+complementary summary statistic, D = (in-distribution accuracy −
+conflict utility-agreement), separates the run further: its maximum over
+training is 0.79 for C1 seed 3, against 0.29 for the next most extreme
+run, with eleven of fifteen runs below 0.06.
 
-Three observations constrain interpretation. The record is internally
+Three observations constrain interpretation. The records are internally
 consistent: conflict agreement with the two rules is complementary by
-construction, and the identity holds exactly at all 21 checkpoints.
-In-distribution accuracy is preserved and improving throughout the
-decline, so global loss of task competence does not account for it. The
-transition occurs during the interval in which C1 presents choice
-examples (45–90%), so absence of practice does not account for it
-either. The paired C2 and C3 runs from identical initial parameters
-finish at 0.960 and 0.993.
+construction, and the identity holds exactly at all 21 checkpoints of
+every run. In-distribution accuracy is preserved or improving
+throughout each decline, so loss of general task competence does not
+account for them. In C1, the declines occur during the interval in which
+choice examples are presented (45–90%), so absence of practice does not
+account for them either; this distinguishes them from the C2 effect in
+§5.1. For C1 seed 3, the paired C2 and C3 runs from identical initial
+parameters finish at 0.960 and 0.993.
 
-This observation does not establish that structure-first ordering causes
-instability: the event occurs in one of five C1 runs and zero of ten
-C2 and C3 runs, which does not distinguish a curriculum-dependent
-phenomenon from stochastic variation. It establishes something narrower.
-The checkpointed record identifies temporal structure — acquisition,
-maintenance, decline, transient recovery, and transition toward the
-alternative rule — that final-checkpoint evaluation could not observe.
-The finding motivates a hypothesis about strategy stability; it does not
-test one.
+These observations do not establish that curriculum order affects
+transition rates. The contrast between conditions (C1 2/5 versus C2 0/5)
+has a Fisher exact p of 0.44 and is uninformative at this sample size.
+What the checkpointed record establishes is that post-commitment
+decline occurs at a non-trivial base rate — three of fifteen runs — with
+graded severity, and that it is separable from competence degradation by
+a definition that is stable across thresholds. Final-checkpoint
+evaluation would have recorded one extreme value and two moderate ones,
+without the information that all three follow acquisition of the
+strategy they later lose.
 
 ## 6. Exploratory internal analyses
 
@@ -402,10 +419,10 @@ Preserving the training trajectory nonetheless produced two results that
 endpoint evaluation could not. The first is a large, fully reproducible
 effect of ordering on mid-training conflict behavior, whose most likely
 explanation is competence degradation from absence of recent practice
-rather than strategy change. The second is a single run in which
-conflict behavior and in-distribution competence dissociate strongly and
-persistently, which is not explained by degradation or by absence of
-practice.
+rather than strategy change. The second is a set of three runs in which conflict behavior declines
+after commitment while in-distribution competence is preserved, one of
+them proceeding to full alignment with the competing rule; these are not
+explained by degradation or by absence of practice.
 
 This distinction suggests that strategy selection and strategy stability
 may be separable phenomena, and that the outcome variable chosen for the
@@ -425,30 +442,30 @@ confirming it.
 
 ## 9. Follow-up experiment
 
-The transition described in §5.2 was observed after the primary
-experiment and cannot serve as confirmatory evidence. A follow-up
-experiment, preregistered before any new training, will test whether
-curriculum composition affects the probability, timing, or persistence
-of transitions between competing strategies after initial acquisition.
+The declines described in §5.2 were identified after the primary
+experiment and cannot serve as confirmatory evidence. A protocol is
+frozen before any new training (`PREREG_PHASE_B.md`, summarized in
+Appendix A) to test whether curriculum composition affects the
+probability of post-acquisition strategy transitions.
 
-Commitment, transition, and reversal will be defined operationally
-before data collection, with a persistence requirement across adjacent
-checkpoints and an in-distribution competence gate so that degradation
-is not classified as strategy change. Because the initial thresholds
-were selected with the observed trajectory visible, they are declared
-exploratory, will be frozen prior to the new runs, and the primary
-analysis will report sensitivity across a pre-declared neighboring
-grid. The primary outcome will be the probability of leaving a committed
-state; the design must separate curriculum-specific instability from
-seed-level stochasticity, interference from the immediately preceding
-phase, tail composition effects, and optimization instability unrelated
-to strategy.
+The design is two arms (C1, C2) at n = 25 runs per arm, paired by
+initialization within seed index, with the §5.2 definitions frozen and
+their sensitivity grid pre-declared. The primary endpoint is transition
+rate compared by Fisher's exact test; a secondary family (competence-
+gated dissociation, time to transition, late-training transition
+probability, drawdown, and final agreement) is reported under
+Benjamini-Hochberg control. Simulation gives 82% power at the base rate
+observed here (0.40 versus 0.05) and 57% under conservative assumptions
+(0.30 versus 0.05); a null result at this sample size will be reported
+as inconclusive for small effects rather than as evidence of no
+difference. One interim analysis is specified with alpha spending, for
+efficacy only.
 
-The criterion of interest is prospective: whether a relationship
-inferred from the present trajectories predicts a difference in
-stability dynamics in newly trained runs under preregistered conditions.
-A confirmed prediction strengthens the inferred relationship; a
-disconfirmed prediction weakens it.
+The protocol also records a prospective prediction — that the transition
+rate under C1 will exceed that under C2 by at least 15 percentage points
+— so that the follow-up tests a relationship inferred from the present
+trajectories rather than describing them. Confirmation strengthens that
+relationship; disconfirmation weakens it, and either outcome is reported.
 
 ## 10. Limitations
 
@@ -460,7 +477,9 @@ curriculum order is not evidence that no such effect exists.
 
 The reproducible mid-training effect (§5.1) has a straightforward
 candidate explanation that we do not attempt to adjudicate further here.
-The strategy transition (§5.2) occurred once. All internal analyses
+Post-commitment decline (§5.2) occurred in three runs, and the
+between-condition contrast is uninformative at this sample size; the
+operational definition was chosen with the trajectories visible. All internal analyses
 (§6) are post-hoc, drawn from two runs of a single seed, and
 unreplicated; the probe generalization result rests on one agent-level
 split. Probe results establish recoverability under a specific probe
@@ -479,9 +498,12 @@ distribution and tested whether curriculum order altered final strategy
 preference. The preregistered endpoint criterion was not met. Checkpoint
 analysis identified a large, reproducible mid-training effect of
 ordering that is consistent with competence degradation rather than
-strategy change, and one late strategy transition that was not
-attributable to loss of ordinary task competence, motivating a follow-up
-study of post-acquisition strategy stability. Exploratory probe and
+strategy change, and post-commitment strategy declines in three of
+fifteen runs that were not attributable to loss of ordinary task
+competence, one of which crossed fully to the competing rule. These
+motivate a preregistered follow-up on post-acquisition stability, for
+which the present data supply a base rate but no evidence of a
+between-condition difference. Exploratory probe and
 intervention analyses provided evidence for a preference-associated
 internal representation with causal influence on behavior, while failing
 to support unique localization or reliable cross-run state transfer.
@@ -505,3 +527,25 @@ collaborator that was confabulated and detected before it entered any
 artifact or analysis, and the unstable transfer metric described in
 §6.4. Total compute for all reported results is approximately ten
 GPU-hours on a single NVIDIA L4.
+
+## Appendix A: Follow-up protocol summary
+
+The full protocol is `PREREG_PHASE_B.md`; it is frozen and carries a
+sign-off line that must be completed before any run begins.
+
+| Item | Specification |
+|---|---|
+| Arms | C1 (structure→choices→tail), C2 (choices→structure→tail) |
+| n | 25 runs per arm; seeds 0–24; paired initialization by seed index |
+| Model / corpus | Identical to Phase A (10.9M parameters, L1 cue level, single pass, 21 checkpoints) |
+| Committed | u ≥ 0.90 for 3 consecutive checkpoints |
+| Transition | u < 0.80 for 3 consecutive checkpoints with a ≥ 0.95 throughout |
+| Full crossing | Transition with final u < 0.50 |
+| Sensitivity grid | commitment ∈ {0.85, 0.90}; persistence ∈ {2, 3}; gate ∈ {0.90, 0.95} |
+| Primary endpoint | Transition rate, Fisher's exact test, two-sided |
+| Power | 0.82 at p = 0.40 vs 0.05; 0.57 at 0.30 vs 0.05; 0.19 at 0.25 vs 0.10 |
+| Interim | One look at 12/arm, α = 0.005 (efficacy only); final α = 0.048 |
+| Secondary | D_max, time to transition, late-training transition probability, drawdown, final u; BH at q = 0.10 |
+| Prospective prediction | C1 rate exceeds C2 rate by ≥ 15 percentage points |
+| Budget | ≈ 33 GPU-hours on one L4 (≈ $28) |
+| Not separable here | Pre-tail interference versus tail composition (deferred to a tail-composition design) |

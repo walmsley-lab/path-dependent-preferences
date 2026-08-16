@@ -168,3 +168,25 @@ most stable of the three conditions. Interpretation is NOT settled by
 this batch: candidate framings (route-stability / stochastic basin
 selection modulated by curriculum; late-phase interference) are
 hypotheses requiring more seeds, and are recorded here as such.
+
+## Note on the primary decision rule (added 2026-08-16, post-outcome)
+
+The Phase A primary criterion (all paired Δᵢ share a sign AND mean |Δ| ≥
+10pp) is a preregistered decision rule, not a powered population-level
+significance test. Requiring five signs to agree is brittle to a single
+seed; a mean of absolute differences discards direction and is sensitive
+to single extreme values — both properties were consequential here, as
+mean |Δ| = 0.171 cleared its threshold while the sign condition failed,
+with both facts produced by one run. The rule was applied exactly as
+written and the outcome recorded as NOT MET. It is not reused: Phase B
+(PREREG_PHASE_B.md) specifies an estimand, a minimum effect of interest,
+a power analysis with stated assumptions, an interim-analysis alpha
+spending plan, and multiplicity control for its secondary family.
+
+Retrospective note on the observed phenomenon: applying the Phase B
+competence-gated definitions to the Phase A record identifies
+post-commitment declines in 3/15 runs (C1 2/5, C2 0/5, C3 1/5), not the
+1/15 reported in the initial outcome entry, which counted only the full
+crossing. The between-condition contrast is uninformative (Fisher exact
+p = 0.44). This is a change in classification of existing data, not new
+data, and no Phase A conclusion depends on it.

@@ -154,27 +154,32 @@ def fig3():
               "C3": "C3 · interleaved"}
     for ax, cond in zip(axes, ["C1", "C2", "C3"]):
         ax.axhline(.5, color=RULE, linestyle="--", linewidth=.8)
+        # runs meeting the competence-gated decline definition (§5.2)
+        FLAGGED = {("C1", 0), ("C1", 3), ("C3", 2)}
         for seed in range(5):
             run = f"{cond}_L1_s{seed}"
             xs, ys = traj(run)
-            outlier = (cond == "C1" and seed == 3)
-            ax.plot(xs, ys, linewidth=2.2 if outlier else 1.1,
-                    color=CUE if outlier else GREEN,
-                    alpha=1.0 if outlier else .45, zorder=5 if outlier else 2)
-            if outlier:
-                ax.annotate("C1 seed 3\nmastery → collapse →\n"
-                            "transient recovery → reversal",
-                            xy=(95, .215), xytext=(30, .12), fontsize=7.5,
-                            color=CUE,
-                            arrowprops=dict(arrowstyle="->", color=CUE,
-                                            linewidth=.9))
+            flagged = (cond, seed) in FLAGGED
+            crossing = (cond == "C1" and seed == 3)
+            ax.plot(xs, ys, linewidth=2.0 if flagged else 1.1,
+                    color=CUE if flagged else GREEN,
+                    alpha=1.0 if flagged else .40,
+                    zorder=5 if flagged else 2,
+                    linestyle="-" if crossing or not flagged else "--")
+            if flagged:
+                ax.plot(xs[-1], ys[-1], "o", color=CUE, markersize=4,
+                        zorder=6)
+        ax.axhline(.80, color=CUE, linestyle=":", linewidth=.7, alpha=.6)
         ax.set_title(titles[cond], loc="left")
         ax.set_xlabel("developmental age (%)")
         ax.set_xlim(0, 100); ax.set_ylim(0, 1.02)
     axes[0].set_ylabel("conflict: agreement with the utility rule")
     axes[0].text(3, .53, "chance", fontsize=7, color=FADED)
-    fig.suptitle("Developmental trajectories, all 15 organisms — "
-                 "14 converge utility-side; one reverses late",
+    axes[0].text(3, .82, "decline threshold", fontsize=6.5, color=CUE)
+    fig.suptitle("Conflict-set agreement with the utility rule across "
+                 "training, all 15 runs.  Red: the three runs meeting the "
+                 "competence-gated decline definition (solid = full "
+                 "crossing).  Dotted line: 0.80 decline threshold.",
                  x=.005, ha="left", fontsize=10.5)
     fig.tight_layout(rect=[0, 0, 1, .93])
     fig.savefig(OUT / "fig3_trajectories.png", dpi=200)
